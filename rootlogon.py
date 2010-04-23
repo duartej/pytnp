@@ -45,13 +45,13 @@ njStyle.SetPadRightMargin(0.1)
 njStyle.SetPadLeftMargin(0.12);
 
 #set axis label and title text sizes
-njStyle.SetLabelFont(42,"xyz");
-njStyle.SetLabelSize(0.04,"xyz");
-njStyle.SetLabelOffset(0.015,"xyz");
-njStyle.SetTitleFont(42,"xyz");
-njStyle.SetTitleSize(0.05,"xyz");
-njStyle.SetTitleOffset(1.1,"yz");
-njStyle.SetTitleOffset(1.0,"x");
+njStyle.SetLabelFont(42,"xyz")
+njStyle.SetLabelSize(0.04,"xyz")
+njStyle.SetLabelOffset(0.015,"xyz")
+njStyle.SetTitleFont(42,"xyz")
+njStyle.SetTitleSize(0.05,"xyz")
+njStyle.SetTitleOffset(1.1,"yz")
+njStyle.SetTitleOffset(1.0,"x")
 njStyle.SetStatFont(42);
 njStyle.SetStatFontSize(0.05);
 njStyle.SetTitleBorderSize(0);
