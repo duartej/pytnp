@@ -6,6 +6,7 @@ import ROOT
 #--------- Se podira crear la llave del diccionario que
 # es el propio objeto dinamicamente, i.e que vaya cambiando
 # las llaves segun estemos en un directorio o en otro...
+import sys
 
 class pytnp(dict):
 	"""
@@ -18,11 +19,12 @@ class pytnp(dict):
 		"""
                 pytnp(fileroot)
 		"""
+		print 'Extracting info from '+filerootName+'.',
+		sys.stdout.flush()
 		classNames = ['TCanvas','RooDataSet','RooPlot','RooFitResult']
 		fileroot = ROOT.TFile(filerootName)
 		#self.__rootfile__ = fileroot
 		#__dict__ 
-		print 'Extracting info from '+filerootName+' .',
 		self.__dict__ = {}
 		self.__dict__ = self.__extract__(fileroot,self.__dict__) 
 		print ''
@@ -112,6 +114,7 @@ class pytnp(dict):
 	 	"""
 		if pytnp.counter%100 == 0:
 			print '.',
+			sys.stdout.flush()
 	 	#Python --> _dirSave is a reference to ROOT.gDirectory, so whenever gDirectory changes, _dirSaves changes too
 	 	#           I can't use the gDirectory
 	 	#_dirSave = ROOT.gDirectory

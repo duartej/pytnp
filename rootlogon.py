@@ -35,13 +35,14 @@ njStyle.SetFuncColor(ROOT.kRed);
 njStyle.SetLabelColor(ROOT.kBlack,"xyz");
 
 #set the default title color to be black
-njStyle.SetTitleColor(ROOT.kBlack);
+njStyle.SetTitleColor(ROOT.kBlack)
  
 #set the margins
-njStyle.SetPadBottomMargin(0.18);
-njStyle.SetPadTopMargin(0.08);
-njStyle.SetPadRightMargin(0.1);
-njStyle.SetPadLeftMargin(0.17);
+njStyle.SetPadBottomMargin(0.1)
+njStyle.SetPadTopMargin(0.08)
+njStyle.SetPadRightMargin(0.1)
+#njStyle.SetPadLeftMargin(0.17);
+njStyle.SetPadLeftMargin(0.12);
 
 #set axis label and title text sizes
 njStyle.SetLabelFont(42,"xyz");
