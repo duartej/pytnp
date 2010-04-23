@@ -10,14 +10,25 @@ import sys
 
 class pytnp(dict):
 	"""
-	Class to retrieve the Tag and Probe root file generated with the fit
-
+	Class to retrieve and encapsulate the 'tag and probe' 
+	root file generated with the fit step of the TagAndProbe
+	package from CMSSW.
 	"""
 	counter = 0
 	__fileroot__ = None
-	def __init__(self,filerootName):
+	def __init__(self, filerootName, regexp = ''):
 		"""
-                pytnp(fileroot)
+                pytnp(fileroota,regexp) -> pytnp object instance
+
+		Create a dictionary with keys are the name of 
+		the complete 'path' in a ROOT file of a ROOT.RooDataSet,
+		and the values are the ROOT.RooDataSet itself.
+		If 'regexp' is included, it will only be mapped
+		the ROOT.RooDataSet matching with 'regexp'.
+		The instance will contain the follow datamembers:
+		   TCanvas, RooDataSet, RooPlot, RooFitResults
+		which again are dictionaries analogous of the 
+		instance itself.
 		"""
 		print 'Extracting info from '+filerootName+'.',
 		sys.stdout.flush()
@@ -29,6 +40,9 @@ class pytnp(dict):
 		self.__dict__ = self.__extract__(fileroot,self.__dict__) 
 		print ''
 		self.__fileroot__ = fileroot
+		#--- Instantiate the dict object
+		for name, object in self.__dict__['RooDataSet'].iteritems():
+			self[name] = object
 		#Diccionario de directorios---> Espero a Luis
 		#objectList = { }
 		#-- Estructura de directorios: Parejas path-posicion total en 0/1/2/3..
@@ -89,8 +103,9 @@ class pytnp(dict):
 
 	def __extract__(self,Dir,dictObjects = {}):
 	 	"""
-	 	extract(ROOT.TDirectory Dir, python dict) -> dict
+	 	__extract__(ROOT.TDirectory Dir, python dict) -> dict
 	 	
+		Recursive function to extract from a 'tag and probe' ROOT faile 
 	 	Dictionary which stores all the relevant info from pytnp class, i.e TCanvas
 		RooFitResult, RooDataSet and RooPlot:
 		{ 'TCanvas': 
