@@ -176,7 +176,7 @@ class pytnp(dict):
 			for name in self.__dict__.__getattribute__(className).iterkeys():
 				message += name+'\n'
 		except AttributeError:
-			message = 'There\'s no class named' % directory
+			message = 'There\'s no class named' % className
 
 		print message
 
