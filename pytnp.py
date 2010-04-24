@@ -173,10 +173,12 @@ class pytnp(dict):
 		"""
 		message = '='*20+' '+className+' '+'='*20+'\n'
 		try:
-			for name in self.__dict__.__getattribute__(className).iterkeys():
+			for name in self.__getattribute__(className).iterkeys():
 				message += name+'\n'
 		except AttributeError:
-			message = 'There\'s no class named' % className
+			message = """
+There's no class named %s!
+                        """ % className
 
 		print message
 
