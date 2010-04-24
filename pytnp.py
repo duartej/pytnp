@@ -105,8 +105,8 @@ class pytnp(dict):
 	 	"""
 	 	__extract__(ROOT.TDirectory Dir, python dict) -> dict
 	 	
-		Recursive function to extract from a 'tag and probe' ROOT faile 
-	 	Dictionary which stores all the relevant info from pytnp class, i.e TCanvas
+		Recursive function to extract from a 'tag and probe' ROOT file all
+		the relevant information. Returning a dictionary which stores all TCanvas,
 		RooFitResult, RooDataSet and RooPlot:
 		{ 'TCanvas': 
 		            {'directory/subdirectory/.../nameOfTCanvas' : <ROOT.TCanvas object>,
@@ -130,29 +130,32 @@ class pytnp(dict):
 		if pytnp.counter%100 == 0:
 			print '.',
 			sys.stdout.flush()
-	 	#Python --> _dirSave is a reference to ROOT.gDirectory, so whenever gDirectory changes, _dirSaves changes too
-	 	#           I can't use the gDirectory
+		# FIXED-------------------------------------------------
 	 	#_dirSave = ROOT.gDirectory
+	 	#Python --> _dirSave is a reference to ROOT.gDirectory, 
+		#           so whenever gDirectory changes, _dirSaves 
+		#           changes too. I can't use the gDirectory
+		#-------------------------------------------------------
 	 	_dirSave = Dir
 		#Storing the father->child info
-		#__hierarchy__ = []
 	 	for key in Dir.GetListOfKeys():
 	 		className = key.GetClassName()
 	 		if key.IsFolder():
 	 			##-- Extracting the Folder from Dir
-				#if key.ClassName() != 'TFile':
-				#	__hierarchy__.append( (key, key.GetMother) )
 	 			_subdir = Dir.Get(key.GetName())
 	 			##-- And browsing inside recursively
 				pytnp.counter += 1
 	 			dictObjects = self.__extract__(_subdir,dictObjects)
-	 			##-- To avoid segmentation faults, we need to return at the original directory
-	 			##   in order to continue extracting subdirectories (or elements of the directory)
+	 			##-- To avoid segmentation faults, we need to return
+				##   at the original directory in order to continue
+				##   extracting subdirectories (or elements of the directory)
 	 			_dirSave.cd()
 	 		##-- Storing in the dictionary the interesting objects
 	 		elif className == 'TCanvas' or className == 'RooFitResult' or className == 'RooDataSet' or \
 	 				className == 'RooPlot':
-			        #print Dir.GetPath().split(':/')[1]
+				# DEBUG ---------------------------
+			        #print Dir.GetPath().split(':/')[1] #--- TO BE SKIPPED
+				#----------------------------------
 				pytnp.counter += 1
 				try:
 					#Asuming unique id object-->complet path
@@ -162,37 +165,20 @@ class pytnp(dict):
 	 
 	 	return dictObjects
 
-	def ls(self,*arguments):
+	def ls(self, className):
 		"""
-		FALLAAAAA
+		ls( className ) 
+
+		Print the identification of all the objects of type 'className'		
 		"""
-		directory = ''
-		className = ''
-		if len(arguments) > 2:
-			print """
-	You can not introduce more than 2 strings!
-	                      """
-			return
-		elif len(arguments) == 1:
-			directory = arguments[0]
-			className = ''
-		elif len(arguments) == 2:
-			directory = arguments[0]
-			className = arguments[1]
+		message = '='*20+' '+className+' '+'='*20+'\n'
+		try:
+			for name in self.__dict__.__getattribute__(className).iterkeys():
+				message += name+'\n'
+		except AttributeError:
+			message = 'There\'s no class named' % directory
 
-
-		isEnter = False
-		for cl, pathDict in self.__dict__.iteritems():
-			if cl.find(className) != -1:
-				for path in pathDict.iterkeys():
-					if path.find(directory) != -1:
-						print path,' --> ',cl
-						isEnter = True
-
-		if not isEnter:
-			print """
-	'There\'s no matching with %s name'
-	                      """ % directory
+		print message
 
 	def tableEff(self,name):
 		"""
