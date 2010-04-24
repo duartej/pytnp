@@ -190,7 +190,7 @@ class pytnp(dict):
 			resonance = 'Upsilon'+num
 
 		except AttributeError:
-			resonanceLatex = 'J#Psi'
+			resonanceLatex = 'J/#Psi'
 			resonance = 'JPsi'
 		except:
 			return None
