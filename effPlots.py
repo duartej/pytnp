@@ -46,8 +46,8 @@ if __name__ == '__main__':
 		whatPlots = 'fit_eff'
 		allFiles = opt.fileName
 		allFiles = allFiles.split(',')
-		if len(allFiles) != 3:
-			Message = """I need 3 input files comma separated without espaces. I read this %s""" % opt.fileName
+		if len(allFiles) < 2:
+			Message = """I need at least 2 input files comma separated without espaces. I read this %s""" % opt.fileName
 			parser.error( Message )
 		#-- Dictionary of pytnp instance for every resonance
 		tnpDict = {}
@@ -129,18 +129,21 @@ Error: the file name %s introduced is not in a standard format,
 	#TODO: poner en el titulo que rango estamos utilizando
 	#      y que probes
 	if opt.dim1Plots and not opt.allUpsilons:
-		tnp = pytnp.pytnp(opt.fileName)
+		whatPlots = 'fit_eff'
+		tnp = pytnp.pytnp(opt.fileName, whatPlots)
 		resonance = tnp.resLatex
 		for name,rootPlot in tnp.RooPlot.iteritems():
-			#Cuidado si no damos nombre machacara
-			tnp.plotEff1D(name)
+			if name.find('mcTrue') == -1:
+				tnp.plotEff1D(name)
 		del tnp
 
 	if opt.dim2Plots:
-		tnp = pytnp.pytnp(opt.fileName)
+		whatPlots = 'fit_eff'
+		tnp = pytnp.pytnp(opt.fileName, whatPlots)
 		resonance = tnp.resLatex
 		for name,dataSet in tnp.RooDataSet.iteritems():
-			tnp.plotEff2D(name)
+			if name.find('mcTrue') == -1:
+				tnp.plotEff2D(name)
 		del tnp
 	
 

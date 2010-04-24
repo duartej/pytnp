@@ -395,6 +395,12 @@ ERROR: What the f***!! This is an expected error... Exiting
 	
 	def plotEff2D( self, name ):
 		"""
+		plotEff2D( name ) 
+
+		Giving a RooDataSet name in directory-like format,
+		the function will do a bi-dimensional plot of 
+		efficiency with pt and eta variables. Also, it
+		will stores in the object instance
 		"""
 		#TODO: Flexibilidad para entrar variables de entrada
 		#FIXME: Meter los errores en la misma linea (ahora te salta
@@ -406,7 +412,7 @@ ERROR: What the f***!! This is an expected error... Exiting
 			print plotEff2D.__doc__
 			raise KeyError
 		#--- Name for the histo and for the plot file to be saved
-		histoName = name
+		histoName = 'TH2F_'+name
 		#--- Checking if the histo is already stored and plotted
 		if self.has_key(histoName):
 			#-- Skipping, work it's done!
@@ -423,13 +429,14 @@ ERROR: What the f***!! This is an expected error... Exiting
 		##-- Bineado 
 		ptNbins, arrayBinsPt = self.getBinning( pt )
 		etaNbins, arrayBinsEta = self.getBinning( eta )
-		h = ROOT.TH2F( 'h', '', etaNbins, arrayBinsEta, ptNbins, arrayBinsPt )
+		#-- To avoid warning in pyROOT
+		hTitleOfHist = 'h'+name.replace('/','_')
+		h = ROOT.TH2F( hTitleOfHist, '', etaNbins, arrayBinsEta, ptNbins, arrayBinsPt )
 		#h.SetTitle( title )
 		#h = ROOT.TH2F( 'h', '', ptNbins, arrayBinsPt, etaNbins, arrayBinsEta )
 	  	hlo = h.Clone("eff_lo")
 	  	hhi = h.Clone("eff_hi")
 		
-		print h.GetNbinsX(), h.GetNbinsY()
 		for i in xrange(dataSet.numEntries()):
 			_dummy = dataSet.get(i)
 			b = h.FindBin(eta.getVal(), pt.getVal())
@@ -457,7 +464,7 @@ ERROR: What the f***!! This is an expected error... Exiting
 			else:
 				ROOT.gStyle.SetPaintTextFormat("1.3f")
 				htext.Draw('SAMETEXT0')
-			plotName = self.resonance+'_'+histoName.replace('/','_')+isLog[0]+'.eps'
+			plotName = self.resonance+'_'+name.replace('/','_')+isLog[0]+'.eps'
 			c.SaveAs(plotName)
 		#-- Storing the histo
 		self[histoName] = h
