@@ -313,12 +313,15 @@ There's no class named %s!
 		frame = c.DrawFrame(xmin,ymin,xmax,ymax)
 		# Preparing to plot, setting variables, etc..
 		frame.SetTitle( title )
+		h.SetTitle( title )  #To Store the info
 		xlabel = var.getTitle()
 		varUnit = var.getUnit()
 		if varUnit != '':
 			xlabel += '('+varUnit+')'
 		frame.GetXaxis().SetTitle( xlabel.Data() ) #xlable is TString
+		h.GetXaxis().SetTitle( xlabel.Data() )
 		frame.GetYaxis().SetTitle( 'Efficiency' )
+		h.GetYaxis().SetTitle( 'Efficiency' )
 		h.Draw('P')
 		c.SaveAs(self.resonance+'_'+histoName.replace('/','_')+'.eps')
 		c.Close()

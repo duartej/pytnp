@@ -81,7 +81,6 @@ Error: the file name %s introduced is not in a standard format,
 		#--- Plots for the all resonances
 		#-- Assuming we have the same names for histos in every
 		#   dict, but the first word (resonance dependent).
-		color = 1
 		for histo in histoSet:			
 			c = ROOT.TCanvas()
 			leg = ROOT.TLegend(0.6,0.25,0.8,0.4)
@@ -89,6 +88,8 @@ Error: the file name %s introduced is not in a standard format,
 			#-- How much resonances? To save the plot..
 			howMuchRes = ''
 			hframe = None
+			color = [ 1, 38, 46, 28, 30 ] 
+			i = 0
 			for resName,resLatex in resonance.iteritems():
 				#Preparing the histo and draw
 				howMuchRes += resName
@@ -101,13 +102,13 @@ Error: the file name %s introduced is not in a standard format,
 					hframe = c.DrawFrame(rangesX[0], 0, rangesX[1], 1 )
 					hframe.GetXaxis().SetTitle( htmp.GetXaxis().GetTitle() )
 					hframe.GetYaxis().SetTitle( htmp.GetYaxis().GetTitle() )
-				htmp.SetLineColor(color)
-				htmp.SetMarkerColor(color)
+				htmp.SetLineColor(color[i])
+				htmp.SetMarkerColor(color[i])
 				htmp.Draw( 'P'+inSame )
 				leg.AddEntry( htmp, resLatex, 'P' )
 				inSame = 'SAME'
 				htmp.SetTitle()  #FIXME
-				color += 1
+				i += 1
 			leg.Draw()
 			c.SaveAs(howMuchRes+histo.replace('/','_')+'.eps')
 			c.Close()
