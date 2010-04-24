@@ -30,7 +30,8 @@ def plotEff1D(rooPlot, namePlot, resonance):
 	Also, the function returns the 	ROOT.RooHist contained in 
 	the ROOT.RooPlot object.
 	"""
-	#--- Title
+	#--- Title from namePlot: namePlot must be 
+	#--- in standard directory-like name
 	title = resonance+' '+inferInfo(namePlot)
 	#FIXME: Flexibilidad para entrar variables de entrada
 	name = namePlot
@@ -41,7 +42,8 @@ def plotEff1D(rooPlot, namePlot, resonance):
 	
 	#-- Plotted variable
 	var = rooPlot.getPlotVar()
-	#--- Graph 
+	#--- Graph, getHist returns a RooHist which inherits from
+	#--- TGraphErrorAsym
 	h = rooPlot.getHist()
 	ymin = h.GetYaxis().GetBinLowEdge(1) #Solo tiene un bin?
 	if ymin < 0:
@@ -91,11 +93,12 @@ def plotEff2D(dataSet, resonance, namePlot=''):
 	#FIXME: Cosmetics
 	#FIXME: Meter los errores en la misma linea (ahora te salta
 	#       de linea (TEXT option)
-	#TO DO: plotear log y normal
+	if namePlot == '':
+	  	print """Error: you must introduce a name for the plot"""
+		print plotEff1D.__doc__
+		raise AttributeError
 	name = namePlot
 	title = name+' '+inferInfo(name)+' '+dataSet.GetTitle()
-	if namePlot == '':
-		name = dataSet.GetName()
 	argSet = dataSet.get()
   	pt = argSet['pt'];
         eta = argSet['eta'];
@@ -123,25 +126,29 @@ def plotEff2D(dataSet, resonance, namePlot=''):
     		hhi.SetBinContent(b, eff.getVal()+eff.getErrorHi())
 	#Si es plot --> Entra un histo, graph o lo que sea, de momento
 	#Lo dejo asi, pero hay que cambiarlo
-	c = ROOT.TCanvas()
-	c.SetLogy(1) ## ---> Nota: si bajamos el numero de bins no hace 
-	####################3 falta el log
-	h.GetYaxis().SetTitle('p_{t} (GeV/c)')
-	h.GetXaxis().SetTitle('#eta')
-	h.GetZaxis().SetTitle('eff')
-	h.SetTitle( title )
-	h.Draw('COLZ')
-	htext = h.Clone('htext')
-	ROOT.gStyle.SetPaintTextFormat("1.2f")
-	htext.SetMarkerSize(1.0)
-	htext.SetMarkerColor(1)
-	htext.Draw('ESAMETEXT0')
-	#Por si lleva el path completo
-	resonance = resonance.strip('#)')
-	resonance = resonance.split('(')[0]
-	plotName = resonance+name.replace('/','_')+'.eps'
-	print plotName
-	c.SaveAs(plotName)
+	for isLog in [ ('',0), ('_log',1) ]:
+		c = ROOT.TCanvas()
+		c.SetLogy(isLog[1]) 
+		h.GetYaxis().SetTitle('p_{t} (GeV/c)')
+		h.GetXaxis().SetTitle('#eta')
+		h.GetZaxis().SetTitle('eff')
+		h.SetTitle( title )
+		h.Draw('COLZ')
+		htext = h.Clone('htext')
+		htext.SetMarkerSize(1.0)
+		htext.SetMarkerColor(1)
+		if isLog[1]:
+			ROOT.gStyle.SetPaintTextFormat("1.2f")
+			htext.Draw('ESAMETEXT0')
+		else:
+			ROOT.gStyle.SetPaintTextFormat("1.3f")
+			htext.Draw('SAMETEXT0')
+		#-- Taking the extra symbols away...
+		resonance = resonance.strip('#)')
+		resonance = resonance.split('(')[0]
+		plotName = resonance+name.replace('/','_')+isLog[0]+'.eps'
+		print plotName
+		c.SaveAs(plotName)
 	#fout = ROOT.TFile('kkk.root','UPDATE')
 	#fout.cd()
 	#h.Write(name+'_efficiency')
@@ -225,6 +232,7 @@ if __name__ == '__main__':
 		resonance = ''
 		for name,dataSet in tnp.RooDataSet.iteritems():
 			plotEff2D(dataSet,resonance,name)
+			exit()
 		del tnp
 	
 

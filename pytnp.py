@@ -186,7 +186,7 @@ There's no class named %s!
 		"""
 		"""
 		try:
-			dataSet = self.__dict__['RooDataSet'][name]
+			dataSet = self.RooDataSet[name]
 			argSet = dataSet.get()
 			pt = argSet['pt']
 			eta= argSet['eta']
