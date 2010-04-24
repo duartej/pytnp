@@ -11,6 +11,7 @@ class pytnp(dict):
 	"""
 	resonance = None
 	resLatex = None
+	effTypeName = None
 	counter = 0
 	__fileroot__ = None
 	def __init__(self, filerootName, regexp = ''):
@@ -42,10 +43,8 @@ class pytnp(dict):
 		#--- Instantiate the dict object
 		for name, object in self.__dict__['RooDataSet'].iteritems():
 			self[name] = object
-		#-- Get the resonancea
-		resonance, resLatex = self.getResName( filerootName )
-		self.__setattr__('resonance',resonance)
-		self.__setattr__('resLatex',resLatex)
+		#-- Get the resonances names
+		self.resonance, self.resLatex = self.getResName( filerootName )
 		#Diccionario de directorios---> Espero a Luis
 		#objectList = { }
 		#-- Estructura de directorios: Parejas path-posicion total en 0/1/2/3..
@@ -241,9 +240,6 @@ There's no class named %s!
 			print 'THere is no RooDataSet named '+name+' in the file '+self.__fileroot__.GetName()
 			raise KeyError
 
-	### TODO: Esto puede hacerse en tiempo de construccion
-	###       creando un dict, tuple, etc que acceda a esta
-	###       info
 	def inferInfo( self, name ):
 		"""
 		inferInfo( name ) -> str
@@ -273,13 +269,21 @@ There's no class named %s!
 
 	def plotEff1D( self, name ):
 		"""
-		plotEff1D(ROOT.RooPlot, namePlot, resonance) -> ROOT.RooHist
+		plotEff1D( namePlot) -> ROOT.RooHist
 	
-		Given a ROOT.RooPlot object, name for the plot (without extension),
-		and the name in latex format, the function creates a 1-dim plot 
-		extracted from the object and it will save it in a eps file. 
+		Given a name directory-like for a ROOT.RooPlog object,
+	 	the function creates a 1-dim plot etracted from the
+		object and it will save it in a eps file. Also
+		it will store in the dictionary of the instance if
+		the object does not exist.
 		"""
-		#--- Title from namePlot: namePlot must be 
+                #-- Name for the histo and for to save the plot
+		histoName = self.resonance+'_'+name.replace('/','_')
+		#-- Checking if the object exists
+		if self.has_key(histoName):
+			# So, skipping the action.. it's done
+			return None
+		#--- Title from name: name must be 
 		#--- in standard directory-like name
 		title = self.resLatex+' '+self.inferInfo(name)
 		#FIXME: Flexibilidad para entrar variables de entradaa
@@ -315,12 +319,11 @@ There's no class named %s!
 		frame.GetXaxis().SetTitle( xlabel.Data() ) #xlable is TString
 		frame.GetYaxis().SetTitle( 'Efficiency' )
 		h.Draw('P')
-		plotName = self.resonance+'_'+name.replace('/','_')+'.eps'
-		c.SaveAs(plotName)
+		c.SaveAs(histoName+'.eps')
 		c.Close()
 		del c
 		#--- Storing the histo
-		self[plotName.strip('.eps')] = h
+		self[histoName] = h
 
 
 
@@ -352,6 +355,13 @@ There's no class named %s!
 		  	print """Error: you must introduce a valid name"""
 			print plotEff2D.__doc__
 			raise KeyError
+		#--- Name for the histo and for the plot file to be saved
+		histoName = self.resonance+'_'+name.replace('/','_')
+		#--- Checking if the histo is already stored and plotted
+		if self.has_key(histoName):
+			#-- Skipping, work it's done!
+			return None
+		#--- Title for the plot file
 		title = self.resLatex+' '+self.inferInfo(name)+' '+dataSet.GetTitle()
 		argSet = dataSet.get()
 	  	pt = argSet['pt'];
@@ -397,10 +407,9 @@ There's no class named %s!
 			else:
 				ROOT.gStyle.SetPaintTextFormat("1.3f")
 				htext.Draw('SAMETEXT0')
-			plotName = self.resonance+'_'+name.replace('/','_')+isLog[0]+'.eps'
-			print plotName
+			plotName = histoName+isLog[0]+'.eps'
 			c.SaveAs(plotName)
 		#-- Storing the histo
-		self[plotName.strip('_log.eps')] = h
+		self[histoName] = h
 
 
