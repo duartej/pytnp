@@ -24,7 +24,7 @@ if __name__ == '__main__':
         from optparse import OptionParser
 
         parser = OptionParser()
-        parser.set_defaults(dim1Plots=False,dim2Plots=True)
+	#parser.set_defaults(dim1Plots=False,dim2Plots=True)
         parser.add_option( '-i', '--input', action='store', dest='fileName', help='Input root file name, comma separated, no espaces' )
         parser.add_option( '-u', '--AllUpsilons', action='store_true', dest='allUpsilons', help='Make all upsilons comparations' )
         parser.add_option( '--dim1', action='store_true', dest='dim1Plots', help='Must I do 1-dim plots?' )
@@ -48,37 +48,39 @@ if __name__ == '__main__':
 			Message = """I need 3 input files comma separated without espaces. I read this %s""" % opt.fileName
 			parser.error( Message )
 		
-		resDict = {}
+		tnpDict = {}
+		#
 		resPlotDict = {}
 		for aFile in allFiles:
 			#--- Extract from the standard name file the resonance ---
 			resonance = getResName( aFile )
 			#---------------------------------------------------------
 			#-- Create the pytnp object and the dict for the plots
-			resDict[resonance] = pytnp.pytnp( aFile )
+			tnpDict[resonance] = pytnp.pytnp( aFile, whatPlots )
 			resPlotDict[resonance] = {}
 			#---- Making the plots for this resonance
-			for name,rooPlot in resDict[resonance].RooPlot.iteritems():
-				if name.find(whatPlots) != -1 and name.find('mcTrue') == -1:
-					resPlotDict[resonance][name] = plotEff1D(rooPlot, name, resonance )
-			exit()
+			for name,rooPlot in tnpDict[resonance].RooPlot.iteritems():
+				if name.find('mcTrue') == -1:
+					tnpDict[resonance].plotEff1D( name )
+
+		print tnpDict
 
 	
 	#TODO: poner en el titulo que rango estamos utilizando
 	#      y que probes
 	if opt.dim1Plots:
 		tnp = pytnp.pytnp(opt.fileName)
+		resonance = getResName( opt.fileName )
 		for name,rootPlot in tnp.RooPlot.iteritems():
 			#Cuidado si no damos nombre machacara
-			plotEff1D(rootPlot,name)
+			tnp.plotEff1D(name)
 		del tnp
 
 	if opt.dim2Plots:
 		tnp = pytnp.pytnp(opt.fileName)
-		resonance = ''
+		resonance = getResName( opt.fileName )
 		for name,dataSet in tnp.RooDataSet.iteritems():
-			plotEff2D(dataSet,resonance,name)
-			exit()
+			tnp.plotEff2D(name)
 		del tnp
 	
 

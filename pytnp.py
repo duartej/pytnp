@@ -1,11 +1,6 @@
 """
 """
 import ROOT
-
-#--- TODO: vale la pena que herede de un diccionario??
-#--------- Se podira crear la llave del diccionario que
-# es el propio objeto dinamicamente, i.e que vaya cambiando
-# las llaves segun estemos en un directorio o en otro...
 import sys
 
 class pytnp(dict):
@@ -14,21 +9,25 @@ class pytnp(dict):
 	root file generated with the fit step of the TagAndProbe
 	package from CMSSW.
 	"""
+	resonance = None
+	resLatex = None
 	counter = 0
 	__fileroot__ = None
 	def __init__(self, filerootName, regexp = ''):
 		"""
                 pytnp(fileroota,regexp) -> pytnp object instance
 
-		Create a dictionary with keys are the name of 
-		the complete 'path' in a ROOT file of a ROOT.RooDataSet,
-		and the values are the ROOT.RooDataSet itself.
-		If 'regexp' is included, it will only be mapped
-		the ROOT.RooDataSet matching with 'regexp'.
+		Create a dictionary which are going to be populate
+		with the plots and datasets already contained in the
+		file and created a posterior.
+		If 'regexp' is included, it will only  map 
+		the objectstmatching with 'regexp'.
 		The instance will contain the follow datamembers:
-		   TCanvas, RooDataSet, RooPlot, RooFitResults
+		    
+		    TCanvas, RooDataSet, RooPlot, RooFitResults
+
 		which again are dictionaries analogous of the 
-		instance itself.
+		instance itself and can be extracted as datamembers.
 		"""
 		print 'Extracting info from '+filerootName+'.',
 		sys.stdout.flush()
@@ -43,6 +42,10 @@ class pytnp(dict):
 		#--- Instantiate the dict object
 		for name, object in self.__dict__['RooDataSet'].iteritems():
 			self[name] = object
+		#-- Get the resonancea
+		resonance, resLatex = self.getResName( filerootName )
+		self.__setattr__('resonance',resonance)
+		self.__setattr__('resLatex',resLatex)
 		#Diccionario de directorios---> Espero a Luis
 		#objectList = { }
 		#-- Estructura de directorios: Parejas path-posicion total en 0/1/2/3..
@@ -167,6 +170,39 @@ class pytnp(dict):
 					dictObjects[className] = { Dir.GetPath().split(':/')[1]+'/'+key.GetName(): Dir.Get(key.GetName()) }
 	 
 	 	return dictObjects
+	
+	def getResName( self, aFile ):
+		"""
+		getLatexRes( fileName ) -> str,str (latex)
+
+		Extract from the file name the resonance
+		and returns it plain and in Latex format.
+		"""
+		import re
+	
+		regexp = re.compile( '\D*(?P<NUMBER>\dS)' )
+		resonance = ''
+		resLatex = ''
+		try:
+			num = regexp.search( aFile ).group( 'NUMBER' )
+			resonanceLatex = '#Upsilon('+num+')'
+			resonance = 'Upsilon'+num
+
+		except AttributeError:
+			resonanceLatex = 'J#Psi'
+			resonance = 'JPsi'
+	
+		return resonance,resonanceLatex
+	
+	#TODO
+	def write(self, fileOut):
+		"""
+		write( fileOut ) 
+
+		Create a root file with all the contents of 
+		the instance.
+		"""
+		pass
 
 	def ls(self, className):
 		"""
@@ -233,25 +269,27 @@ There's no class named %s!
 		return toReturn
 
 
-	def plotEff1D( self, rooPlot, namePlot, resonance, mustReturn = False ):
+
+
+	def plotEff1D( self, name ):
 		"""
-		plotEff1D(ROOT.RooPlot, namePlot, resonance, mustReturn = False) -> ROOT.RooHist
+		plotEff1D(ROOT.RooPlot, namePlot, resonance) -> ROOT.RooHist
 	
 		Given a ROOT.RooPlot object, name for the plot (without extension),
 		and the name in latex format, the function creates a 1-dim plot 
 		extracted from the object and it will save it in a eps file. 
-		Also, the function returns the ROOT.RooHist contained in 
-		the ROOT.RooPlot object if mustReturn is True.
 		"""
 		#--- Title from namePlot: namePlot must be 
 		#--- in standard directory-like name
-		title = resonance+' '+inferInfo(namePlot)
-		#FIXME: Flexibilidad para entrar variables de entrada
-		name = namePlot
-		if namePlot == '':
-		  	print """Error: you must introduce a name for the plot"""
-			print plotEff1D.__doc__
-			raise AttributeError
+		title = self.resLatex+' '+self.inferInfo(name)
+		#FIXME: Flexibilidad para entrar variables de entradaa
+		rooPlot = None
+		try:
+			rooPlot = self.RooPlot[name]
+		except KeyError:
+		  	print """Error: you must introduce a valid name"""
+			print plotEff1D.__doc__ # OJO ESTO, esta sin comprobar
+			raise KeyError
 		
 		#-- Plotted variable
 		var = rooPlot.getPlotVar()
@@ -277,13 +315,13 @@ There's no class named %s!
 		frame.GetXaxis().SetTitle( xlabel.Data() ) #xlable is TString
 		frame.GetYaxis().SetTitle( 'Efficiency' )
 		h.Draw('P')
-		plotName = name.replace('/','_')+isLog[0]+'.eps'
+		plotName = self.resonance+'_'+name.replace('/','_')+'.eps'
 		c.SaveAs(plotName)
 		c.Close()
 		del c
+		#--- Storing the histo
+		self[plotName.strip('.eps')] = h
 
-		if mustReturn:
-			return h
 
 
 	def getBinning( self, var ):
@@ -301,19 +339,20 @@ There's no class named %s!
 	
 		return binsN, arrayBins
 	
-	def plotEff2D( self, dataSet, resonance, namePlot=''):
+	def plotEff2D( self, name ):
 		"""
 		"""
 		#FIXME: Flexibilidad para entrar variables de entrada
 		#FIXME: Cosmetics
 		#FIXME: Meter los errores en la misma linea (ahora te salta
 		#       de linea (TEXT option)
-		if namePlot == '':
-		  	print """Error: you must introduce a name for the plot"""
-			print plotEff1D.__doc__
-			raise AttributeError
-		name = namePlot
-		title = name+' '+inferInfo(name)+' '+dataSet.GetTitle()
+		try:
+			dataSet = self.RooDataSet[name]
+		except KeyError:
+		  	print """Error: you must introduce a valid name"""
+			print plotEff2D.__doc__
+			raise KeyError
+		title = self.resLatex+' '+self.inferInfo(name)+' '+dataSet.GetTitle()
 		argSet = dataSet.get()
 	  	pt = argSet['pt'];
 	        eta = argSet['eta'];
@@ -322,8 +361,8 @@ There's no class named %s!
 		#h = dataSet.createHistogram(eta, pt)
 		##### Creacion histograma
 		##-- Bineado 
-		ptNbins, arrayBinsPt = getBinning( pt )
-		etaNbins, arrayBinsEta = getBinning( eta )
+		ptNbins, arrayBinsPt = self.getBinning( pt )
+		etaNbins, arrayBinsEta = self.getBinning( eta )
 		h = ROOT.TH2F( 'h', '', etaNbins, arrayBinsEta, ptNbins, arrayBinsPt )
 		#h.SetTitle( title )
 		#h = ROOT.TH2F( 'h', '', ptNbins, arrayBinsPt, etaNbins, arrayBinsEta )
@@ -358,17 +397,10 @@ There's no class named %s!
 			else:
 				ROOT.gStyle.SetPaintTextFormat("1.3f")
 				htext.Draw('SAMETEXT0')
-			#-- Taking the extra symbols away...
-			resonance = resonance.strip('#)')
-			resonance = resonance.split('(')[0]
-			plotName = resonance+name.replace('/','_')+isLog[0]+'.eps'
+			plotName = self.resonance+'_'+name.replace('/','_')+isLog[0]+'.eps'
 			print plotName
 			c.SaveAs(plotName)
-		#fout = ROOT.TFile('kkk.root','UPDATE')
-		#fout.cd()
-		#h.Write(name+'_efficiency')
-		#hlo.Write(name+'_eff_low')
-		#hhi.Write(name+'_eff_high')
-		#fout.Close()
-		#return c
-		
+		#-- Storing the histo
+		self[plotName.strip('_log.eps')] = h
+
+
