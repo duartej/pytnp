@@ -87,12 +87,15 @@ Error: the file name %s introduced is not in a standard format,
 			inSame = '' 
 			#-- How much resonances? To save the plot..
 			howMuchRes = ''
+			hMRLatex = ''
 			hframe = None
 			color = [ 1, 38, 46, 28, 30 ] 
+			title = ''
 			i = 0
 			for resName,resLatex in resonance.iteritems():
 				#Preparing the histo and draw
 				howMuchRes += resName
+				hMRLatex += resLatex+' '
 				htmp = tnpDict[resName][histo]
 				#Setting the frame, once
 				if not hframe:
@@ -102,14 +105,23 @@ Error: the file name %s introduced is not in a standard format,
 					hframe = c.DrawFrame(rangesX[0], 0, rangesX[1], 1 )
 					hframe.GetXaxis().SetTitle( htmp.GetXaxis().GetTitle() )
 					hframe.GetYaxis().SetTitle( htmp.GetYaxis().GetTitle() )
+					#-- Extract the resonance --------------
+					tmpTitle = htmp.GetTitle().split(' ')[1:]
+					joinT = lambda x,y : x+' '+y
+					title = ''
+					for k in tmpTitle:
+						title = joinT(title,k)
 				htmp.SetLineColor(color[i])
 				htmp.SetMarkerColor(color[i])
+				#hframe.SetTitle( title ) 
 				htmp.Draw( 'P'+inSame )
 				leg.AddEntry( htmp, resLatex, 'P' )
 				inSame = 'SAME'
-				htmp.SetTitle()  #FIXME
 				i += 1
 			leg.Draw()
+			#-- includes all resonances
+			title = hMRLatex+', '+title
+			hframe.SetTitle( title )
 			c.SaveAs(howMuchRes+histo.replace('/','_')+'.eps')
 			c.Close()
 

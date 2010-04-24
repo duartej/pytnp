@@ -9,9 +9,13 @@ class pytnp(dict):
 	root file generated with the fit step of the TagAndProbe
 	package from CMSSW.
 	"""
+	#-- Name of the resonance
 	resonance = None
 	resLatex = None
+	#-- Ranges of the variables ploted
+	#variables = {}
 	counter = 0
+	#-- ROOT.TFile
 	__fileroot__ = None
 	def __init__(self, filerootName, regexp = ''):
 		"""
@@ -39,10 +43,8 @@ class pytnp(dict):
 		self.__dict__ = self.__extract__(fileroot, self.__dict__, regexp) 
 		print ''
 		self.__fileroot__ = fileroot
-		#--- Instantiate the dict object
-		self['RooDataSet'] = {}
-		for name, object in self.__dict__['RooDataSet'].iteritems():
-			self['RooDataSet'][name] = object
+		for name, dataSet in self.__dict__['RooDataSet'].iteritems():
+			self[name] = dataSet
 		#-- Get the resonances names
 		self.resonance, self.resLatex = self.getResName( filerootName )
 		#Diccionario de directorios---> Espero a Luis
@@ -266,14 +268,59 @@ There's no class named %s!
 	
 		return toReturn
 
+	def searchRange( self, name ):
+		"""
+		searchRange(name) -> 'range'
 
+		Getting a directory-like name of a RooPlot
+		extracts which's the range of the hidden 
+		variable. It uses the directory-like notation
+		to find which datased was used to generate the
+		plot:
+		RooPlot    -->  histoMuFromTk/Glb_pt_eta_mcTrue/fit_eff_plots/eta_plot__pt_bin10__mcTrue_true
+		RooDataSet -->  histoMuFromTk/Glb_pt_eta_mcTrue/fit_eff
+		"""
+		#-- Getting the dataset name
+		sName = name.split('_plots/')
+		dataSet = None
+		try:
+			dataSet = self.RooDataSet[ sName[0] ]
+		except KeyError:
+			message = """
+ERROR: What the f***!! This is an expected error... Exiting
+                        """
+			exit()
+		#-- var1_plot__var2_binX[__something_else]
+		#-- var1 is the plotted variable, var2 is the hidden
+		#   variable and could be something labels, but doesn't
+		#   matter to us
+		Var = sName[1].split('__')
+		plotVar = Var[0].split('_plot')
+		hidVar = Var[1].split('_')[0]
+		nBin = int(Var[1].split('_bin')[1])
+		######---Hay otra forma mas facil: 
+		#hidVar = self.RootPlot[name].GetTitle()
+		# Devuelve 'variable_binX'
+		argSet = dataSet.get()
+		# FIXME
+		#-- WARNING! If hidVar doesn't exist
+		#   the program will crash when trying
+		#   to retrieve the variable. I can't
+		#   found a secure method to extract it.
+		v = argSet[hidVar]
+		bins, arrayBins = self.getBinning( v )
+		rangeStr = hidVar+' range '
+		rangeStr += '('+str(arrayBins[nBin])+','+str(arrayBins[nBin+1])+')'
 
+		return rangeStr
+		
 
+	#TODO: Poner el rango donde estamos
 	def plotEff1D( self, name ):
 		"""
 		plotEff1D( namePlot) -> ROOT.RooHist
 	
-		Given a name directory-like for a ROOT.RooPlog object,
+		Given a name directory-like for a ROOT.RooPlot object,
 	 	the function creates a 1-dim plot etracted from the
 		object and it will save it in a eps file. Also
 		it will store in the dictionary of the instance if
@@ -287,7 +334,7 @@ There's no class named %s!
 			return None
 		#--- Title from name: name must be 
 		#--- in standard directory-like name
-		title = self.resLatex+' '+self.inferInfo(name)
+		title = self.resLatex+' '+self.inferInfo(name)+', '+self.searchRange(name)
 		#FIXME: Flexibilidad para entrar variables de entradaa
 		rooPlot = None
 		try:
@@ -349,8 +396,7 @@ There's no class named %s!
 	def plotEff2D( self, name ):
 		"""
 		"""
-		#FIXME: Flexibilidad para entrar variables de entrada
-		#FIXME: Cosmetics
+		#TODO: Flexibilidad para entrar variables de entrada
 		#FIXME: Meter los errores en la misma linea (ahora te salta
 		#       de linea (TEXT option)
 		try:
