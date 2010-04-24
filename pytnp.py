@@ -11,7 +11,6 @@ class pytnp(dict):
 	"""
 	resonance = None
 	resLatex = None
-	effTypeName = None
 	counter = 0
 	__fileroot__ = None
 	def __init__(self, filerootName, regexp = ''):
@@ -41,8 +40,9 @@ class pytnp(dict):
 		print ''
 		self.__fileroot__ = fileroot
 		#--- Instantiate the dict object
+		self['RooDataSet'] = {}
 		for name, object in self.__dict__['RooDataSet'].iteritems():
-			self[name] = object
+			self['RooDataSet'][name] = object
 		#-- Get the resonances names
 		self.resonance, self.resLatex = self.getResName( filerootName )
 		#Diccionario de directorios---> Espero a Luis
@@ -190,6 +190,8 @@ class pytnp(dict):
 		except AttributeError:
 			resonanceLatex = 'J#Psi'
 			resonance = 'JPsi'
+		except:
+			return None
 	
 		return resonance,resonanceLatex
 	
@@ -278,7 +280,7 @@ There's no class named %s!
 		the object does not exist.
 		"""
                 #-- Name for the histo and for to save the plot
-		histoName = self.resonance+'_'+name.replace('/','_')
+		histoName = name
 		#-- Checking if the object exists
 		if self.has_key(histoName):
 			# So, skipping the action.. it's done
@@ -304,7 +306,6 @@ There's no class named %s!
 		if ymin < 0:
 			ymin = 0
 		ymax = h.GetYaxis().GetBinUpEdge( h.GetYaxis().GetNbins() )
-		print ymax
 		xmin = h.GetXaxis().GetBinLowEdge(1) #Solo tiene un bin, es un TGraph
 		xmax = h.GetXaxis().GetBinUpEdge( h.GetXaxis().GetNbins() )
 		#Make canvas
@@ -319,7 +320,7 @@ There's no class named %s!
 		frame.GetXaxis().SetTitle( xlabel.Data() ) #xlable is TString
 		frame.GetYaxis().SetTitle( 'Efficiency' )
 		h.Draw('P')
-		c.SaveAs(histoName+'.eps')
+		c.SaveAs(self.resonance+'_'+histoName.replace('/','_')+'.eps')
 		c.Close()
 		del c
 		#--- Storing the histo
@@ -356,7 +357,7 @@ There's no class named %s!
 			print plotEff2D.__doc__
 			raise KeyError
 		#--- Name for the histo and for the plot file to be saved
-		histoName = self.resonance+'_'+name.replace('/','_')
+		histoName = name
 		#--- Checking if the histo is already stored and plotted
 		if self.has_key(histoName):
 			#-- Skipping, work it's done!
@@ -407,7 +408,7 @@ There's no class named %s!
 			else:
 				ROOT.gStyle.SetPaintTextFormat("1.3f")
 				htext.Draw('SAMETEXT0')
-			plotName = histoName+isLog[0]+'.eps'
+			plotName = self.resonance+'_'+histoName.replace('/','_')+isLog[0]+'.eps'
 			c.SaveAs(plotName)
 		#-- Storing the histo
 		self[histoName] = h
