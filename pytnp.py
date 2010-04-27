@@ -178,10 +178,14 @@ class pytnp(dict):
 
 		Extract from the file name the resonance
 		and returns it plain and in Latex format.
+		
+		Warning: This function is highly dependent
+		of the name of the file-- 
+		Standard Format:  NameOFResonance_X_bala
 		"""
 		import re
 	
-		regexp = re.compile( '\D*(?P<NUMBER>\dS)' )
+		regexp = re.compile( '\D*(?P<NUMBER>\dS)' ) 
 		resonance = ''
 		resLatex = ''
 		try:
@@ -190,8 +194,13 @@ class pytnp(dict):
 			resonance = 'Upsilon'+num
 
 		except AttributeError:
-			resonanceLatex = 'J/#Psi'
-			resonance = 'JPsi'
+			## Changed: we need to capture the AllUpsilon
+			if aFile.find( 'JPsi' ) != -1:
+				resonanceLatex = 'J/#Psi'
+				resonance = 'JPsi'
+			elif aFile.find( 'Upsilon' ) != -1:
+				resonanceLatex =  'All #Upsilon'
+				resonance = 'AllUpsilons'
 		except:
 			return None
 	

@@ -14,7 +14,10 @@ def getResName( aFile ):
 		num = regexp.search( aFile ).group( 'NUMBER' )
 		resonance = 'Upsilon'+num
 	except AttributeError:
-		resonance = 'JPsi'
+		if aFile.find( 'JPsi' ) != -1:
+			resonance = 'JPsi'
+		elif aFile.find( 'Upsilon' ) != -1:
+			resonance = 'AllUpsilons'
 	except:
 		return None
 
