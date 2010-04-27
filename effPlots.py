@@ -95,7 +95,7 @@ Error: the file name %s introduced is not in a standard format,
 			color = [ 1, 38, 46, 28, 30 ] 
 			title = ''
 			i = 0
-			for resName,resLatex in resonance.iteritems():
+			for resName,resLatex in sorted(resonance.iteritems()):
 				#Preparing the histo and draw
 				howMuchRes += resName
 				hMRLatex += resLatex+' '
