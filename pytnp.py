@@ -245,10 +245,18 @@ There's no class named %s!
 			pt = argSet['pt']
 			eta= argSet['eta']
 			eff = argSet['efficiency']
+			valList= []
 			for i in xrange(dataSet.numEntries()):
 				dataSet.get(i)
-				print 'pt=',pt.getVal(),' eta=',eta.getVal(),' eff=', eff.getVal()
-
+				#print 'pt=',pt.getVal(),' eta=',eta.getVal(),' eff=', eff.getVal()
+				#Change: watch this! for pt and eta Hi and Lo is the limit of the bin
+				#                    For efficiencies. is the asymmetric error?
+				valList.append( { 'pt':(pt.getVal(), pt.getVal()+pt.getErrorLo(), pt.getVal()+pt.getErrorHi()),\
+						'eta': (eta.getVal(), eta.getVal()+eta.getErrorLo(), eta.getVal()+eta.getErrorHi()),\
+						'eff': (eff.getVal(), eff.getErrorLo(), eff.getErrorHi(), eff.getError() )
+						}
+					      )
+			return valList
 		except KeyError:
 			print 'THere is no RooDataSet named '+name+' in the file '+self.__fileroot__.GetName()
 			raise KeyError
@@ -450,7 +458,7 @@ ERROR: What the f***!! This is an expected error... Exiting
 			b = h.FindBin(eta.getVal(), pt.getVal())
 		#	print 'bin=',b,' pt =', pt.getVal(),' eta=',eta.getVal()
 			h.SetBinContent(b, eff.getVal())
-			h.SetBinError(b, eff.getErrorLo())
+			h.SetBinError(b, (-eff.getErrorLo()+eff.getErrorHi())/2.0) # WATCH: Error 'Simetrized' 
 			hlo.SetBinContent(b, eff.getVal()+eff.getErrorLo())
 	    		hhi.SetBinContent(b, eff.getVal()+eff.getErrorHi())
 		#Si es plot --> Entra un histo, graph o lo que sea, de momento
