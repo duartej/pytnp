@@ -324,7 +324,6 @@ ERROR: What the f***!! This is an expected error... Exiting
 		return rangeStr
 		
 
-	#TODO: Poner el rango donde estamos
 	def plotEff1D( self, name ):
 		"""
 		plotEff1D( namePlot) -> ROOT.RooHist

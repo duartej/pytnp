@@ -67,7 +67,7 @@ if __name__ == '__main__':
 				#-- The file name must be standard
 				message = """
 Error: the file name %s introduced is not in a standard format,
-       Resonance_histo[MuFromTrk|Trigger]_....rot""" % aFile
+       Resonance_histo[MuFromTrk|Trigger]_....root""" % aFile
        				exit()
 			#---------------------------------------------------------
 			#-- Create the pytnp instance
