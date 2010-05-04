@@ -56,7 +56,7 @@ def getDiff2DPlots( tnpRef, tnp2, nameOfdataSet ):
 	h.SetTitle( title )
 	h.GetZaxis().SetLimits(0,6.5)
 	#First I fill the content of tnpRef
-	refList = tnpRef.tableEff( nameOfdataSet )
+	refList = pytnp.tableEff( dataSet1 )
 	for valDict in refList:
 		pt = valDict['pt'][0]
 		eta = valDict['eta'][0]
@@ -66,7 +66,7 @@ def getDiff2DPlots( tnpRef, tnp2, nameOfdataSet ):
 		h.SetBinContent( b, eff )
 		h.SetBinError( b, effError )
 	#Now I get the content of tnp2 in order to do the difference
-	toComp = tnp2.tableEff( nameOfdataSet )
+	toComp = pytnp.tableEff( dataSet2 )
 	for valDict in toComp:
 		pt = valDict['pt'][0]
 		eta = valDict['eta'][0]

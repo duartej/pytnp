@@ -3,6 +3,76 @@
 import ROOT
 import sys
 
+#TODO: Puede hacerse con **keywords. pt=valor, eta=valor,...
+def getEff( dataSet, pt, eta ):
+	"""
+	getEff(pt, eta) --> eff, effErrorLow, effErrorHigh, error
+
+	Giving a pt and eta returns the efficiency which 
+	corresponds to those values
+	"""
+	#-- Get the table of efficiencies
+	tableList = tableEff( dataSet )
+	for valDict in tableList:
+		#-- Extract ranges
+		ptRanges = valDict['pt'][1:]
+		etaRanges = valDict['eta'][1:]
+		if ( ptRanges[0] <= pt and ptRanges[1] >= pt ) and \
+				( etaRanges[0] <= eta and etaRanges[1] >= eta ):
+					return valDict['eff']
+				
+	print 'There is no bin where live the pair pt=',pt,', eta=',eta
+	return None
+				
+def getBinning( var ):
+	"""
+	getBinning( ROOT.RooArgVar ) -> bins, arrayBins
+
+	Giving a RooArgVar, the function returns 
+	how many bins the variable has and an array
+	with with his values.
+	"""
+
+	binsN = var.numBins()
+	binning = var.getBinning()
+	arrayBins = binning.array()
+
+	return binsN, arrayBins
+	
+def tableEff(dataSet):
+	"""
+	tableEff( dataSet ) --> tableList
+
+	Giving a RooDataSet, the function returns a list where every 
+	element is an entry of the RooDataSet stored as a dictionary:
+	For every entry we have
+	                { 'pt':  (pt, minimum pt bin, maximum pt bin),
+	                  'eta': (eta, minimum eta bin, maximum eta bin),
+			  'eff': (eff, error low, error high, error)
+			}
+
+	"""
+	try:
+		argSet = dataSet.get()
+		pt = argSet['pt']
+		eta= argSet['eta']
+		eff = argSet['efficiency']
+		valList= []
+		for i in xrange(dataSet.numEntries()):
+			dataSet.get(i)
+			#print 'pt=',pt.getVal(),' eta=',eta.getVal(),' eff=', eff.getVal()
+			#Change: watch this! for pt and eta Hi and Lo is the limit of the bin
+			#                    For efficiencies. is the asymmetric error?
+			valList.append( { 'pt':(pt.getVal(), pt.getVal()+pt.getErrorLo(), pt.getVal()+pt.getErrorHi()),\
+					'eta': (eta.getVal(), eta.getVal()+eta.getErrorLo(), eta.getVal()+eta.getErrorHi()),\
+					'eff': (eff.getVal(), eff.getErrorLo(), eff.getErrorHi(), eff.getError() )
+					}
+				      )
+		return valList
+	except AttributeError:
+		print dataSet+' is not a RooDataSet'
+		raise AttributeError
+
 class pytnp(dict):
 	"""
 	Class to retrieve and encapsulate the 'tag and probe' 
@@ -154,10 +224,15 @@ class pytnp(dict):
 		"""
 		write( fileOut ) 
 
-		Create a root file with all the contents of 
+		Create a root file with all the RooDataSets of 
 		the instance.
 		"""
-		pass
+		f = ROOT.TFile(fileOut,'RECREATE')
+
+		for name,dataSet in self.RooDataSet.iteritems():
+			dataSet.Write(name.replace('/','_'))
+		
+		f.Close()
 
 	def ls(self, className):
 		"""
@@ -176,41 +251,6 @@ There's no class named %s!
 
 		print message
 
-	def tableEff(self,name):
-		"""
-		tableEff( name ) --> tableList
-
-		Being name the valid name of a RooDataSet, the function returns
-		a list where every element is an entry of the RooDataSet stored as
-		a dictionary:
-		For every entry we have
-		                { 'pt':  (pt, minimum pt bin, maximum pt bin),
-		                  'eta': (eta, minimum eta bin, maximum eta bin),
-				  'eff': (eff, error low, error high, error)
-				}
-
-		"""
-		try:
-			dataSet = self.RooDataSet[name]
-			argSet = dataSet.get()
-			pt = argSet['pt']
-			eta= argSet['eta']
-			eff = argSet['efficiency']
-			valList= []
-			for i in xrange(dataSet.numEntries()):
-				dataSet.get(i)
-				#print 'pt=',pt.getVal(),' eta=',eta.getVal(),' eff=', eff.getVal()
-				#Change: watch this! for pt and eta Hi and Lo is the limit of the bin
-				#                    For efficiencies. is the asymmetric error?
-				valList.append( { 'pt':(pt.getVal(), pt.getVal()+pt.getErrorLo(), pt.getVal()+pt.getErrorHi()),\
-						'eta': (eta.getVal(), eta.getVal()+eta.getErrorLo(), eta.getVal()+eta.getErrorHi()),\
-						'eff': (eff.getVal(), eff.getErrorLo(), eff.getErrorHi(), eff.getError() )
-						}
-					      )
-			return valList
-		except KeyError:
-			print 'THere is no RooDataSet named '+name+' in the file '+self.__fileroot__.GetName()
-			raise KeyError
 
 	def inferInfo( self, name ):
 		"""
@@ -276,7 +316,7 @@ ERROR: What the f***!! This is an expected error... Exiting
 		#   to retrieve the variable. I can't
 		#   found a secure method to extract it.
 		v = argSet[hidVar]
-		bins, arrayBins = self.getBinning( v )
+		bins, arrayBins = getBinning( v )
 		rangeStr = hidVar+' range '
 		rangeStr += '('+str(arrayBins[nBin])+','+str(arrayBins[nBin+1])+')'
 
@@ -345,20 +385,6 @@ ERROR: What the f***!! This is an expected error... Exiting
 
 
 
-	def getBinning( self, var ):
-		"""
-		getBinning( ROOT.RooArgVar ) -> bins, arrayBins
-
-		Giving a RooArgVar, the function returns 
-		how many bins the variable has and an array
-		with with his values.
-		"""
-	
-		binsN = var.numBins()
-		binning = var.getBinning()
-		arrayBins = binning.array()
-	
-		return binsN, arrayBins
 	
 	def plotEff2D( self, name ):
 		"""
@@ -394,8 +420,8 @@ ERROR: What the f***!! This is an expected error... Exiting
 		#h = dataSet.createHistogram(eta, pt)
 		##### Creacion histograma
 		##-- Bineado 
-		ptNbins, arrayBinsPt = self.getBinning( pt )
-		etaNbins, arrayBinsEta = self.getBinning( eta )
+		ptNbins, arrayBinsPt = getBinning( pt )
+		etaNbins, arrayBinsEta = getBinning( eta )
 		#-- To avoid warning in pyROOT
 		hTitleOfHist = 'h'+name.replace('/','_')
 		h = ROOT.TH2F( hTitleOfHist, '', etaNbins, arrayBinsEta, ptNbins, arrayBinsPt )
