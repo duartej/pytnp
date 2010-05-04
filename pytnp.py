@@ -178,9 +178,17 @@ There's no class named %s!
 
 	def tableEff(self,name):
 		"""
-		tableEff( name ) 
+		tableEff( name ) --> tableList
 
-		Print a table with the values of efficiencies.
+		Being name the valid name of a RooDataSet, the function returns
+		a list where every element is an entry of the RooDataSet stored as
+		a dictionary:
+		For every entry we have
+		                { 'pt':  (pt, minimum pt bin, maximum pt bin),
+		                  'eta': (eta, minimum eta bin, maximum eta bin),
+				  'eff': (eff, error low, error high, error)
+				}
+
 		"""
 		try:
 			dataSet = self.RooDataSet[name]
