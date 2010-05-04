@@ -47,63 +47,6 @@ class pytnp(dict):
 			self[name] = dataSet
 		#-- Get the resonances names
 		self.resonance, self.resLatex = self.getResName( filerootName )
-		#Diccionario de directorios---> Espero a Luis
-		#objectList = { }
-		#-- Estructura de directorios: Parejas path-posicion total en 0/1/2/3..
-	#	directories = set()
-	#	for pathValDict in self.__dict__.itervalues():
-	#		for dirNames in pathValDict.iterkeys():
-	#			dirNames = dirNames.split('/')
-	#			#dirNames.reverse()
-	#			#Guardo el nombre del dir, el padre y el hijo
-	#			#Si no tiene hijo guardamos None. El padre del top directory es tambien None
-	#			directories.add( (dirNames[0],None,dirNames[1]) )
-	#			for i in xrange(len(1,dirNames)-i):
-	#				try:
-	#					directories.add( (dirNames[i],dirNames[i-1],dirNames[i+1]) )
-	#				except IndexError:
-	#					directories.add( (dirNames[i],dirNames[i-1],None) )
-	#	#pasa a lista
-	#	refdirList = list( directories )
-	#	# Y finalmente a diccionario
-	#	for name,father,child in refdirList:
-	#		if father is None and child is not None:
-	#			self.__setattr__(name,child)
-	#		elif child is not None:
-	#			seff.__setattr__(name,child)
-	#		elif child is None:
-	#			#Get all the path
-	#			grandfather 
-	#			self._setattr__(name, self.__dict__[name]
-	#			#		self.__DIR__ = dict( directories )
-	#	#Creacion de los atributos (dinamicamente)--> 
-	#	for i in obj.iterkeys():
-	#	#	self.__setattr__(name,self.__dict__[name])
-	#		#Diccionario: las keys son los elementos y los valores el tipo de objeto
-	#	#	self[name]=classType
-	#
-
-	#def __getattribute__(self,name):
-	#	"""
-	#	"""
-	#	try:
-	#		#Controla los atributos definidos como TLeaf's
-	#		#Para devolver el contenido del leaf
-	#		if  self[name] == 'UInt_t':
-	#			return self.__getattr__(name)
-	#		else:
-	#			return dict.__getattribute__(self,name)
-	#	except KeyError:
-	#		return dict.__getattribute__(self,name)
-
-	#def __getattr__(self,name):
-	#	"""
-	#	"""
-	#	try:
-	#		#Devuelve el contenido del leaf
-	#		return self.__dict__[name].GetValue()
-	#	except:
-	#		raise AttributeError, name
 
 	def __extract__(self, Dir, dictObjects, regexp):
 	 	"""
