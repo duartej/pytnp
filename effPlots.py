@@ -48,8 +48,8 @@ def getDiff2DPlots( tnpRef, tnp2, nameOfdataSet ):
 	argSet = dataSet.get()
 	pt = argSet['pt'];
 	eta = argSet['eta'];
-	ptNbins, arrayBinsPt = tnpRef.getBinning( pt )
-	etaNbins, arrayBinsEta = tnpRef.getBinning( eta )
+	ptNbins, arrayBinsPt = pytnp.getBinning( pt )
+	etaNbins, arrayBinsEta = pytnp.getBinning( eta )
 	#-- To avoid warning in pyROOT
 	hTitleOfHist = 'h'+nameOfdataSet.replace('/','_')
 	h = ROOT.TH2F( hTitleOfHist, '', etaNbins, arrayBinsEta, ptNbins, arrayBinsPt )
