@@ -56,7 +56,7 @@ def getDiff2DPlots( tnpRef, tnp2, nameOfdataSet ):
 	h.SetTitle( title )
 	h.GetZaxis().SetLimits(0,6.5)
 	#First I fill the content of tnpRef
-	refList = pytnp.tableEff( dataSet1 )
+	refList = pytnp.tableEff( dataSet )
 	for valDict in refList:
 		pt = valDict['pt'][0]
 		eta = valDict['eta'][0]
