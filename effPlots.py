@@ -96,7 +96,7 @@ def getDiff2DPlots( tnpRef, tnp2, nameOfdataSet ):
 	c.SaveAs(toPlotName)
 
 
-def doDiffEff( allFiles, refRes, whatPlots = 'fit_eff' ):
+def doDiffEff( allFiles, refRes, whatPlots ):
 	"""
 	doCompartionPlots( 'file1,file2,..', 'whatPlots') 
 	"""
@@ -130,11 +130,12 @@ Error: the file name %s introduced is not in a standard format,
 	resonanceRef = resonance.pop( refRes )
 	for resName,resLatex in sorted(resonance.iteritems()):
 		for name in tnpDict[resName].RooDataSet.iterkeys():
-			if name.find('mcTrue') == -1:
-				getDiff2DPlots( tnpResRef, tnpDict[resName], name )
+			#counting case
+			#if name.find('mcTrue') == -1:
+			getDiff2DPlots( tnpResRef, tnpDict[resName], name )
 
 
-def doComparationPlots( allFiles, whatPlots = 'fit_eff' ):
+def doComparationPlots( allFiles, whatPlots ):
 	"""
 	doCompartionPlots( 'file1,file2,..', 'whatPlots') 
 	"""
@@ -165,12 +166,12 @@ Error: the file name %s introduced is not in a standard format,
 		resonance[ resName ] = tnpDict[resName].resLatex
 		#---- Making the plots for this resonance
 		for name,rooPlot in tnpDict[resName].RooPlot.iteritems():
-			#--- Don't plot mcTrue information
-			if name.find('mcTrue') == -1:
-				#-- Store the name of the histos
-				histoSet.add( name )
-				#-- Storing and plotting
-				tnpDict[resName].plotEff1D( name )
+			#--- Don't plot mcTrue information--> YES, counting case
+			#if name.find('mcTrue') == -1:
+			#-- Store the name of the histos
+			histoSet.add( name )
+			#-- Storing and plotting
+			tnpDict[resName].plotEff1D( name )
 	#--- Plots for the all resonances
 	#-- Assuming we have the same names for histos in every
 	#   dict, but the first word (resonance dependent).
@@ -224,12 +225,13 @@ if __name__ == '__main__':
         from optparse import OptionParser
 
         parser = OptionParser()
-	#parser.set_defaults(dim1Plots=False,dim2Plots=True)
+	parser.set_defaults(counting=False)
         parser.add_option( '-i', '--input', action='store', dest='fileName', help='Input root file name, comma separated, no espaces' )
         parser.add_option( '-u', '--AllUpsilons', action='store_true', dest='allUpsilons', help='Make all upsilons comparations' )
         parser.add_option( '--dim1', action='store_true', dest='dim1Plots', help='Must I do 1-dim plots?' )
         parser.add_option( '--dim2', action='store_true', dest='dim2Plots', help='Must I do 2-dim plots?' )
-	parser.add_option( '-c', '--comp', action='store', dest='resToComp', help='Do the comparation between efficiencies for different resonances taking RESONANCE as reference' )
+	parser.add_option( '-c', '--comp', action='store', dest='resToComp', metavar='RESONANCE', help='Do the comparation between efficiencies for different resonances taking RESONANCE as reference' )
+        parser.add_option( '--counting', action='store_true', dest='counting', help='If active this flag, do the plots using the MC information (counting events)' )
 
         ( opt, args ) = parser.parse_args()
 
@@ -242,16 +244,17 @@ if __name__ == '__main__':
 
 	#Do not display graphics
 	pytnp.ROOT.gROOT.SetBatch(1)
+	#Using MC info-- counting events instead of fit
+	whatPlots = 'fit_eff'
+	if opt.counting:
+		whatPlots = 'cnt_eff'
 
 	if opt.allUpsilons:
-		#--- We define only the fit_eff plots
-		whatPlots = 'fit_eff'
 		allFiles = opt.fileName
 		doComparationPlots( allFiles, whatPlots )
 
 	if opt.resToComp:
 		#--- 
-		whatPlots = 'fit_eff'
 		allFiles = opt.fileName
 		#FIXME: Control de errores
 		doDiffEff( allFiles, opt.resToComp, whatPlots )
@@ -259,21 +262,20 @@ if __name__ == '__main__':
 
 	
 	if opt.dim1Plots and not opt.allUpsilons:
-		whatPlots = 'fit_eff'
 		tnp = pytnp.pytnp(opt.fileName, whatPlots)
 		resonance = tnp.resLatex
 		for name,rootPlot in tnp.RooPlot.iteritems():
-			if name.find('mcTrue') == -1:
-				tnp.plotEff1D(name)
+			#Counting case:
+			#if name.find('mcTrue') == -1:
+			tnp.plotEff1D(name)
 		del tnp
 
 	if opt.dim2Plots:
-		whatPlots = 'fit_eff'
 		tnp = pytnp.pytnp(opt.fileName, whatPlots)
 		resonance = tnp.resLatex
 		for name,dataSet in tnp.RooDataSet.iteritems():
-			if name.find('mcTrue') == -1:
-				tnp.plotEff2D(name)
+			#if name.find('mcTrue') == -1:
+			tnp.plotEff2D(name)
 		del tnp
 
 	
