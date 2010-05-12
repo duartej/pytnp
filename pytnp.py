@@ -330,6 +330,8 @@ ERROR: What the f***!! This is an expected error... Exiting
 		
 
 	def plotEff1D( self, name ):
+		#TODO: Cambiar esta funcion para que utilice el
+		#      RooDataSet o ambos...
 		"""
 		plotEff1D( namePlot) -> ROOT.RooHist
 	
