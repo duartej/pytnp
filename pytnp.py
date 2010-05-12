@@ -52,6 +52,7 @@ def tableEff(dataSet):
 			}
 
 	"""
+	#TODO: usando el try, permitir tambien la busqueda para TH2
 	try:
 		argSet = dataSet.get()
 		pt = argSet['pt']
@@ -88,6 +89,11 @@ class pytnp(dict):
 	#-- ROOT.TFile
 	__fileroot__ = None
 	def __init__(self, filerootName, regexp = ''):
+		#TODO: Anyadir un **key, que sea resonance='Resonancia'
+		#      en el constructor, si encuentra esto, ignorar la
+		#      llamada getResName pues ya tenemos la resonancia
+		#      Esto nos permite mas flexibilidad en los nombres
+		#      de los root files
 		"""
                 pytnp(fileroota,regexp) -> pytnp object instance
 
