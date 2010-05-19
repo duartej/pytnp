@@ -44,6 +44,10 @@ def getDiff2DPlots( tnpRef, tnp2, nameOfdataSet ):
 	#--- Title for the plot file
 	title = '#varepsilon_{'+tnpRef.resLatex+'}'+'-#varepsilon_{'+tnp2.resLatex+'}/#sqrt{#sigma_{'+tnpRef.resLatex+'}^{2}+#sigma_{'+tnp2.resLatex+'}^{2}}'+\
                           ' '+tnpRef.inferInfo(nameOfdataSet)+' '+dataSet.GetTitle()
+	plotName2 = 'ComparingRelative_'+tnpRef.resonance+'_'+tnp2.resonance+'_'+nameOfdataSet.replace('/','_')
+	#--- Title for the plot file
+	title2 = '#varepsilon_{'+tnpRef.resLatex+'}'+'-#varepsilon_{'+tnp2.resLatex+'}/#varepsilon_{'+tnpRef.resLatex+'}'+\
+                          ' '+tnpRef.inferInfo(nameOfdataSet)+' '+dataSet.GetTitle()
 	#--- Getting the binning: must I check if tnp2 has the same binning?
 	argSet = dataSet.get()
 	pt = argSet['pt'];
@@ -55,6 +59,10 @@ def getDiff2DPlots( tnpRef, tnp2, nameOfdataSet ):
 	h = ROOT.TH2F( hTitleOfHist, '', etaNbins, arrayBinsEta, ptNbins, arrayBinsPt )
 	h.SetTitle( title )
 	h.GetZaxis().SetLimits(0,6.5)
+        ##--- 
+	h2 = ROOT.TH2F( hTitleOfHist+'rel', '', etaNbins, arrayBinsEta, ptNbins, arrayBinsPt )
+	h2.SetTitle( title2 )
+	#####################################################h2.GetZaxis().SetLimits(0,6.5)
 	#First I fill the content of tnpRef
 	refList = pytnp.tableEff( dataSet )
 	for valDict in refList:
@@ -65,6 +73,9 @@ def getDiff2DPlots( tnpRef, tnp2, nameOfdataSet ):
 		b = h.FindBin( eta, pt )
 		h.SetBinContent( b, eff )
 		h.SetBinError( b, effError )
+		b = h2.FindBin( eta, pt )
+		h2.SetBinContent( b, eff )
+		h2.SetBinError( b, effError )
 	#Now I get the content of tnp2 in order to do the difference
 	toComp = pytnp.tableEff( dataSet2 )
 	for valDict in toComp:
@@ -78,8 +89,19 @@ def getDiff2DPlots( tnpRef, tnp2, nameOfdataSet ):
 		oldErr = h.GetBinError( b )
 		newErr = sqrt(oldErr**2.0+effError**2.0)
 		#print pt, eta, newVal, oldVal
-		h.SetBinContent( b, newVal/newErr )
+		try:
+			h.SetBinContent( b, newVal/newErr )
+		except ZeroDivisionError:
+			h.SetBinContent( b, 0 )
 		h.SetBinError( b, 0.0 )  ##WATCH: Missed error propagation
+                #####----- EL otro histograma
+		oldVal = h2.GetBinContent( b )
+		newVal = abs(oldVal-eff)
+		try:
+			h2.SetBinContent( b, newVal/oldVal )
+		except ZeroDivisionError:
+			h2.SetBinContent( b, 0 )
+		h2.SetBinError( b, 0.0 )  ##WATCH: Missed error propagation
 		
 	c = ROOT.TCanvas()
 	h.GetYaxis().SetTitle('p_{t} (GeV/c)')
@@ -94,7 +116,21 @@ def getDiff2DPlots( tnpRef, tnp2, nameOfdataSet ):
 	htext.Draw('SAMETEXT0')
 	toPlotName = plotName+'.eps'
 	c.SaveAs(toPlotName)
-
+        c.Close()
+	#------------------ El otro....
+	c2 = ROOT.TCanvas()
+	h2.GetYaxis().SetTitle('p_{t} (GeV/c)')
+	h2.GetXaxis().SetTitle('#eta')
+	h2.GetZaxis().SetTitle('eff')
+	h2.SetTitle( title )
+	h2.Draw('COLZ')
+	#htext = h2.Clone('htext')
+	#htext.SetMarkerSize(1.0)
+	#htext.SetMarkerColor(1)
+	#ROOT.gStyle.SetPaintTextFormat("1.3f")
+	#htext.Draw('SAMETEXT0')
+	toPlotName2 = plotName2+'.eps'
+	c2.SaveAs(toPlotName2)
 
 def doDiffEff( allFiles, refRes, whatPlots ):
 	"""
