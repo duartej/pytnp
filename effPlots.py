@@ -25,28 +25,37 @@ def getResName( aFile ):
 	return resonance
 
 
-def getDiff2DPlots( tnpRef, tnp2, nameOfdataSet ):
+def getDiff2DPlots( tnpRef, tnp2, nameOfdataSet, nameOfdataSet2='' ):
 	"""
 	"""
 	from math import sqrt
+	####--FIXME: PAtch para poder hacer mc-fit y res1-res2
+	if nameOfdataSet2=='':
+		nameOfdataSet2=nameOfdataSet
+		tnpRef_resLatex = tnpRef.resLatex
+		tnp2_resLatex =  tnp2.resLatex
+	else:
+		tnpRef_resLatex = tnpRef.resLatex+'^{MC}'
+		tnp2_resLatex = tnpRef.resLatex+'^{TnP}'
         try:
 		dataSet = tnpRef.RooDataSet[nameOfdataSet]
 	except KeyError:
 		print """Error: you must introduce a valid name"""
 		raise KeyError
         try:
-		dataSet2 = tnp2.RooDataSet[nameOfdataSet]
+		dataSet2 = tnp2.RooDataSet[nameOfdataSet2]
 	except KeyError:
 		print """Error: you must introduce a valid name"""
 		raise KeyError
+	##---- FIXME---> HARDCODED para MC y Fit comparation
 	#--- Name for the histo and for the plot file to be saved
 	plotName = 'Comparing_'+tnpRef.resonance+'_'+tnp2.resonance+'_'+nameOfdataSet.replace('/','_')
 	#--- Title for the plot file
-	title = '#varepsilon_{'+tnpRef.resLatex+'}'+'-#varepsilon_{'+tnp2.resLatex+'}/#sqrt{#sigma_{'+tnpRef.resLatex+'}^{2}+#sigma_{'+tnp2.resLatex+'}^{2}}'+\
+	title = '|#varepsilon_{'+tnpRef_resLatex+'}'+'-#varepsilon_{'+tnp2_resLatex+'}|/#sqrt{#sigma_{'+tnpRef_resLatex+'}^{2}+#sigma_{'+tnp2_resLatex+'}^{2}}'+\
                           ' '+tnpRef.inferInfo(nameOfdataSet)+' '+dataSet.GetTitle()
 	plotName2 = 'ComparingRelative_'+tnpRef.resonance+'_'+tnp2.resonance+'_'+nameOfdataSet.replace('/','_')
 	#--- Title for the plot file
-	title2 = '#varepsilon_{'+tnpRef.resLatex+'}'+'-#varepsilon_{'+tnp2.resLatex+'}/#varepsilon_{'+tnpRef.resLatex+'}'+\
+	title2 = '|#varepsilon_{'+tnpRef_resLatex+'}'+'-#varepsilon_{'+tnp2_resLatex+'}|/#varepsilon_{'+tnpRef_resLatex+'}'+\
                           ' '+tnpRef.inferInfo(nameOfdataSet)+' '+dataSet.GetTitle()
 	#--- Getting the binning: must I check if tnp2 has the same binning?
 	argSet = dataSet.get()
@@ -59,9 +68,13 @@ def getDiff2DPlots( tnpRef, tnp2, nameOfdataSet ):
 	h = ROOT.TH2F( hTitleOfHist, '', etaNbins, arrayBinsEta, ptNbins, arrayBinsPt )
 	h.SetTitle( title )
 	h.GetZaxis().SetLimits(0,6.5)
+        h.SetContour(50) # Aumenta el granulado de los colores
         ##--- 
 	h2 = ROOT.TH2F( hTitleOfHist+'rel', '', etaNbins, arrayBinsEta, ptNbins, arrayBinsPt )
 	h2.SetTitle( title2 )
+        h2.SetContour(50)
+	h2.GetZaxis().SetLimits(0.0,1.0)
+	h2.GetZaxis().SetLabelSize(0.02)
 	#####################################################h2.GetZaxis().SetLimits(0,6.5)
 	#First I fill the content of tnpRef
 	refList = pytnp.tableEff( dataSet )
@@ -98,7 +111,11 @@ def getDiff2DPlots( tnpRef, tnp2, nameOfdataSet ):
 		oldVal = h2.GetBinContent( b )
 		newVal = abs(oldVal-eff)
 		try:
-			h2.SetBinContent( b, newVal/oldVal )
+		        #FIXME: Cuidado con esto!!
+		        if newVal/oldVal > 10.0:
+				pass
+			else:
+				h2.SetBinContent( b, newVal/oldVal )
 		except ZeroDivisionError:
 			h2.SetBinContent( b, 0 )
 		h2.SetBinError( b, 0.0 )  ##WATCH: Missed error propagation
@@ -122,7 +139,7 @@ def getDiff2DPlots( tnpRef, tnp2, nameOfdataSet ):
 	h2.GetYaxis().SetTitle('p_{t} (GeV/c)')
 	h2.GetXaxis().SetTitle('#eta')
 	h2.GetZaxis().SetTitle('eff')
-	h2.SetTitle( title )
+	h2.SetTitle( title2 )
 	h2.Draw('COLZ')
 	#htext = h2.Clone('htext')
 	#htext.SetMarkerSize(1.0)
@@ -213,7 +230,7 @@ Error: the file name %s introduced is not in a standard format,
 	#   dict, but the first word (resonance dependent).
 	for histo in histoSet:			
 		c = ROOT.TCanvas()
-		leg = ROOT.TLegend(0.6,0.25,0.8,0.4)
+		leg = ROOT.TLegend(0.8,0.15,0.98,0.3)
 		inSame = '' 
 		#-- How much resonances? To save the plot..
 		howMuchRes = ''
@@ -255,6 +272,55 @@ Error: the file name %s introduced is not in a standard format,
 		c.SaveAs(howMuchRes+histo.replace('/','_')+'.eps')
 		c.Close()
 
+
+def sysMCFIT(_file):
+        """
+        """
+	message = """
+===============================================================
+                          WARNING !!
+===============================================================
+           This script is hardcoded... Waiting for
+                        generalization.
+                       Use with caution.
+	"""
+	print message
+
+        ROOT.gROOT.SetBatch(1)
+
+        ###HARDCODED FIXME: Funciona pero ojo!! hay que arreglarlo
+        #################################
+	#_file = _file[0]
+        tnp = pytnp.pytnp(_file)
+
+        #COMPRUEBA ESTO----
+        #buildBin = lambda x: format(x*2.5/24.0,'.2f')+' < #eta < '+format((x+1)*2.5/24.0,'.2f')
+        #binsEta = dict( [ (str(i),buildBin(i)) for i in xrange(25) ] )
+
+        #binsEta = { '0' : '-2.4 < #eta < -1.6', '1' : '-1.6 < #eta < -1.0', '2' : '-1.0 < #eta < -1.0',\
+        #               '3' : '1.0 < #eta < 1.6', '4' : '1.6 < #eta < 2.4' }
+
+        fit = []
+        mcTrue = []
+        for i in tnp.RooDataSet.iterkeys():
+                if i.find('fit_eff') != -1:
+                        fit.append( i )
+                if i.find('cnt_eff') != -1:
+                        mcTrue.append( i )
+
+        #Building the datasets pairs
+        #--- TODO: hay una manera mas eficiente de hacer esto (filter, map...)
+        pairFitMC = []
+        for MC in mcTrue:
+                for FIT in fit:
+                        if MC.strip('_mcTrue/cnt_eff') == FIT.strip('/fit_eff'):
+                                pairFitMC.append( (MC,FIT) )
+	
+	for tMC, tFIT in pairFitMC:
+		getDiff2DPlots( tnp, tnp, tMC, tFIT )
+		
+
+
 if __name__ == '__main__':
 	"""
 	"""
@@ -268,6 +334,7 @@ if __name__ == '__main__':
         parser.add_option( '--dim2', action='store_true', dest='dim2Plots', help='Must I do 2-dim plots?' )
 	parser.add_option( '-c', '--comp', action='store', dest='resToComp', metavar='RESONANCE', help='Do the comparation between efficiencies for different resonances taking RESONANCE as reference' )
         parser.add_option( '--counting', action='store_true', dest='counting', help='If active this flag, do the plots using the MC information (counting events)' )
+        parser.add_option( '--sysTnP', action='store_true', dest='sysTnP', help='Compute differences between mcTrue counting and TnP-fit' )
 
         ( opt, args ) = parser.parse_args()
 
@@ -313,6 +380,9 @@ if __name__ == '__main__':
 			#if name.find('mcTrue') == -1:
 			tnp.plotEff2D(name)
 		del tnp
+
+	if opt.sysTnP:
+		sysMCFIT( opt.fileName )
 
 	
 
