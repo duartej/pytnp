@@ -88,20 +88,24 @@ class pytnp(dict):
 	counter = 0
 	#-- ROOT.TFile
 	__fileroot__ = None
-	def __init__(self, filerootName, regexp = ''):
+	def __init__(self, filerootName, **keywords):
 		#TODO: Anyadir un **key, que sea resonance='Resonancia'
 		#      en el constructor, si encuentra esto, ignorar la
 		#      llamada getResName pues ya tenemos la resonancia
 		#      Esto nos permite mas flexibilidad en los nombres
 		#      de los root files
 		"""
-                pytnp(fileroota,regexp) -> pytnp object instance
+                pytnp(fileroota,...) -> pytnp object instance
 
 		Create a dictionary which are going to be populate
 		with the plots and datasets already contained in the
-		file and created a posterior.
-		If 'regexp' is included, it will only  map 
-		the objectstmatching with 'regexp'.
+		file.
+		If dataset is included, it will only  map 
+		the object matching with 'dataset'.
+		If resonance=(name,latexName) is included the filename is not necessary
+		to be an standard tag and probe name (i.e. Resonance_blabla.root).
+		If mcTrue is set to True it will store the mcTrue info
+		and will associate each dataset with their mcTrue dataset.
 		The instance will contain the follow datamembers:
 		    
 		    TCanvas, RooDataSet, RooPlot, RooFitResults
@@ -109,20 +113,55 @@ class pytnp(dict):
 		which again are dictionaries analogous of the 
 		instance itself and can be extracted as datamembers.
 		"""
+		#--- Checking the keys dictionary passed ----#
+		#--- Keys valid
+		valid_keys = ['resonance', 'dataset','mcTrue']
+		#---- Some initializations
+		dataset = ''
+		for i in keywords.keys():
+			if not i in valid_keys:
+				message ='\033[1;31mpytnp: invalid instance of pytnp: you can not use %s as key argument, ' % i
+				message += ' key arguments valids are \'resonance\', \'dataset\', \'mcTrue\' \033[1;m' 
+				raise IOError, message
+			#---Checking the correct format and storing
+			#---the names provided by the user
+			elif i == 'resonance':
+				message ='\033[1;31mpytnp: Not valid resonance=%s; resonance key must be a tuple containing (\'name\',\'nameInLatex\')\033[1;m' \
+						% str(keywords['resonance'])
+				if len(keywords['resonance']) != 2:
+					print message
+					raise KeyError
+				else:
+					if keywords['resonance'][0].find('#') != -1 \
+							or keywords['resonance'][0].find('{') != -1  :
+						print message		
+						raise KeyError
+					#--- Storing resonance provided by user
+					self.resonance = keywords['resonance'][0]
+					self.resLatex  = keywords['resonance'][1]
+			elif i == 'dataset':
+				dataset = keywords['dataset']
+                #--------------------------------------------@
+		#--- Extracting the members
 		print 'Extracting info from '+filerootName+'.',
 		sys.stdout.flush()
 		classNames = ['TCanvas','RooDataSet','RooPlot','RooFitResult']
 		fileroot = ROOT.TFile(filerootName)
-		#self.__rootfile__ = fileroot
-		#__dict__ 
+		#--- Checking the extraction was fine
+		if fileroot.IsZombie():
+			message = '\033[1;31mpytnp: Invalid root dataset or root dataset not found, %s \033[1;m' % filerootName
+			raise IOError, message
+		#Building the dictionary 
 		self.__dict__ = {}
-		self.__dict__ = self.__extract__(fileroot, self.__dict__, regexp) 
-		print ''
-		self.__fileroot__ = fileroot
+		self.__dict__ = self.__extract__(fileroot, self.__dict__, dataset) 
 		for name, dataSet in self.__dict__['RooDataSet'].iteritems():
+			print name
 			self[name] = dataSet
+		self.__fileroot__ = fileroot
 		#-- Get the resonances names
-		self.resonance, self.resLatex = self.getResName( filerootName )
+		#--- If it does not provided by the user
+		if not self.resonance:
+			self.resonance, self.resLatex = self.getResName( filerootName )
 
 	def __extract__(self, Dir, dictObjects, regexp):
 	 	"""
@@ -161,11 +200,19 @@ class pytnp(dict):
 		#-------------------------------------------------------
 	 	_dirSave = Dir
 		#Storing the father->child info
+		try:
+			listOfKeys = Dir.GetListOfKeys()
+		##-- Checking that is a Tag and Probe fit 
+		##   file. IF it is not, then we find
+		##   some not expected TKeys (as TTree, etc.. )
+		except AttributeError:
+			message = """\033[1;31mpytnp: The root file is not an standard T&P fit file\033[1;m""" 
+			raise AttributeError, message
 	 	for key in Dir.GetListOfKeys():
 	 		className = key.GetClassName()
 	 		if key.IsFolder():
 	 			##-- Extracting the Folder from Dir
-	 			_subdir = Dir.Get(key.GetName())
+				_subdir = Dir.Get(key.GetName())
 	 			##-- And browsing inside recursively
 				pytnp.counter += 1
 	 			dictObjects = self.__extract__(_subdir,dictObjects,regexp)
@@ -217,9 +264,12 @@ class pytnp(dict):
 			if aFile.find( 'JPsi' ) != -1:
 				resonanceLatex = 'J/#Psi'
 				resonance = 'JPsi'
-			elif aFile.find( 'Upsilon' ) != -1:
+			elif aFile.find( 'Upsilon' ) != 0:
 				resonanceLatex =  'All #Upsilon'
 				resonance = 'AllUpsilons'
+			elif aFile.find( 'Z' ) != -1:
+				resonanceLatex = 'Z#rightarrow#mu#mu'
+				resonance = 'Z'
 		except:
 			return None
 	
