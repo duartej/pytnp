@@ -88,12 +88,9 @@ class pytnp(dict):
 	counter = 0
 	#-- ROOT.TFile
 	__fileroot__ = None
+	#-- Attribute dictionay##FIXME Es realmentee necesario?
+	__attrDict__ = {}
 	def __init__(self, filerootName, **keywords):
-		#TODO: Anyadir un **key, que sea resonance='Resonancia'
-		#      en el constructor, si encuentra esto, ignorar la
-		#      llamada getResName pues ya tenemos la resonancia
-		#      Esto nos permite mas flexibilidad en los nombres
-		#      de los root files
 		"""
                 pytnp(fileroota,...) -> pytnp object instance
 
@@ -155,13 +152,60 @@ class pytnp(dict):
 		self.__dict__ = {}
 		self.__dict__ = self.__extract__(fileroot, self.__dict__, dataset) 
 		for name, dataSet in self.__dict__['RooDataSet'].iteritems():
-			print name
 			self[name] = dataSet
 		self.__fileroot__ = fileroot
 		#-- Get the resonances names
 		#--- If it does not provided by the user
 		if not self.resonance:
 			self.resonance, self.resLatex = self.getResName( filerootName )
+		#--- Encapsulate the hierarchy of the directories: FIXME: Es realmente necesario??
+		for name in self.iterkeys():
+			self.__attrDict__ = self.__getType__(name,self.__attrDict__)
+
+	def __getType__(self, name, structure):
+		#FIXME: Es realmente necesario??
+		"""
+		__getType__( 'RooDataSet name', dictionary ) --> dictionary
+		Build a dictionary where the key is the pathname (in standard T&P format)
+		and the values are also dictionaries storing relevant info of the dataset.
+		"""
+		import re
+		#-- Dictionary to store 
+		structure[name] = { 'effType': {}, 'objectType': {}, 'methodUsed': {}, 'isMC' : {} }
+		#-- Extracting
+		pathname = name.split('/')
+		if len(pathname) != 3:
+			#-- The storege format is not in T6P standard
+			message = '\033[1;31mThe format of the %s file is not in T&P standard... Exiting\033[1;m' % self.__fileroot__.GetName()
+			print message
+			exit(-1)
+		effType = pathname[0]
+		objectType = pathname[1]
+		methodUsed = pathname[2]
+		#-- Mapping
+		#---- Type of efficiency
+		if effType == 'histoTrigger':
+			structure[name]['effType'] = 'trigger'
+		elif effType == 'histoMuFromTk':
+			structure[name]['effType'] =  'muonId'
+		else:
+			message = '\033[1;31mrd... I don\'t understand what efficiency is in the directory %s \033[1;m' % effType
+		#setattr(self.RooDataSet, structure[name]['effType'], {})
+		#---- Type of efficiency
+		structure[name]['objectType'] = objectType.split('_')[0]
+		#---- Method Used
+		structure[name]['methodUsed'] = methodUsed
+		#---- Is mcTrue
+		regexp = re.compile( '\S*_(?P<mc>mcTrue)' ) #PRovisional o no...
+		try:
+			# Check if it mcTrue
+			regexp.search( objectType ).group( 'mc' )
+			structure[name]['isMC'] = 1
+		except AttributeError:
+			structure[name]['isMC'] = 0
+
+		return structure
+
 
 	def __extract__(self, Dir, dictObjects, regexp):
 	 	"""
@@ -240,14 +284,14 @@ class pytnp(dict):
 	
 	def getResName( self, aFile ):
 		"""
-		getLatexRes( fileName ) -> str,str (latex)
+		getResName( fileName ) -> str,str (latex)
 
 		Extract from the file name the resonance
 		and returns it plain and in Latex format.
 		
 		Warning: This function is highly dependent
 		of the name of the file-- 
-		Standard Format:  NameOFResonance_X_bala
+		Standard Format:  NameOFResonance_X_blabla
 		"""
 		import re
 	
@@ -316,6 +360,8 @@ There's no class named %s!
 		the function returns what kind of efficiency is,
 		MuonID or Trigger.
 		"""
+		#TODO: Si mantegno __attrDict__ se puede extraer
+		#      de ese diccionario dicrectamente
 		info = name.split('/')
 		toReturn = ''
 		if len(info) != 1:
