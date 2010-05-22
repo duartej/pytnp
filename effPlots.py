@@ -5,7 +5,7 @@ import ROOT
 import pytnp
 
 
-def getDiff2DPlots( tnpRef, tnp2, nameOfdataSet, nameOfdataSet2='' ):
+def getDiff2DPlots( tnpRef, tnp2, *nameOfdataSet ):
 	"""
 	getDiff2DPlots( pytnpRef, pytnpOther, nameOfdataSet, nameOfdataSet2 ) --> 
 
@@ -18,25 +18,35 @@ def getDiff2DPlots( tnpRef, tnp2, nameOfdataSet, nameOfdataSet2='' ):
 	The comparation will be done until the minimum of both
 	"""
 	from math import sqrt
-	####--FIXME: PAtch para poder hacer mc-fit y res1-res2
-	if nameOfdataSet2=='':
-		nameOfdataSet2=nameOfdataSet
+	#---- Initialiting -------------------------------
+	nameOfdataSet2 = None
+	#-- Comparation between different resonances
+	if len(nameOfdataSet) == 1:
+		nameOfdataSet  = nameOfdataSet[0]
+		nameOfdataSet2 = nameOfdataSet
 		tnpRef_resLatex = tnpRef.resLatex
 		tnp2_resLatex =  tnp2.resLatex
-	else:
+	#--- MC comparation
+	elif len(nameOfdataSet) == 2: 
+		nameOfdataSet2 = nameOfdataSet[1]
+		nameOfdataSet  = nameOfdataSet[0] 
 		tnpRef_resLatex = tnpRef.resLatex+'^{MC}'
 		tnp2_resLatex = tnpRef.resLatex+'^{TnP}'
+	else:
+		message = """\033[1;31mUnexpected Error!!\033[1;m"""
+		print message
+		exit(-1)
         try:
 		dataSet = tnpRef.RooDataSet[nameOfdataSet]
 	except KeyError:
-		print """Error: you must introduce a valid name"""
+		print """\033[1;31mError: you must introduce a valid name\033[1;m"""
 		raise KeyError
         try:
 		dataSet2 = tnp2.RooDataSet[nameOfdataSet2]
 	except KeyError:
-		print """Error: you must introduce a valid name"""
+		print """\033[1;31mError: you must introduce a valid name\033[1;m"""
 		raise KeyError
-	##---- FIXME---> HARDCODED para MC y Fit comparation
+	#---------------------------------------------------
 	#--- Name for the histo and for the plot file to be saved
 	plotName = 'Comparing_'+tnpRef.resonance+'_'+tnp2.resonance+'_'+nameOfdataSet.replace('/','_')
 	#--- Title for the plot file
@@ -46,97 +56,107 @@ def getDiff2DPlots( tnpRef, tnp2, nameOfdataSet, nameOfdataSet2='' ):
 	#--- Title for the plot file
 	title2 = '|#varepsilon_{'+tnpRef_resLatex+'}'+'-#varepsilon_{'+tnp2_resLatex+'}|/#varepsilon_{'+tnpRef_resLatex+'}'+\
                           ' '+tnpRef.inferInfo(nameOfdataSet)+' '+dataSet.GetTitle()
-	#--- Getting the binning: must I check if tnp2 has the same binning?
+	# Dictionary of objects
+	histoList = [ { 'histo': None, 'plotName': plotName, 'title': title},
+			{ 'histo': None,  'plotName': plotName2, 'title': title2 } 
+			]
+	#--- Getting the binning and some checks:
 	argSet = dataSet.get()
 	pt = argSet['pt'];
 	eta = argSet['eta'];
 	ptNbins, arrayBinsPt = pytnp.getBinning( pt )
 	etaNbins, arrayBinsEta = pytnp.getBinning( eta )
+	#------ Checking if the eta bining is the same, otherwise is an error -----@
+	argSet2 = dataSet2.get()
+	pt2 = argSet2['pt'];
+	eta2 = argSet2['eta'];
+	ptNbins2, arrayBinsPt2 = pytnp.getBinning( pt2 )
+	etaNbins2, arrayBinsEta2 = pytnp.getBinning( eta2 )
+	if etaNbins != etaNbins2:
+		print """\033[1;31mError: Not supported different eta bin numbers. Exiting...\033[1;m"""
+		exit(-1)
+	#-- Chosing the minimum size of pt bin
+	if ptNbins2 > ptNbins:
+		ptNbins = ptNbins2
+		arrayBinsPt = arrayBinsPt2
+		arrayBinsEta = arrayBinsEta2
+		dataSet = dataSet2
+	#---------------------------------------------------------------------------@
 	#-- To avoid warning in pyROOT
-	hTitleOfHist = 'h'+nameOfdataSet.replace('/','_')
-	h = ROOT.TH2F( hTitleOfHist, '', etaNbins, arrayBinsEta, ptNbins, arrayBinsPt )
-	h.SetTitle( title )
-	h.GetZaxis().SetLimits(0,6.5)
-        h.SetContour(50) # Aumenta el granulado de los colores
-        ##--- 
-	h2 = ROOT.TH2F( hTitleOfHist+'rel', '', etaNbins, arrayBinsEta, ptNbins, arrayBinsPt )
-	h2.SetTitle( title2 )
-        h2.SetContour(50)
-	h2.GetZaxis().SetLimits(0.0,1.0)
-	h2.GetZaxis().SetLabelSize(0.02)
-	#####################################################h2.GetZaxis().SetLimits(0,6.5)
-	#First I fill the content of tnpRef
+	k = 0
+	for thisHisto in histoList:
+		hTitleOfHist = 'h'+nameOfdataSet.replace('/','_')+str(k)
+		thisHisto['histo'] = ROOT.TH2F( hTitleOfHist, '', etaNbins, arrayBinsEta, ptNbins, arrayBinsPt )
+		thisHisto['histo'].SetTitle( thisHisto['title'] )
+		thisHisto['histo'].GetZaxis().SetLimits(0,1.0) # (6.5 Por que??)
+		thisHisto['histo'].SetContour(50) # Aumenta el granulado de los colores
+		thisHisto['histo'].GetZaxis().SetLabelSize(0.02)
+		k += 1
+	#--- Extracting values from reference
 	refList = pytnp.tableEff( dataSet )
 	for valDict in refList:
 		pt = valDict['pt'][0]
 		eta = valDict['eta'][0]
 		eff = valDict['eff'][0]
-		effError = (valDict['eff'][2]-valDict['eff'][1])/2.0 #WATCH: Error 'simetrized'
-		b = h.FindBin( eta, pt )
-		h.SetBinContent( b, eff )
-		h.SetBinError( b, effError )
-		b = h2.FindBin( eta, pt )
-		h2.SetBinContent( b, eff )
-		h2.SetBinError( b, effError )
-	#Now I get the content of tnp2 in order to do the difference
-	toComp = pytnp.tableEff( dataSet2 )
-	for valDict in toComp:
-		pt = valDict['pt'][0]
-		eta = valDict['eta'][0]
-		eff = valDict['eff'][0]
-		effError = (valDict['eff'][2]-valDict['eff'][1])/2.0 #WATCH: Error 'simetrized'
-		b = h.FindBin( eta, pt )
-		oldVal = h.GetBinContent( b )
-		newVal = abs(oldVal-eff)
-		oldErr = h.GetBinError( b )
-		newErr = sqrt(oldErr**2.0+effError**2.0)
-		#print pt, eta, newVal, oldVal
-		try:
-			h.SetBinContent( b, newVal/newErr )
-		except ZeroDivisionError:
-			h.SetBinContent( b, 0 )
-		h.SetBinError( b, 0.0 )  ##WATCH: Missed error propagation
-                #####----- EL otro histograma
-		oldVal = h2.GetBinContent( b )
-		newVal = abs(oldVal-eff)
-		try:
-		        #FIXME: Cuidado con esto!!
-		        if newVal/oldVal > 10.0:
-				pass
-			else:
-				h2.SetBinContent( b, newVal/oldVal )
-		except ZeroDivisionError:
-			h2.SetBinContent( b, 0 )
-		h2.SetBinError( b, 0.0 )  ##WATCH: Missed error propagation
-		
-	c = ROOT.TCanvas()
-	h.GetYaxis().SetTitle('p_{t} (GeV/c)')
-	h.GetXaxis().SetTitle('#eta')
-	h.GetZaxis().SetTitle('eff')
-	h.SetTitle( title )
-	h.Draw('COLZ')
-	htext = h.Clone('htext')
-	htext.SetMarkerSize(1.0)
-	htext.SetMarkerColor(1)
-	ROOT.gStyle.SetPaintTextFormat("1.3f")
-	htext.Draw('SAMETEXT0')
-	toPlotName = plotName+'.eps'
-	c.SaveAs(toPlotName)
-        c.Close()
-	#------------------ El otro....
-	c2 = ROOT.TCanvas()
-	h2.GetYaxis().SetTitle('p_{t} (GeV/c)')
-	h2.GetXaxis().SetTitle('#eta')
-	h2.GetZaxis().SetTitle('eff')
-	h2.SetTitle( title2 )
-	h2.Draw('COLZ')
-	#htext = h2.Clone('htext')
-	#htext.SetMarkerSize(1.0)
-	#htext.SetMarkerColor(1)
-	#ROOT.gStyle.SetPaintTextFormat("1.3f")
-	#htext.Draw('SAMETEXT0')
-	toPlotName2 = plotName2+'.eps'
-	c2.SaveAs(toPlotName2)
+		effError = sqrt(valDict['eff'][2]**2.0+valDict['eff'][1]**2.0)  #Simetrizing errors
+		other = pytnp.getEff( dataSet2, pt, eta )
+		effOther = other[0]
+		effErrorOther = sqrt(other[2]**2.0+other[1]**2.0)               #Simetrizing errors
+		finalEff = abs(eff-effOther)
+		newErr = sqrt(effErrorOther**2.0+effError**2.0)
+		k = 0
+		for hist in histoList:
+			b = hist['histo'].FindBin( eta, pt )
+			if k == 0:
+				#--- Sigma map
+				try:
+					if finalEff/newErr > 10:     #WARNING: Avoiding outliers
+						print """ 
+Posible outlier: pt= %.4f
+		 eta=%.4f
+		 eff_ref=%.5f, eff_comp=%.5f
+		 |eff_ref-eff_comp|/sigma = %0.5f
+		 """ % ( pt,eta,eff,effOther, finalEff/newErr )
+					else:
+						hist['histo'].SetBinContent( b, finalEff/newErr ) #WARNING
+				except ZeroDivisionError:
+					hist['histo'].SetBinContent( b, 0.0 )
+			elif k == 1:
+				#--- Relative map
+				try:
+					if finalEff/eff > 10:
+						print """ 
+Posible outlier: pt= %.4f
+		 eta=%.4f
+		 eff_ref=%.5f, eff_comp=%.5f
+		 |eff_ref-eff_comp|eff_ref= %0.5f
+		 """ % ( pt,eta,eff,effOther, finalEff/eff )
+					else:
+						hist['histo'].SetBinContent( b, finalEff/eff )    #WARNING
+				except ZeroDivisionError:
+					pass
+					#	hist['histo'].SetBinContent( b, 0.0 ) 
+			hist['histo'].SetBinError( b, 0.0 )
+			k += 1
+	k = 0
+	for hist in histoList:
+		c = ROOT.TCanvas()
+		hist['histo'].GetYaxis().SetTitle('p_{t} (GeV/c)')
+		hist['histo'].GetXaxis().SetTitle('#eta')
+		hist['histo'].GetZaxis().SetTitle('eff')
+		hist['histo'].SetTitle( hist['title'] )
+		hist['histo'].Draw('COLZ')
+		#--- Only if is sigma plot
+		if k >= 0: ###--- FIXME: De momento dejo que esten los valores
+			htext = hist['histo'].Clone('htext')
+			htext.SetMarkerSize(1.0)
+			htext.SetMarkerColor(1)
+			ROOT.gStyle.SetPaintTextFormat("1.3f")
+			htext.Draw('SAMETEXT0')
+		toPlotName = hist['plotName']+'.eps'
+		c.SaveAs(toPlotName)
+		c.Close()
+		k += 1
 
 def doDiffEff( allFiles, refRes, whatPlots ):
 	"""
@@ -270,13 +290,13 @@ Error: the file name %s introduced is not in a standard format,
 def sysMCFIT(_file):
         """
         """
-	message = """
+	message = """\033[1;31m
 ===============================================================
                           WARNING !!
 ===============================================================
            This script is hardcoded... Waiting for
                         generalization.
-                       Use with caution.
+                       Use with caution.\033[1;m
 	"""
 	print message
 
@@ -297,9 +317,9 @@ def sysMCFIT(_file):
         fit = []
         mcTrue = []
         for i in tnp.RooDataSet.iterkeys():
-                if i.find('fit_eff') != -1:
+                if i.find('fit_eff') != -1 and i.find('_mcTrue/fit_eff') == -1:
                         fit.append( i )
-                if i.find('cnt_eff') != -1:
+                if i.find('_mcTrue/cnt_eff') != -1:
                         mcTrue.append( i )
 
         #Building the datasets pairs
@@ -311,7 +331,7 @@ def sysMCFIT(_file):
                                 pairFitMC.append( (MC,FIT) )
 	
 	for tMC, tFIT in pairFitMC:
-		getDiff2DPlots( tnp, tnp, tMC, tFIT )
+		getDiff2DPlots( tnp, tnp, tMC,tFIT )
 		
 
 
