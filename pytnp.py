@@ -3,6 +3,43 @@
 import ROOT
 import sys
 
+def getResName( aFile ):
+	"""
+	getResName( fileName ) -> str,str (latex)
+
+	Extract from the file name the resonance
+	and returns it plain and in Latex format.
+	
+	Warning: This function is highly dependent
+	of the name of the file-- 
+	Standard Format:  NameOFResonance_X_blabla
+	"""
+	import re
+
+	regexp = re.compile( '\D*(?P<NUMBER>\dS)' ) 
+	resonance = ''
+	resLatex = ''
+	try:
+		num = regexp.search( aFile ).group( 'NUMBER' )
+		resonanceLatex = '#Upsilon('+num+')'
+		resonance = 'Upsilon'+num
+
+	except AttributeError:
+		## Changed: we need to capture the AllUpsilon
+		if aFile.find( 'JPsi' ) != -1:
+			resonanceLatex = 'J/#Psi'
+			resonance = 'JPsi'
+		elif aFile.find( 'Upsilon' ) != 0:
+			resonanceLatex =  'All #Upsilon'
+			resonance = 'AllUpsilons'
+		elif aFile.find( 'Z' ) != -1:
+			resonanceLatex = 'Z#rightarrow#mu#mu'
+			resonance = 'Z'
+	except:
+		return None
+
+	return resonance,resonanceLatex
+
 #TODO: Puede hacerse con **keywords. pt=valor, eta=valor,...
 def getEff( dataSet, pt, eta ):
 	"""
@@ -153,11 +190,12 @@ class pytnp(dict):
 		self.__dict__ = self.__extract__(fileroot, self.__dict__, dataset) 
 		for name, dataSet in self.__dict__['RooDataSet'].iteritems():
 			self[name] = dataSet
+		print ''
 		self.__fileroot__ = fileroot
 		#-- Get the resonances names
 		#--- If it does not provided by the user
 		if not self.resonance:
-			self.resonance, self.resLatex = self.getResName( filerootName )
+			self.resonance, self.resLatex = getResName( filerootName )
 		#--- Encapsulate the hierarchy of the directories: FIXME: Es realmente necesario??
 		for name in self.iterkeys():
 			self.__attrDict__ = self.__getType__(name,self.__attrDict__)
@@ -282,42 +320,6 @@ class pytnp(dict):
 	 
 	 	return dictObjects
 	
-	def getResName( self, aFile ):
-		"""
-		getResName( fileName ) -> str,str (latex)
-
-		Extract from the file name the resonance
-		and returns it plain and in Latex format.
-		
-		Warning: This function is highly dependent
-		of the name of the file-- 
-		Standard Format:  NameOFResonance_X_blabla
-		"""
-		import re
-	
-		regexp = re.compile( '\D*(?P<NUMBER>\dS)' ) 
-		resonance = ''
-		resLatex = ''
-		try:
-			num = regexp.search( aFile ).group( 'NUMBER' )
-			resonanceLatex = '#Upsilon('+num+')'
-			resonance = 'Upsilon'+num
-
-		except AttributeError:
-			## Changed: we need to capture the AllUpsilon
-			if aFile.find( 'JPsi' ) != -1:
-				resonanceLatex = 'J/#Psi'
-				resonance = 'JPsi'
-			elif aFile.find( 'Upsilon' ) != 0:
-				resonanceLatex =  'All #Upsilon'
-				resonance = 'AllUpsilons'
-			elif aFile.find( 'Z' ) != -1:
-				resonanceLatex = 'Z#rightarrow#mu#mu'
-				resonance = 'Z'
-		except:
-			return None
-	
-		return resonance,resonanceLatex
 	
 	#TODO
 	def write(self, fileOut):

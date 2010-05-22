@@ -4,29 +4,18 @@
 import ROOT
 import pytnp
 
-def getResName( aFile ):
-	"""
-	"""
-	import re
-
-	regexp = re.compile( '\D*(?P<NUMBER>\dS)' )
-	resonance = ''
-	try:
-		num = regexp.search( aFile ).group( 'NUMBER' )
-		resonance = 'Upsilon'+num
-	except AttributeError:
-		if aFile.find( 'JPsi' ) != -1:
-			resonance = 'JPsi'
-		elif aFile.find( 'Upsilon' ) != -1:
-			resonance = 'AllUpsilons'
-	except:
-		return None
-
-	return resonance
-
 
 def getDiff2DPlots( tnpRef, tnp2, nameOfdataSet, nameOfdataSet2='' ):
 	"""
+	getDiff2DPlots( pytnpRef, pytnpOther, nameOfdataSet, nameOfdataSet2 ) --> 
+
+	Given 2 pytnp instances, it will do 2-dimensional maps:
+
+	|eff_ref-eff_other|sqrt(sigma_ref^2+sigma_other^2      Comparing_ResNameRef_ResNameOther_nameOfdataSet.eps     
+        |eff_ref-eff_other|eff_ref                             ComparingRelative_ResNameRef_ResNameOther_nameOfdataSet.eps
+
+	The two files must be have the same binning but one of them can have more bins. 
+	The comparation will be done until the minimum of both
 	"""
 	from math import sqrt
 	####--FIXME: PAtch para poder hacer mc-fit y res1-res2
@@ -152,6 +141,9 @@ def getDiff2DPlots( tnpRef, tnp2, nameOfdataSet, nameOfdataSet2='' ):
 def doDiffEff( allFiles, refRes, whatPlots ):
 	"""
 	doCompartionPlots( 'file1,file2,..', 'whatPlots') 
+
+	Given a files names, it will do the plots comparing the efficiencies 
+	between the datsets
 	"""
 	allFiles = allFiles.split(',')
 	if len(allFiles) < 2:
@@ -166,17 +158,19 @@ def doDiffEff( allFiles, refRes, whatPlots ):
 	histoSet = set()
 	for aFile in allFiles:
 		#--- Extract from the standard name file the resonance ---
-		try:
-			resName = getResName( aFile )
-		except TypeError:
+		#TODO: Pasar el nombre de la resonancia, para poder
+		#      usar el constructor adecuado
+		resName = pytnp.getResName( aFile )[0]
+		if not resName:
 			#-- The file name must be standard
 			message = """
-Error: the file name %s introduced is not in a standard format,
-       Resonance_histo[MuFromTrk|Trigger]_....root""" % aFile
-			exit()
+\033[1;31mError: the file name %s introduced is not in a standard format,
+       Resonance_histo[MuFromTrk|Trigger]_....root\033[1;m""" % aFile
+                        print message
+			exit(-1)
 		#---------------------------------------------------------
 		#-- Create the pytnp instance
-		tnpDict[resName] = pytnp.pytnp( aFile, whatPlots )
+		tnpDict[resName] = pytnp.pytnp( aFile, dataset=whatPlots )
 		resonance[ resName ] = tnpDict[resName].resLatex
 	#Extract the reference resonance:
 	tnpResRef = tnpDict.pop( refRes ) #FIXME: CONTROL DE Errores
@@ -206,7 +200,7 @@ def doComparationPlots( allFiles, whatPlots ):
 	for aFile in allFiles:
 		#--- Extract from the standard name file the resonance ---
 		try:
-			resName = getResName( aFile )
+			resName = pytnp.getResName( aFile )[0]
 		except TypeError:
 			#-- The file name must be standard
 			message = """
@@ -361,11 +355,9 @@ if __name__ == '__main__':
 		allFiles = opt.fileName
 		#FIXME: Control de errores
 		doDiffEff( allFiles, opt.resToComp, whatPlots )
-
-
 	
 	if opt.dim1Plots and not opt.allUpsilons:
-		tnp = pytnp.pytnp(opt.fileName, whatPlots)
+		tnp = pytnp.pytnp(opt.fileName, dataset=whatPlots)
 		resonance = tnp.resLatex
 		for name,rootPlot in tnp.RooPlot.iteritems():
 			#Counting case:
@@ -374,7 +366,7 @@ if __name__ == '__main__':
 		del tnp
 
 	if opt.dim2Plots:
-		tnp = pytnp.pytnp(opt.fileName, whatPlots)
+		tnp = pytnp.pytnp(opt.fileName, dataset=whatPlots)
 		resonance = tnp.resLatex
 		for name,dataSet in tnp.RooDataSet.iteritems():
 			#if name.find('mcTrue') == -1:
