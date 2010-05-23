@@ -540,36 +540,40 @@ ERROR: What the f***!! This is an expected error... Exiting
 	  	hlo = h.Clone("eff_lo")
 	  	hhi = h.Clone("eff_hi")
 		
+		# To control the case where we don't have entries
+		# If we don't have entries, b will be None
+		b = None
 		for i in xrange(dataSet.numEntries()):
 			_dummy = dataSet.get(i)
 			b = h.FindBin(eta.getVal(), pt.getVal())
-		#	print 'bin=',b,' pt =', pt.getVal(),' eta=',eta.getVal()
+#			print 'bin=',b,' pt =', pt.getVal(),' eta=',eta.getVal()
 			h.SetBinContent(b, eff.getVal())
 			h.SetBinError(b, (-eff.getErrorLo()+eff.getErrorHi())/2.0) # WATCH: Error 'Simetrized' 
 			hlo.SetBinContent(b, eff.getVal()+eff.getErrorLo())
-	    	hhi.SetBinContent(b, eff.getVal()+eff.getErrorHi())
-		#Si es plot --> Entra un histo, graph o lo que sea, de momento
-		#Lo dejo asi, pero hay que cambiarlo
-		for isLog in [ ('',0), ('_log',1) ]:
-			c = ROOT.TCanvas()
-			c.SetLogy(isLog[1]) 
-			h.GetYaxis().SetTitle('p_{t} (GeV/c)')
-			h.GetXaxis().SetTitle('#eta')
-			h.GetZaxis().SetTitle('eff')
-			h.SetTitle( title )
-			h.Draw('COLZ')
-			htext = h.Clone('htext')
-			htext.SetMarkerSize(1.0)
-			htext.SetMarkerColor(1)
-			if isLog[1]:
-				ROOT.gStyle.SetPaintTextFormat("1.2f")
-				htext.Draw('ESAMETEXT0')
-			else:
-				ROOT.gStyle.SetPaintTextFormat("1.3f")
-				htext.Draw('SAMETEXT0')
-			plotName = self.resonance+'_'+name.replace('/','_')+isLog[0]+'.eps'
-			c.SaveAs(plotName)
-		#-- Storing the histo
-		self[histoName] = h
+		if b:
+			hhi.SetBinContent(b, eff.getVal()+eff.getErrorHi())
+			#Si es plot --> Entra un histo, graph o lo que sea, de momento
+			#Lo dejo asi, pero hay que cambiarlo
+			for isLog in [ ('',0), ('_log',1) ]:
+				c = ROOT.TCanvas()
+				c.SetLogy(isLog[1]) 
+				h.GetYaxis().SetTitle('p_{t} (GeV/c)')
+				h.GetXaxis().SetTitle('#eta')
+				h.GetZaxis().SetTitle('eff')
+				h.SetTitle( title )
+				h.Draw('COLZ')
+				htext = h.Clone('htext')
+				htext.SetMarkerSize(1.0)
+				htext.SetMarkerColor(1)
+				if isLog[1]:
+					ROOT.gStyle.SetPaintTextFormat("1.2f")
+					htext.Draw('ESAMETEXT0')
+				else:
+					ROOT.gStyle.SetPaintTextFormat("1.3f")
+					htext.Draw('SAMETEXT0')
+				plotName = self.resonance+'_'+name.replace('/','_')+isLog[0]+'.eps'
+				c.SaveAs(plotName)
+			#-- Storing the histo
+			self[histoName] = h
 
 
