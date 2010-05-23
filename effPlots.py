@@ -229,7 +229,7 @@ Error: the file name %s introduced is not in a standard format,
 			exit()
 		#---------------------------------------------------------
 		#-- Create the pytnp instance
-		tnpDict[resName] = pytnp.pytnp( aFile, whatPlots )
+		tnpDict[resName] = pytnp.pytnp( aFile, dataset=whatPlots )
 		resonance[ resName ] = tnpDict[resName].resLatex
 		#---- Making the plots for this resonance
 		for name,rooPlot in tnpDict[resName].RooPlot.iteritems():

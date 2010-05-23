@@ -35,6 +35,10 @@ def getResName( aFile ):
 		elif aFile.find( 'Z' ) != -1:
 			resonanceLatex = 'Z#rightarrow#mu#mu'
 			resonance = 'Z'
+
+		if aFile.find( 'DATA' ) != -1:
+			resonanceLatex += ' Data'
+			resonance += '_DATA'
 	except:
 		return None
 
