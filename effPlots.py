@@ -242,12 +242,24 @@ Error: the file name %s introduced is not in a standard format,
 		resonance[ resName ] = tnpDict[resName].resLatex
 		#---- Making the plots for this resonance
 		for name,rooPlot in tnpDict[resName].RooPlot.iteritems():
-			#--- Don't plot mcTrue information--> YES, counting case
-			#if name.find('mcTrue') == -1:
 			#-- Store the name of the histos
 			histoSet.add( name )
 			#-- Storing and plotting
 			tnpDict[resName].plotEff1D( name )
+	#--- In order doing comparations between datasets that have
+	#    different binnings we must select the data with LESS
+	#    number of binnings. 
+	#----WARNING: the user must check that he/she is using the
+	#    same binnings FIXME: Check this automatically
+	#FIXME: NOT WORKS--> I don't know
+	print len(histoSet)
+	minRooPlotTuple = [ (len(x.RooPlot), x.RooPlot) for x in tnpDict.itervalues() ] # pairing lenght with names of RooPlots
+	minValue = min( map( lambda x: x[0], minRooPlotTuple ) )                        # getting the smallest RooPlot
+	minRooPlot = filter( lambda x: minValue == x[0], minRooPlotTuple )[0][1]        # extracting the RooPlot
+	minNamesList = set( [ i for i in minRooPlot.iterkeys() ]) 
+	histoSet = histoSet.intersection( minNamesList )
+	print len(histoSet)
+	#exit(-1)
 	#--- Plots for the all resonances
 	#-- Assuming we have the same names for histos in every
 	#   dict, but the first word (resonance dependent).
@@ -266,7 +278,12 @@ Error: the file name %s introduced is not in a standard format,
 			#Preparing the histo and draw
 			howMuchRes += resName
 			hMRLatex += resLatex+' '
-			htmp = tnpDict[resName][histo]
+			#-- Avoiding different binnings
+			try:
+				htmp = tnpDict[resName][histo]
+			except KeyError:
+				print """\033[1;31mWarning: There is no plot %s for the resonance %s\033[1;m""" % ( histo,resName)
+				continue
 			#Setting the frame, once
 			if not hframe:
 				axisX = htmp.GetXaxis()
