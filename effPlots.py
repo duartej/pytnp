@@ -60,7 +60,7 @@ def getDiff2DPlots( tnpRef, tnp2, *nameOfdataSet ):
 	histoList = [ { 'histo': None, 'plotName': plotName, 'title': title},
 			{ 'histo': None,  'plotName': plotName2, 'title': title2 } 
 			]
-	#--- Getting the binning and some checks:
+	#--- Getting the binning and some checks: ##################################
 	argSet = dataSet.get()
 	pt = argSet['pt'];
 	eta = argSet['eta'];
@@ -72,6 +72,15 @@ def getDiff2DPlots( tnpRef, tnp2, *nameOfdataSet ):
 	eta2 = argSet2['eta'];
 	ptNbins2, arrayBinsPt2 = pytnp.getBinning( pt2 )
 	etaNbins2, arrayBinsEta2 = pytnp.getBinning( eta2 )
+
+	#------ IF a dataset is empty, print a warning a leave the function
+	if dataSet.numEntries() == 0:
+		print """\033[1;34mThe dataset %s is empty\033[1;m""" % nameOfdataSet
+		return 
+	if dataSet2.numEntries() == 0:
+		print """\033[1;34mThe dataset %s is empty\033[1;m""" % nameOfdataSet
+		return 
+	############################################################################
 	if etaNbins != etaNbins2:
 		print """\033[1;31mError: Not supported different eta bin numbers. Exiting...\033[1;m"""
 		exit(-1)
