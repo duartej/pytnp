@@ -29,7 +29,7 @@ def getResName( aFile ):
 		if aFile.find( 'JPsi' ) != -1:
 			resonanceLatex = 'J/#Psi'
 			resonance = 'JPsi'
-		elif aFile.find( 'Upsilon' ) != 0 and aFile.find( 'Upsilon') == -1:
+		elif aFile.find( 'Upsilon' ) != 0 and aFile.find( 'Upsilon') != -1:
 			resonanceLatex =  'All #Upsilon'
 			resonance = 'AllUpsilons'
 		elif aFile.find( 'Z' ) != -1:
@@ -334,10 +334,20 @@ class pytnp(dict):
 		the instance.
 		"""
 		f = ROOT.TFile(fileOut,'RECREATE')
+		if f.IsZombie():
+			message = '\033[1;31mCannot open %s file. Check your permissions\033[1;m' % fileOut
+			raise IOError, message
 
 		for name,dataSet in self.RooDataSet.iteritems():
 			dataSet.Write(name.replace('/','_'))
-		
+		try:
+			for name,histoTuple in self.TH2F.iteritems():
+				for histo in histoTuple:
+					#Watch out: not use the key name because we have 3 histos
+					histo.Write('TH2F_'+histo.GetName().replace('/','_'))
+		except AttributeError:
+			print "\033[1;33mWarning: Do not stored any TH2F map. You must use 'plotEff2D' method first.\033[1;m"
+
 		f.Close()
 
 	def ls(self, className):
@@ -493,8 +503,6 @@ ERROR: What the f***!! This is an expected error... Exiting
 		#--- Storing the histo
 		self[histoName] = h
 
-
-
 	
 	def plotEff2D( self, name ):
 		"""
@@ -533,12 +541,14 @@ ERROR: What the f***!! This is an expected error... Exiting
 		ptNbins, arrayBinsPt = getBinning( pt )
 		etaNbins, arrayBinsEta = getBinning( eta )
 		#-- To avoid warning in pyROOT
-		hTitleOfHist = 'h'+name.replace('/','_')
+		hTitleOfHist = name.replace('/','_')
 		h = ROOT.TH2F( hTitleOfHist, '', etaNbins, arrayBinsEta, ptNbins, arrayBinsPt )
 		#h.SetTitle( title )
 		#h = ROOT.TH2F( 'h', '', ptNbins, arrayBinsPt, etaNbins, arrayBinsEta )
 	  	hlo = h.Clone("eff_lo")
-	  	hhi = h.Clone("eff_hi")
+		hlo.SetName( 'low_'+hTitleOfHist )
+		hhi = h.Clone("eff_hi")
+		hhi.SetName( 'high_'+hTitleOfHist )
 		
 		# To control the case where we don't have entries
 		# If we don't have entries, b will be None
@@ -546,12 +556,12 @@ ERROR: What the f***!! This is an expected error... Exiting
 		for i in xrange(dataSet.numEntries()):
 			_dummy = dataSet.get(i)
 			b = h.FindBin(eta.getVal(), pt.getVal())
-#			print 'bin=',b,' pt =', pt.getVal(),' eta=',eta.getVal()
 			h.SetBinContent(b, eff.getVal())
 			h.SetBinError(b, (-eff.getErrorLo()+eff.getErrorHi())/2.0) # WATCH: Error 'Simetrized' 
 			hlo.SetBinContent(b, eff.getVal()+eff.getErrorLo())
-		if b:
 			hhi.SetBinContent(b, eff.getVal()+eff.getErrorHi())
+#			print 'bin=',b,' pt =', pt.getVal(),' eta=',eta.getVal()
+		if b:
 			#Si es plot --> Entra un histo, graph o lo que sea, de momento
 			#Lo dejo asi, pero hay que cambiarlo
 			for isLog in [ ('',0), ('_log',1) ]:
@@ -574,6 +584,10 @@ ERROR: What the f***!! This is an expected error... Exiting
 				plotName = self.resonance+'_'+name.replace('/','_')+isLog[0]+'.eps'
 				c.SaveAs(plotName)
 			#-- Storing the histo
-			self[histoName] = h
+			try:
+				self.TH2F[histoName] = (h, hlo, hhi)
+			except AttributeError:
+				self.__setattr__('TH2F',{}) 
+				self.TH2F[histoName] = (h, hlo, hhi)
 
 

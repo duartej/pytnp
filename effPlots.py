@@ -360,7 +360,6 @@ def sysMCFIT(_file):
 		getDiff2DPlots( tnp, tnp, tMC,tFIT )
 		
 
-
 if __name__ == '__main__':
 	"""
 	"""
@@ -375,6 +374,7 @@ if __name__ == '__main__':
 	parser.add_option( '-c', '--comp', action='store', dest='resToComp', metavar='RESONANCE', help='Do the comparation between efficiencies for different resonances taking RESONANCE as reference' )
         parser.add_option( '--counting', action='store_true', dest='counting', help='If active this flag, do the plots using the MC information (counting events)' )
         parser.add_option( '--sysTnP', action='store_true', dest='sysTnP', help='Compute differences between mcTrue counting and TnP-fit' )
+        parser.add_option( '-m', '--maps', action='store_true', dest='maps', help='Create root files with TH2F and RooDataSets' )
 
         ( opt, args ) = parser.parse_args()
 
@@ -411,16 +411,26 @@ if __name__ == '__main__':
 			tnp.plotEff1D(name)
 		del tnp
 
-	if opt.dim2Plots:
+	if opt.dim2Plots or opt.maps:
 		tnp = pytnp.pytnp(opt.fileName, dataset=whatPlots)
-		resonance = tnp.resLatex
+		#resonance = tnp.resLatex
 		for name,dataSet in tnp.RooDataSet.iteritems():
 			#if name.find('mcTrue') == -1:
 			tnp.plotEff2D(name)
+		if opt.maps:
+			#FIXME: Por el momento
+			if opt.fileName.find('MuFromTk') != -1:
+				effType = 'MuonID'
+			elif opt.fileName.find('TriggerFromGlb') != -1:
+				effType = 'TriggerFromGlb'
+			elif opt.fileName.find('TriggerFromTrk') != -1:
+				effType = 'TriggerFromTk'
+			tnp.write('effMaps_'+tnp.resonance+'_'+effType+'.root' )
 		del tnp
 
 	if opt.sysTnP:
 		sysMCFIT( opt.fileName )
+	
 
 	
 
