@@ -79,6 +79,39 @@ def getBinning( var ):
 	arrayBins = binning.array()
 
 	return binsN, arrayBins
+
+#def tableLatex(th2f): #TODO: para RooDataSet
+#	"""
+#
+#	Giving a TH2F, the function returns a table in latex
+#	format 
+#	"""
+#	##Getting how many eta bins we have
+#	etaAxis = th2f.GetXaxis()
+#	etaNbins = etaAxis.GetNbins()
+#	ptAxis = th2f.GetYaxis()
+#	ptNbins = ptAxis.GetNbins()
+#	#An useful function
+#	edges = lambda axis,x: '(%0.1f, %0.1f)' % (axis.GetBinLowEdge(x),axis.GetBinLowEdge(x+1)) 
+#	eff   = lambda hist,eta,pt: '$%.3f\\pm^{%' % (axis.GetBinLowEdge(x),axis.GetBinLowEdge(x+1)) 
+#
+#	toLatex = '\\begin{tabular}{'
+#	#Number of columns
+#	toLatex += 'c'*etaNbins'+}\\toprule\n'
+#	#header
+#	toLatex += '$p_T^\\mu({\\rm GeV})$ {\\boldmath$\\backslash$}$\\eta^\\mu$  & '
+#	for bin in xrange(etaNbins-1):
+#		toLatex += edges(etaAxis,bin)+' & '
+#	toLatex = toLatex[:-2]+')\\\\ \\midrule)'
+#	#Filling the table
+#	for ptbin in xrange(ptNbins-1):
+#		toLatex += edges(ptAxis,ptbin)+' & '
+#		for etabin in xrange(etaNbins-1):
+#
+#			
+#	toLatex = toLatex[:-2]+')\\\\ \\midrule)'
+
+
 	
 def tableEff(dataSet):
 	"""
@@ -420,9 +453,15 @@ ERROR: What the f***!! This is an expected error... Exiting
 		#-- var1 is the plotted variable, var2 is the hidden
 		#   variable and could be something labels, but doesn't
 		#   matter to us
-		Var = sName[1].split('__')
-		plotVar = Var[0].split('_plot')
-		hidVar = Var[1].split('_')[0]
+		try:
+			Var = sName[1].split('__')
+			plotVar = Var[0].split('_plot')
+			hidVar = Var[1].split('_')[0]
+		#The TCanvas version
+		except IndexError:
+			Var = sName[1].split('_PLOT_')
+			plotVar = Var[0]
+			hidVar = Var[1].split('_')[0]
 		nBin = int(Var[1].split('_bin')[1])
 		######---Hay otra forma mas facil: 
 		#hidVar = self.RootPlot[name].GetTitle()
@@ -442,6 +481,7 @@ ERROR: What the f***!! This is an expected error... Exiting
 		
 
 	def plotEff1D( self, name ):
+		#FIXME
 		#TODO: Cambiar esta funcion para que utilice el
 		#      RooDataSet o ambos...
 		"""
@@ -466,16 +506,26 @@ ERROR: What the f***!! This is an expected error... Exiting
 		rooPlot = None
 		try:
 			rooPlot = self.RooPlot[name]
+			#-- Plotted variable
+			var = rooPlot.getPlotVar()
+			xlabel = var.getTitle().Data()  #is a TString
+			varUnit = var.getUnit()
+			h = rooPlot.getHist()
 		except KeyError:
 		  	print """Error: you must introduce a valid name"""
 			print plotEff1D.__doc__ # OJO ESTO, esta sin comprobar
 			raise KeyError
+		except AttributeError:
+			#Changed from the new version of T&P
+			tcanvas = self.TCanvas[name]
+			#FIXME: Cuidado control de errores
+			h = filter(lambda x: x.Class_Name() == 'RooHist', tcanvas.GetListOfPrimitives())[0]
+			hist1D = filter(lambda x: x.Class_Name() == 'TH1D', tcanvas.GetListOfPrimitives())[0]
+			xlabel = hist1D.GetXaxis().GetTitle()
+			varUnit = ''
 		
-		#-- Plotted variable
-		var = rooPlot.getPlotVar()
 		#--- Graph, getHist returns a RooHist which inherits from
 		#--- TGraphErrorAsym
-		h = rooPlot.getHist()
 		ymin = h.GetYaxis().GetBinLowEdge(1) #Solo tiene un bin?
 		if ymin < 0:
 			ymin = 0
@@ -488,12 +538,10 @@ ERROR: What the f***!! This is an expected error... Exiting
 		# Preparing to plot, setting variables, etc..
 		frame.SetTitle( title )
 		h.SetTitle( title )  #To Store the info
-		xlabel = var.getTitle()
-		varUnit = var.getUnit()
 		if varUnit != '':
 			xlabel += '('+varUnit+')'
-		frame.GetXaxis().SetTitle( xlabel.Data() ) #xlable is TString
-		h.GetXaxis().SetTitle( xlabel.Data() )
+		frame.GetXaxis().SetTitle( xlabel ) 
+		h.GetXaxis().SetTitle( xlabel )
 		frame.GetYaxis().SetTitle( 'Efficiency' )
 		h.GetYaxis().SetTitle( 'Efficiency' )
 		h.Draw('P')

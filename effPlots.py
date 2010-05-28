@@ -405,10 +405,15 @@ if __name__ == '__main__':
 	if opt.dim1Plots and not opt.allUpsilons:
 		tnp = pytnp.pytnp(opt.fileName, dataset=whatPlots)
 		resonance = tnp.resLatex
-		for name,rootPlot in tnp.RooPlot.iteritems():
-			#Counting case:
-			#if name.find('mcTrue') == -1:
-			tnp.plotEff1D(name)
+		try:
+			for name,rootPlot in tnp.RooPlot.iteritems():
+				#Counting case:
+				#if name.find('mcTrue') == -1:
+				tnp.plotEff1D(name)
+		except AttributeError:
+			for name, tcanvas in tnp.TCanvas.iteritems():
+				if name.find('_PLOT_') != -1:
+					tnp.plotEff1D(name)
 		del tnp
 
 	if opt.dim2Plots or opt.maps:
