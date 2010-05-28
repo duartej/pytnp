@@ -29,7 +29,7 @@ def getResName( aFile ):
 		if aFile.find( 'JPsi' ) != -1:
 			resonanceLatex = 'J/#Psi'
 			resonance = 'JPsi'
-		elif aFile.find( 'Upsilon' ) != 0 and aFile.find( 'Upsilon') != -1:
+		elif aFile.find( 'Upsilon' ) != -1:
 			resonanceLatex =  'All #Upsilon'
 			resonance = 'AllUpsilons'
 		elif aFile.find( 'Z' ) != -1:

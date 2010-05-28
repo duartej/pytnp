@@ -374,7 +374,7 @@ if __name__ == '__main__':
 	parser.add_option( '-c', '--comp', action='store', dest='resToComp', metavar='RESONANCE', help='Do the comparation between efficiencies for different resonances taking RESONANCE as reference' )
         parser.add_option( '--counting', action='store_true', dest='counting', help='If active this flag, do the plots using the MC information (counting events)' )
         parser.add_option( '--sysTnP', action='store_true', dest='sysTnP', help='Compute differences between mcTrue counting and TnP-fit' )
-        parser.add_option( '-m', '--maps', action='store_true', dest='maps', help='Create root files with TH2F and RooDataSets' )
+        parser.add_option( '-m', '--maps', action='store', dest='maps', help='Create root files with TH2F and RooDataSets, give the name of the objet' )
 
         ( opt, args ) = parser.parse_args()
 
@@ -418,6 +418,8 @@ if __name__ == '__main__':
 			#if name.find('mcTrue') == -1:
 			tnp.plotEff2D(name)
 		if opt.maps:
+			#FIXME: De momento paso el valor del objecto
+			maps=opt.maps
 			#FIXME: Por el momento
 			if opt.fileName.find('MuFromTk') != -1:
 				effType = 'MuonID'
@@ -425,7 +427,10 @@ if __name__ == '__main__':
 				effType = 'TriggerFromGlb'
 			elif opt.fileName.find('TriggerFromTrk') != -1:
 				effType = 'TriggerFromTk'
-			tnp.write('effMaps_'+tnp.resonance+'_'+effType+'.root' )
+			elif opt.fileName.find('TriggerFrom') != -1:
+				effType = 'Trigger'
+			#FIXME: De momento paso el valor del objecto
+			tnp.write('effMaps_'+tnp.resonance+'_'+effType+'_'+maps+'.root' )
 		del tnp
 
 	if opt.sysTnP:
