@@ -80,37 +80,46 @@ def getBinning( var ):
 
 	return binsN, arrayBins
 
-#def tableLatex(th2f): #TODO: para RooDataSet
-#	"""
-#
-#	Giving a TH2F, the function returns a table in latex
-#	format 
-#	"""
-#	##Getting how many eta bins we have
-#	etaAxis = th2f.GetXaxis()
-#	etaNbins = etaAxis.GetNbins()
-#	ptAxis = th2f.GetYaxis()
-#	ptNbins = ptAxis.GetNbins()
-#	#An useful function
-#	edges = lambda axis,x: '(%0.1f, %0.1f)' % (axis.GetBinLowEdge(x),axis.GetBinLowEdge(x+1)) 
-#	eff   = lambda hist,eta,pt: '$%.3f\\pm^{%' % (axis.GetBinLowEdge(x),axis.GetBinLowEdge(x+1)) 
-#
-#	toLatex = '\\begin{tabular}{'
-#	#Number of columns
-#	toLatex += 'c'*etaNbins'+}\\toprule\n'
-#	#header
-#	toLatex += '$p_T^\\mu({\\rm GeV})$ {\\boldmath$\\backslash$}$\\eta^\\mu$  & '
-#	for bin in xrange(etaNbins-1):
-#		toLatex += edges(etaAxis,bin)+' & '
-#	toLatex = toLatex[:-2]+')\\\\ \\midrule)'
-#	#Filling the table
-#	for ptbin in xrange(ptNbins-1):
-#		toLatex += edges(ptAxis,ptbin)+' & '
-#		for etabin in xrange(etaNbins-1):
-#
-#			
-#	toLatex = toLatex[:-2]+')\\\\ \\midrule)'
+def tableLatex(dataset):
+	"""
 
+	Giving a RooDataSet, the function returns a table in latex
+	format 
+	"""
+	#Getting table
+	effList = tableEff(dataset)
+	##Getting how many eta and pt bins we have
+	etaBins = set([ (i['eta'][1],i['eta'][2]) for i in effList] )
+	etaBins = sorted(list(etaBins))
+	etaNbins = len(etaBins)
+	ptBins  = set([ (i['pt'][1],i['pt'][2]) for i in effList] )
+	ptBins  = sorted(list(ptBins)) 
+	ptNbins = len(ptBins)
+	#Some usefuls function
+	edges = lambda x,y: '(%0.1f, %0.1f)' % (x,y) 
+	effsetter = lambda eff,lo,hi: '$%.3f\\pm^{%.3f}_{%.3f}$ & ' % (eff,hi,-lo) 
+	central = lambda low,high: (high+low)/2.0
+
+	toLatex = '\\begin{tabular}{c'
+	#Number of columns
+	toLatex += 'c'*etaNbins+'}\\toprule\n'
+	#header
+	toLatex += '$p_T^\\mu({\\rm GeV})$ {\\boldmath$\\backslash$}$\\eta^\\mu$  & '
+	for low,high in etaBins:
+		toLatex += edges(low,high)+' & '
+	toLatex = toLatex[:-2]+'\\\\ \\midrule\n'
+	#Filling the table
+	for lowPt,highPt in ptBins:
+		toLatex += edges(lowPt,highPt)+' & '
+		for lowEta,highEta in etaBins:
+			eff,effErrorLow,effErrorHig,effErr = getEff(dataset,central(lowPt,highPt),central(lowEta,highEta))
+			toLatex += effsetter(eff,effErrorLow,effErrorHig)
+		toLatex = toLatex[:-2]+'\\\\\n'
+	toLatex += ' \\bottomrule\n'
+    	toLatex += '\\end{tabular}'
+
+	print toLatex
+	return toLatex
 
 	
 def tableEff(dataSet):
@@ -145,7 +154,7 @@ def tableEff(dataSet):
 				      )
 		return valList
 	except AttributeError:
-		print dataSet+' is not a RooDataSet'
+		print str(dataSet)+' is not a RooDataSet'
 		raise AttributeError
 
 class pytnp(dict):
@@ -462,7 +471,12 @@ ERROR: What the f***!! This is an expected error... Exiting
 			Var = sName[1].split('_PLOT_')
 			plotVar = Var[0]
 			hidVar = Var[1].split('_')[0]
-		nBin = int(Var[1].split('_bin')[1])
+		try:
+			nBin = int(Var[1].split('_bin')[1])
+		#To deal with the new marvelous notation for Trigger
+		except ValueError:
+			swap = Var[1].split('_bin')[1]
+			nBin = int(swap.split('_')[0])
 		######---Hay otra forma mas facil: 
 		#hidVar = self.RootPlot[name].GetTitle()
 		# Devuelve 'variable_binX'
@@ -526,10 +540,12 @@ ERROR: What the f***!! This is an expected error... Exiting
 		
 		#--- Graph, getHist returns a RooHist which inherits from
 		#--- TGraphErrorAsym
-		ymin = h.GetYaxis().GetBinLowEdge(1) #Solo tiene un bin?
-		if ymin < 0:
-			ymin = 0
-		ymax = h.GetYaxis().GetBinUpEdge( h.GetYaxis().GetNbins() )
+		ymin = 0
+		#ymin = h.GetYaxis().GetBinLowEdge(1) #Solo tiene un bin?
+		#if ymin < 0:
+		#	ymin = 0
+		#	ymax = h.GetYaxis().GetBinUpEdge( h.GetYaxis().GetNbins() )
+		ymax = 1.0
 		xmin = h.GetXaxis().GetBinLowEdge(1) #Solo tiene un bin, es un TGraph
 		xmax = h.GetXaxis().GetBinUpEdge( h.GetXaxis().GetNbins() )
 		#Make canvas

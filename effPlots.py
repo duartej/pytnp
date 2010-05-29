@@ -375,6 +375,7 @@ if __name__ == '__main__':
         parser.add_option( '--counting', action='store_true', dest='counting', help='If active this flag, do the plots using the MC information (counting events)' )
         parser.add_option( '--sysTnP', action='store_true', dest='sysTnP', help='Compute differences between mcTrue counting and TnP-fit' )
         parser.add_option( '-m', '--maps', action='store', dest='maps', help='Create root files with TH2F and RooDataSets, give the name of the objet' )
+        parser.add_option( '-t', '--tables', action='store_true', dest='tables', help='Create latex tables from a efficiency maps root files' )
 
         ( opt, args ) = parser.parse_args()
 
@@ -412,7 +413,7 @@ if __name__ == '__main__':
 				tnp.plotEff1D(name)
 		except AttributeError:
 			for name, tcanvas in tnp.TCanvas.iteritems():
-				if name.find('_PLOT_') != -1:
+				if name.find('_PLOT_') != -1 and name.find('_&_') != -1:
 					tnp.plotEff1D(name)
 		del tnp
 
@@ -440,6 +441,19 @@ if __name__ == '__main__':
 
 	if opt.sysTnP:
 		sysMCFIT( opt.fileName )
+
+	if opt.tables:
+		#FIXME Control de errores
+		f = ROOT.TFile( opt.fileName )
+		dataList = [ f.Get(i.GetName()) for i in f.GetListOfKeys() if i.GetClassName() == 'RooDataSet' ]
+		if len(dataList) == 0:
+			print """\033[1;33mWarning: the file %s do not contain a efficiency map\033[1;m""" % opt.fileName 
+		for d in dataList:
+			pytnp.tableLatex(d)
+		#--------------------------------------------------
+
+
+		
 	
 
 	
