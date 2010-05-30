@@ -112,7 +112,11 @@ def tableLatex(dataset):
 	for lowPt,highPt in ptBins:
 		toLatex += edges(lowPt,highPt)+' & '
 		for lowEta,highEta in etaBins:
-			eff,effErrorLow,effErrorHig,effErr = getEff(dataset,central(lowPt,highPt),central(lowEta,highEta))
+			try:
+				eff,effErrorLow,effErrorHig,effErr = getEff(dataset,central(lowPt,highPt),central(lowEta,highEta))
+			#Empty bin
+			except TypeError:
+				toLatex += ' & '
 			toLatex += effsetter(eff,effErrorLow,effErrorHig)
 		toLatex = toLatex[:-2]+'\\\\\n'
 	toLatex += ' \\bottomrule\n'

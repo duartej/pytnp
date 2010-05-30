@@ -413,7 +413,7 @@ if __name__ == '__main__':
 				tnp.plotEff1D(name)
 		except AttributeError:
 			for name, tcanvas in tnp.TCanvas.iteritems():
-				if name.find('_PLOT_') != -1 and name.find('_&_') != -1:
+				if name.find('_PLOT_') != -1 and (name.find('pt_eta_') == -1 or name.find('eta_pt') == -1):
 					tnp.plotEff1D(name)
 		del tnp
 
