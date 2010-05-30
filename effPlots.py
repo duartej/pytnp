@@ -109,7 +109,11 @@ def getDiff2DPlots( tnpRef, tnp2, *nameOfdataSet ):
 		eff = valDict['eff'][0]
 		effError = sqrt(valDict['eff'][2]**2.0+valDict['eff'][1]**2.0)  #Simetrizing errors
 		other = pytnp.getEff( dataSet2, pt, eta )
-		effOther = other[0]
+		try:
+			effOther = other[0]
+		#Avoiding empty bins
+		except TypeError:
+			continue
 		effErrorOther = sqrt(other[2]**2.0+other[1]**2.0)               #Simetrizing errors
 		finalEff = abs(eff-effOther)
 		newErr = sqrt(effErrorOther**2.0+effError**2.0)
