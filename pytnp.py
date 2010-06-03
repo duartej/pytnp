@@ -18,29 +18,40 @@ def getResName( aFile ):
 
 	regexp = re.compile( '\D*(?P<NUMBER>\dS)' ) 
 	resonance = ''
-	resLatex = ''
+	resonanceLatex = ''
+	nameDict = { 'JPsi' : ('J/#Psi','JPsi'),
+			'Upsilon': ('All #Upsilon','AllUpsilons'),
+			'Z' : ('Z#rightarrow#mu#mu','Z'),
+			'DATA' : (' Data', '_DATA')
+			}
 	try:
 		num = regexp.search( aFile ).group( 'NUMBER' )
 		resonanceLatex = '#Upsilon('+num+')'
 		resonance = 'Upsilon'+num
 
 	except AttributeError:
-		## Changed: we need to capture the AllUpsilon
-		if aFile.find( 'JPsi' ) != -1:
-			resonanceLatex = 'J/#Psi'
-			resonance = 'JPsi'
-		elif aFile.find( 'Upsilon' ) != -1:
-			resonanceLatex =  'All #Upsilon'
-			resonance = 'AllUpsilons'
-		elif aFile.find( 'Z' ) != -1:
-			resonanceLatex = 'Z#rightarrow#mu#mu'
-			resonance = 'Z'
+		#Reverse sorted to assure DATA is the last one
+		for name, (res,resLatex) in sorted(nameDict.iteritems(),reverse=True):
+			if aFile.find( name ) != -1:
+				#Watch: we are including _DATA case
+				resonanceLatex += resLatex
+				resonance += res
+		if resonance == '':
+			message ="""\033[1;31mgetResName: 
+		WARNING: This function is highly dependent of the 
+		name of the file, you need an standard format like:
+		NameOFResonance_X_blabla.root
 
-		if aFile.find( 'DATA' ) != -1:
-			resonanceLatex += ' Data'
-			resonance += '_DATA'
+		Unrecognized name: \033[1;m\033[1;33m  %s\033[1;m""" % aFile
+			print message
+			return None
+		
 	except:
-		return None
+		message ="""\033[1;31mgetResName: 
+		ERROR: Something wrong!! Check the code pytnp.getResName
+		because this is an unexpected error"""
+		print message
+		exit(-1)
 
 	return resonance,resonanceLatex
 
