@@ -329,50 +329,27 @@ Error: the file name %s introduced is not in a standard format,
 
 def sysMCFIT(_file):
         """
+	sysMCFIT( 'namerootfile' ) 
         """
-	message = """\033[1;31m
-===============================================================
-                          WARNING !!
-===============================================================
-           This script is hardcoded... Waiting for
-                        generalization.
-                       Use with caution.\033[1;m
-	"""
-	print message
-
         ROOT.gROOT.SetBatch(1)
-
-        ###HARDCODED FIXME: Funciona pero ojo!! hay que arreglarlo
-        #################################
-	#_file = _file[0]
-        tnp = pytnp.pytnp(_file)
-
-        #COMPRUEBA ESTO----
-        #buildBin = lambda x: format(x*2.5/24.0,'.2f')+' < #eta < '+format((x+1)*2.5/24.0,'.2f')
-        #binsEta = dict( [ (str(i),buildBin(i)) for i in xrange(25) ] )
-
-        #binsEta = { '0' : '-2.4 < #eta < -1.6', '1' : '-1.6 < #eta < -1.0', '2' : '-1.0 < #eta < -1.0',\
-        #               '3' : '1.0 < #eta < 1.6', '4' : '1.6 < #eta < 2.4' }
-
-        fit = []
-        mcTrue = []
-        for i in tnp.RooDataSet.iterkeys():
-                if i.find('fit_eff') != -1 and i.find('_mcTrue/fit_eff') == -1:
-                        fit.append( i )
-                if i.find('_mcTrue/cnt_eff') != -1:
-                        mcTrue.append( i )
-
-        #Building the datasets pairs
-        #--- TODO: hay una manera mas eficiente de hacer esto (filter, map...)
-        pairFitMC = []
-        for MC in mcTrue:
-                for FIT in fit:
-                        if MC.strip('_mcTrue/cnt_eff') == FIT.strip('/fit_eff'):
-                                pairFitMC.append( (MC,FIT) )
 	
-	for tMC, tFIT in pairFitMC:
-		getDiff2DPlots( tnp, tnp, tMC,tFIT )
-		
+	#TODO: Permitir que se puedan entrar dos ficheros
+	#      Ahora mc debe estar en el mismo fichero
+	tnp = pytnp.pytnp(_file)
+
+	effList = tnp.getFitEffList()
+	
+	pairFitMC = [ (tnp.getCountMCName(i),i) for i in effList ]
+	##- Checking if there are MC true info
+	for i in filter( lambda (mc,fitEff): not mc, pairFitMC ):
+		message = '\n'
+		message += """\033[1;31mERROR: The %s does not contains MC True information\033[1;m""" % _file
+		message += '\n'
+		print message
+		exit(-1)
+
+	for tMC, tFit in pairFitMC:
+		getDiff2DPlots( tnp, tnp, tMC, tFit )
 
 if __name__ == '__main__':
 	"""
@@ -387,7 +364,7 @@ if __name__ == '__main__':
         parser.add_option( '--dim2', action='store_true', dest='dim2Plots', help='Must I do 2-dim plots?' )
 	parser.add_option( '-c', '--comp', action='store', dest='resToComp', metavar='RESONANCE', help='Do the comparation between efficiencies for different resonances taking RESONANCE as reference' )
         parser.add_option( '--counting', action='store_true', dest='counting', help='If active this flag, do the plots using the MC information (counting events)' )
-        parser.add_option( '--sysTnP', action='store_true', dest='sysTnP', help='Compute differences between mcTrue counting and TnP-fit' )
+        parser.add_option( '--sysTnP', action='store_true', dest='sysTnP', help='Do the plots and a root file maps for the differences between counting MC and Tag and Probe fit efficiencies.' )
         parser.add_option( '-m', '--maps', action='store', dest='maps', help='Create root files with TH2F and RooDataSets, give the name of the objet' )
         parser.add_option( '-t', '--tables', action='store_true', dest='tables', help='Create latex tables from a efficiency maps root files' )
 

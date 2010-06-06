@@ -407,8 +407,42 @@ class pytnp(dict):
 	 
 	 	return dictObjects
 	
+	## Getters for attributes ######################################################################
+	def getCategory( self, name ):
+		"""
+		"""
+		try:
+			return self.__attrDict__[name]['objectType']
+		except KeyError:
+			message = """\033[1;33mWarning: The %s is not a fit_eff RooDataSet\033[1;m""" % name
+			print message
+			return None
 	
-	#TODO
+	def getFitEffList( self ):
+		"""
+		"""
+		fitEffList = []
+		for name,Dict in filter( lambda (name,Dict): Dict['methodUsed'] == 'fit_eff' ,self.__attrDict__.iteritems() ):
+			fitEffList.append( name )
+		
+		if len(fitEffList) == 0:
+			message = """\033[1;33mWarning: There is no fit_eff RooDataSet in this file\033[1;m"""
+			print message
+			return None
+
+		return fitEffList
+	
+	def getCountMCName( self, name ):
+		"""
+		"""
+		try:
+			return self.__attrDict__[name]['refMC']['cnt_eff']
+		except KeyError:
+			message = """\033[1;33mWarning: The is no counting MC True information associated with %s RooDataSet\033[1;m""" % name
+			print message
+			return None
+	## Getters for attributes ######################################################################
+
 	def write(self, fileOut):
 		"""
 		write( fileOut ) 
