@@ -31,7 +31,7 @@ def getResName( aFile ):
 
 	except AttributeError:
 		#Reverse sorted to assure DATA is the last one
-		for name, (res,resLatex) in sorted(nameDict.iteritems(),reverse=True):
+		for name, (resLatex,res) in sorted(nameDict.iteritems(),reverse=True):
 			if aFile.find( name ) != -1:
 				#Watch: we are including _DATA case
 				resonanceLatex += resLatex
@@ -190,7 +190,7 @@ class pytnp(dict):
 	__attrDict__ = {}
 	def __init__(self, filerootName, **keywords):
 		"""
-                pytnp(fileroota,...) -> pytnp object instance
+                pytnp(filerootName, resonance=('name','nameLatex'), dataset='type', mcTrue=true ) -> pytnp object instance
 
 		Create a dictionary which are going to be populate
 		with the plots and datasets already contained in the
@@ -210,23 +210,25 @@ class pytnp(dict):
 		"""
 		#--- Checking the keys dictionary passed ----#
 		#--- Keys valid
-		valid_keys = ['resonance', 'dataset','mcTrue']
-		#---- Some initializations
+		valid_keys = ['resonance', 'dataset', 'mcTrue']
+		#---- Some initializations using user inputs ---#
 		dataset = ''
 		for i in keywords.keys():
 			if not i in valid_keys:
-				message ='\033[1;31mpytnp: invalid instance of pytnp: you can not use %s as key argument, ' % i
+				message = '\033[1;31mpytnp: invalid instance of pytnp: you can not use %s as key argument, ' % i
 				message += ' key arguments valids are \'resonance\', \'dataset\', \'mcTrue\' \033[1;m' 
 				raise IOError, message
 			#---Checking the correct format and storing
 			#---the names provided by the user
 			elif i == 'resonance':
-				message ='\033[1;31mpytnp: Not valid resonance=%s; resonance key must be a tuple containing (\'name\',\'nameInLatex\')\033[1;m' \
+				#Message to be sended if the value is not a tuple
+				message ='\033[1;31mpytnp: Not valid resonance=%s key; resonance key must be a tuple containing (\'name\',\'nameInLatex\')\033[1;m' \
 						% str(keywords['resonance'])
 				if len(keywords['resonance']) != 2:
 					print message
 					raise KeyError
 				else:
+					#Checking the tuple format is (name, nameInLatex)
 					if keywords['resonance'][0].find('#') != -1 \
 							or keywords['resonance'][0].find('{') != -1  :
 						print message		
@@ -236,7 +238,7 @@ class pytnp(dict):
 					self.resLatex  = keywords['resonance'][1]
 			elif i == 'dataset':
 				dataset = keywords['dataset']
-                #--------------------------------------------@
+                #--------------------------------------------#
 		#--- Extracting the members
 		print 'Extracting info from '+filerootName+'.',
 		sys.stdout.flush()
@@ -260,6 +262,29 @@ class pytnp(dict):
 		#--- Encapsulate the hierarchy of the directories: FIXME: Es realmente necesario??
 		for name in self.iterkeys():
 			self.__attrDict__ = self.__getType__(name,self.__attrDict__)
+		#--- Associate the names of the mcTrue and counting MC True to a fit_eff
+		#----- Getting all the MC True RooDataSets: [ (name,dictionary),...]
+		mcTrueData = filter( lambda x: x[1]['isMC'] == 1, self.__attrDict__.iteritems() )
+		#---- Loop over all RooDataSets fitted but not MC
+		for Name,Dict in filter( lambda x: x[1]['isMC'] == 0 and x[1]['methodUsed'] == 'fit_eff', self.__attrDict__.iteritems() ):
+			#---- Getting the parter to mcTrueData: all with the same objectType and effType 
+			#------ Can be cnt, fit_eff and sbs
+			partner = filter( lambda x: x[1]['objectType'] == Dict['objectType'] and x[1]['effType'] == Dict['effType'], \
+					mcTrueData )
+			#--- Looping over the MC RooDataSet which is the same efficiency type and category as the fitted RooDataSets
+			for mcName, mcDict in partner:
+				#---- Only want the reference to fit_eff and cnt_eff mcTrue
+				if mcDict['methodUsed'] == 'fit_eff' or mcDict['methodUsed'] == 'cnt_eff' :
+					try:
+						self.__attrDict__[Name]['refMC'][ mcDict['methodUsed'] ] =  mcName 
+					except KeyError:
+						self.__attrDict__[Name]['refMC'] = { mcDict['methodUsed'] : mcName }
+		#--- We are not interested about the MC, only in cnt and fit_eff
+		map( lambda (Name,Dumm): self.__attrDict__.pop(Name), mcTrueData )
+		#--- We are not instested about the sbs and cnt not MC
+		map( lambda y: self.__attrDict__.pop( y[0] ), filter( lambda x: x[1]['isMC'] == 0 and x[1]['methodUsed'] != 'fit_eff',\
+				self.__attrDict__.iteritems() ) ) 
+
 
 	def __getType__(self, name, structure):
 		#FIXME: Es realmente necesario??
@@ -289,6 +314,7 @@ class pytnp(dict):
 			structure[name]['effType'] =  'muonId'
 		else:
 			message = '\033[1;31mrd... I don\'t understand what efficiency is in the directory %s \033[1;m' % effType
+			print message
 		#setattr(self.RooDataSet, structure[name]['effType'], {})
 		#---- Type of efficiency
 		structure[name]['objectType'] = objectType.split('_')[0]

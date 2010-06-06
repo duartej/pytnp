@@ -101,6 +101,9 @@ def getDiff2DPlots( tnpRef, tnp2, *nameOfdataSet ):
 		thisHisto['histo'].SetContour(50) # Aumenta el granulado de los colores
 		thisHisto['histo'].GetZaxis().SetLabelSize(0.02)
 		k += 1
+	############### ADDED TO GET QUICK MAPS ##############################
+	#th2MAP = histoList[1]['histo'].Clone('sys_diff')
+	########### ##### TO FIXME  ##########################################
 	#--- Extracting values from reference
 	refList = pytnp.tableEff( dataSet )
 	for valDict in refList:
@@ -146,6 +149,7 @@ Posible outlier: pt= %.4f
 		 """ % ( pt,eta,eff,effOther, finalEff/eff )
 					else:
 						hist['histo'].SetBinContent( b, finalEff/eff )    #WARNING
+						#th2MAP.SetBinContent( b, finalEff )    #WARNING
 				except ZeroDivisionError:
 					pass
 					#	hist['histo'].SetBinContent( b, 0.0 ) 
@@ -170,6 +174,12 @@ Posible outlier: pt= %.4f
 		c.SaveAs(toPlotName)
 		c.Close()
 		k += 1
+
+	########################### TO FIXME ################################################3
+	#f = ROOT.TFile('prov_map_sys_diff_'+plotName2+'.root','RECREATE')
+	#th2MAP.Write()
+	#f.Close()
+	### De momento ######################################################################
 
 def doDiffEff( allFiles, refRes, whatPlots ):
 	"""
