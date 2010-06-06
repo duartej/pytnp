@@ -330,6 +330,10 @@ Error: the file name %s introduced is not in a standard format,
 def sysMCFIT(_file):
         """
 	sysMCFIT( 'namerootfile' ) 
+
+	Compute the differences between MC True counting efficiency
+	and Tag and Probe fitted efficiency. Return plots and 
+	(TODO) root file containing maps of the absolute differencies
         """
         ROOT.gROOT.SetBatch(1)
 	
@@ -350,6 +354,7 @@ def sysMCFIT(_file):
 
 	for tMC, tFit in pairFitMC:
 		getDiff2DPlots( tnp, tnp, tMC, tFit )
+
 
 if __name__ == '__main__':
 	"""
@@ -438,7 +443,7 @@ if __name__ == '__main__':
 		f = ROOT.TFile( opt.fileName )
 		dataList = [ f.Get(i.GetName()) for i in f.GetListOfKeys() if i.GetClassName() == 'RooDataSet' ]
 		if len(dataList) == 0:
-			print """\033[1;33mWarning: the file %s do not contain a efficiency map\033[1;m""" % opt.fileName 
+			print """\033[1;33mWarning: the file %s does not contain a efficiency map\033[1;m""" % opt.fileName 
 		for d in dataList:
 			pytnp.tableLatex(d)
 		#--------------------------------------------------

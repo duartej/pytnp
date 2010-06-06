@@ -49,7 +49,7 @@ def getResName( aFile ):
 	except:
 		message ="""\033[1;31mgetResName: 
 		ERROR: Something wrong!! Check the code pytnp.getResName
-		because this is an unexpected error"""
+		because this is an unexpected error\033[1;m"""
 		print message
 		exit(-1)
 
@@ -172,6 +172,28 @@ def tableEff(dataSet):
 		print str(dataSet)+' is not a RooDataSet'
 		raise AttributeError
 
+
+def getVarInfo( dataset ):
+	"""
+	getDataSetVar( RooDataSet ) -> { 'var1': { 'latexName': 'blaba', 'unit': 'unit' },
+					 ... 
+				       }
+	"""
+	#FIXME: Control de errores
+	varinfo = {}
+	#TODO: Cosmetics: EFficiency-> #varepsilon
+	#TODO: Get The binning, and all stuff 
+
+	arg = dataset.get()
+	#-- Get the list with the name of the variables
+	varList = arg.contentsString().split(',')
+	for name in varList:
+		if isinstance(arg[name],ROOT.RooCategory):
+			continue
+		varinfo[name] = { 'unit': arg[name].getUnit(), 'latexName': arg[name].getTitle() }
+
+	return varinfo
+
 class pytnp(dict):
 	"""
 	Class to retrieve and encapsulate the 'tag and probe' 
@@ -186,7 +208,7 @@ class pytnp(dict):
 	counter = 0
 	#-- ROOT.TFile
 	__fileroot__ = None
-	#-- Attribute dictionay##FIXME Es realmentee necesario?
+	#-- Attribute dictionary
 	__attrDict__ = {}
 	def __init__(self, filerootName, **keywords):
 		"""
@@ -250,17 +272,22 @@ class pytnp(dict):
 			raise IOError, message
 		#Building the dictionary 
 		self.__dict__ = {}
+		#--- Extract all the objects of the rootfile
 		self.__dict__ = self.__extract__(fileroot, self.__dict__, dataset) 
-		for name, dataSet in self.__dict__['RooDataSet'].iteritems():
-			self[name] = dataSet
 		print ''
+		#--- Getting the variables names of the RooDataSet 
+		#----- (By construction in CMSSW package all the RooDataSet
+		#------ should contain the same variables)
+		for dataset in self.__dict__['RooDataSet'].itervalues(): 
+			self.variables = getVarInfo(dataset) 
+			#break -> In principle all dataset must contain the same variables
 		self.__fileroot__ = fileroot
 		#-- Get the resonances names
-		#--- If it does not provided by the user
+		#----- If it does not provided by the user
 		if not self.resonance:
 			self.resonance, self.resLatex = getResName( filerootName )
-		#--- Encapsulate the hierarchy of the directories: FIXME: Es realmente necesario??
-		for name in self.iterkeys():
+		#--- Encapsulate the hierarchy of the directories:
+		for name in self.__dict__['RooDataSet'].iterkeys():
 			self.__attrDict__ = self.__getType__(name,self.__attrDict__)
 		#--- Associate the names of the mcTrue and counting MC True to a fit_eff
 		#----- Getting all the MC True RooDataSets: [ (name,dictionary),...]
@@ -284,7 +311,32 @@ class pytnp(dict):
 		#--- We are not instested about the sbs and cnt not MC
 		map( lambda y: self.__attrDict__.pop( y[0] ), filter( lambda x: x[1]['isMC'] == 0 and x[1]['methodUsed'] != 'fit_eff',\
 				self.__attrDict__.iteritems() ) ) 
+		#--- The dictionary itself contains only the RooDataSets
+		for name, dataSet in self.__dict__['RooDataSet'].iteritems():
+			#Warning this change is potentially dangerous, may leave some parts 
+			#inuseful
+			#self[name] = dataSet
+			try:
+				self[name] = self.__attrDict__[name]
+			# To get also the no fit_eff 	
+			except KeyError:
+				self[name] = self.__getType__(name,{})[name]
+			self[name]['dataset'] = dataSet
+			#self[name]['variables'] = getVarInfo(dataSet)
+			#self[name]['ArgSet']
 
+	def __str__(self):
+		"""
+		used by print built-in function
+		"""
+		message = ''
+		for name, Dict in self.iteritems():
+			message += '-- \033[1;29m'+name+'\033[1;m\n'
+			for key,value in sorted(Dict.iteritems()):
+				message += '     %s: %s ' % (key,str(value))
+				message += '\n'	
+
+		return message
 
 	def __getType__(self, name, structure):
 		#FIXME: Es realmente necesario??
@@ -313,7 +365,7 @@ class pytnp(dict):
 		elif effType == 'histoMuFromTk':
 			structure[name]['effType'] =  'muonId'
 		else:
-			message = '\033[1;31mrd... I don\'t understand what efficiency is in the directory %s \033[1;m' % effType
+			message = '\033[1;33mWarning: I don\'t understand what efficiency is in the directory %s \033[1;m' % effType
 			print message
 		#setattr(self.RooDataSet, structure[name]['effType'], {})
 		#---- Type of efficiency
