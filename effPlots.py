@@ -216,7 +216,14 @@ def doDiffEff( allFiles, refRes, whatPlots ):
 		tnpDict[resName] = pytnp.pytnp( aFile, dataset=whatPlots )
 		resonance[ resName ] = tnpDict[resName].resLatex
 	#Extract the reference resonance:
-	tnpResRef = tnpDict.pop( refRes ) #FIXME: CONTROL DE Errores
+	try:
+		tnpResRef = tnpDict.pop( refRes )
+		
+	except KeyError:
+		message ="""
+\033[1;31mError: the resonance name '%s' introduced is wrong, use either of %s \033[1;m""" % (refRes, [i for i in tnpDict.iterkeys()]) 
+		print message
+		raise KeyError
 	resonanceRef = resonance.pop( refRes )
 	for resName,resLatex in sorted(resonance.iteritems()):
 		for name in tnpDict[resName].RooDataSet.iterkeys():

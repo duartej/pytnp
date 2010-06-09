@@ -55,25 +55,99 @@ def getResName( aFile ):
 
 	return resonance,resonanceLatex
 
-#TODO: Puede hacerse con **keywords. pt=valor, eta=valor,...
-def getEff( dataSet, pt, eta ):
+def getEff( dataSet, **keywords):
 	"""
-	getEff(pt, eta) --> eff, effErrorLow, effErrorHigh, error
+	getEff(RooDataSet, var1=value, ...) --> eff, effErrorLow, effErrorHigh                
+	                                    --> eff, effErrorLow, effErrorHigh, dictionary
 
-	Giving a pt and eta returns the efficiency which 
-	corresponds to those values
+	Giving a binned variables returns the efficiency which 
+	corresponds to those values. There is 2 output signatures 
+	depending of the argument variables introduced; if the 
+	variables are the exhausted set of the RooDataSet, the output
+	will be a tuple of efficiency (CASE 1). Otherwise if the
+	input variables don't cover all the RooDataSet binned 
+	variables, the output will be the efficiency tuple plus
+	a dictionary which the names of the resting variables as keys
+	and the tuples of their bin values as values (CASE 2).
 	"""
+	#---- Checking the variables in dataset
+	_swapDict = getVarInfo( dataSet )
+	#---  All the binned variables in the dataset
+	datasetVarList = filter( lambda x: x.lower().find('eff') == -1, _swapDict.iterkeys() )
+	effList = filter( lambda x: x.lower().find('eff') != -1, _swapDict.iterkeys() )
+	#---- Sanity check
+	if len(effList) != 1:
+		message ="""\033[1;31mpytnp.getEff ERROR: Unexpected Error!! It seems that in %s there is no
+efficiency variable...\033[1;m""" % dataSet.GetName()
+		print message
+		raise 
+	effName = effList[0]
+
+	varList = []
+	nameVarList = []
+	for var,value in keywords.iteritems():
+		if not var in datasetVarList:
+			message ="""\033[1;31mpytnp.getEff ERROR: %s is not a binned variable of the dataset %s\033[1;m""" % (var,dataSet.GetName())
+			print message
+			raise KeyError
+		varList.append( (var,value) )
+		nameVarList.append( var )
+	#---- Sanity check
+	if len(varList) != 1:
+		message ="""\033[1;31mpytnp.getEff ERROR: You must introduce at least one variable\033[1;m"""
+		print message
+		print 'Usage:\n',getEff.__doc__
+		raise 
+	#--- Variables the user don't ask. This is the case when the user
+	#--- wants a list of efficiency given a fixed value of one variable
+	noAskVar = filter( lambda x: x not in nameVarList, datasetVarList )
+	listReturn = False
+	effVarList = None
+	if len(noAskVar) != 0:
+		listReturn = True
+		effVarList = []
+	#---- Sanity check
+	if len( varList ) > len(datasetVarList):#FIXME---> can be more than 2 variables...
+		message ="""\033[1;31mpytnp.getEff ERROR: You are using more variables than in dataset %s\033[1;m""" % dataSet.GetName()
+		print message
+		raise
+
 	#-- Get the table of efficiencies
-	tableList = tableEff( dataSet )
+	tableList = tableEff( dataSet ) 
+
 	for valDict in tableList:
-		#-- Extract ranges
-		ptRanges = valDict['pt'][1:]
-		etaRanges = valDict['eta'][1:]
-		if ( ptRanges[0] <= pt and ptRanges[1] >= pt ) and \
-				( etaRanges[0] <= eta and etaRanges[1] >= eta ):
-					return valDict['eff']
-				
-	print 'There is no bin where live the pair pt=',pt,', eta=',eta
+		#--  From the list of the variables we want the efficiencies (varList), put the value inside  
+		#--- of the ranges (valDict[var][1:][i]) in the list 
+		fList = filter( lambda (var,value): valDict[var][1:][0] <= value and valDict[var][1:][1] > value , varList )
+		#--  If our variables are all the variables available, we have 1-to-1 correspondence
+		#--- with a efficiency value-> return this value
+		if not listReturn and len(fList) == len( varList ):
+			return valDict[effName]
+		#--  If our variables are less than the variables available, we're going to return
+		#--- a list with the (restOfvariables,efficiencies) in order to recover the 1-to-1 correspondence
+		elif listReturn and len(fList) != 0:
+			restVarDict = dict( [ (_name, valDict[_name]) for _name in noAskVar ] )
+			effVarList.append( (valDict[effName],restVarDict) )
+
+	if listReturn and len(effVarList) > 0 :
+		#--output: (tuple,dict) where tuple is efficiency values and dict have the
+		#--- names of the variables as keys and tuple as values  
+		return effVarList
+
+#------- OLD VERSION: pt, eta hardcoded
+#	for valDict in tableList:
+#		#-- Extract ranges
+#		ptRanges = valDict['pt'][1:]
+#		etaRanges = valDict['eta'][1:]
+#		if ( ptRanges[0] <= pt and ptRanges[1] >= pt ) and \
+#				( etaRanges[0] <= eta and etaRanges[1] >= eta ):
+#					return valDict['eff']
+	message = '\033[1;34mpytnp.getEff Info: There is no bin where live '
+	for var,val in varList:
+		message += var+'='+str(val)+', '
+	message = message[:-2]+'\033[1;m'
+	print message
+
 	return None
 				
 def getBinning( var ):
@@ -81,16 +155,24 @@ def getBinning( var ):
 	getBinning( ROOT.RooArgVar ) -> bins, arrayBins
 
 	Giving a RooArgVar, the function returns 
-	how many bins the variable has and an array
+	how many bins the variable has and an array (of doubles)
 	with with his values.
+
+	WARNING: Use with caution. The doubles array are
+	         potentially dangerous.
 	"""
 
 	binsN = var.numBins()
 	binning = var.getBinning()
 	arrayBins = binning.array()
+	#-- By default arrayBins have a lot of space, so usign SetSize
+	#---- to resize the array
+	#---- The number of elements = bins+1 (remember edges)
+	arrayBins.SetSize(binsN+1)
 
 	return binsN, arrayBins
 
+#FIXME: Un-hardcode pt, eta
 def tableLatex(dataset):
 	"""
 
@@ -144,33 +226,31 @@ def tableEff(dataSet):
 	Giving a RooDataSet, the function returns a list where every 
 	element is an entry of the RooDataSet stored as a dictionary:
 	For every entry we have
-	                { 'pt':  (pt, minimum pt bin, maximum pt bin),
-	                  'eta': (eta, minimum eta bin, maximum eta bin),
-			  'eff': (eff, error low, error high, error)
+	                { 'var1':  (pt, minimum pt bin, maximum pt bin),
+	                  'var2': (eta, minimum eta bin, maximum eta bin),
+			   ...
+			  'nameEfficiency': (eff, error low, error high, error)
 			}
 
 	"""
-	#TODO: usando el try, permitir tambien la busqueda para TH2
+	#---- Checking the variables in dataset
+	_swapDict = getVarInfo( dataSet )
+	datasetVarList = [ i for i in _swapDict.iterkeys() ]
 	try:
 		argSet = dataSet.get()
-		pt = argSet['pt']
-		eta= argSet['eta']
-		eff = argSet['efficiency']
-		valList= []
-		for i in xrange(dataSet.numEntries()):
-			dataSet.get(i)
-			#print 'pt=',pt.getVal(),' eta=',eta.getVal(),' eff=', eff.getVal()
-			#Change: watch this! for pt and eta Hi and Lo is the limit of the bin
-			#                    For efficiencies. is the asymmetric error?
-			valList.append( { 'pt':(pt.getVal(), pt.getVal()+pt.getErrorLo(), pt.getVal()+pt.getErrorHi()),\
-					'eta': (eta.getVal(), eta.getVal()+eta.getErrorLo(), eta.getVal()+eta.getErrorHi()),\
-					'eff': (eff.getVal(), eff.getErrorLo(), eff.getErrorHi(), eff.getError() )
-					}
-				      )
-		return valList
 	except AttributeError:
-		print str(dataSet)+' is not a RooDataSet'
+		print '\033[1;31mpytnp.tableEff Error: '+str(dataSet)+' is not a RooDataSet\n\033[1;m'
 		raise AttributeError
+
+	varDict = dict( [ ( varName, argSet[varName]) for varName in datasetVarList ] )
+	valList= []
+	for i in xrange(dataSet.numEntries()):
+		dataSet.get(i)
+		# Watch: for binned variables Hi and Lo is the limit of the bin
+		#        for efficiencies. is the asymmetric error
+		valList.append( dict( [ (varName,(argset.getVal(), argset.getVal()+argset.getErrorLo(),\
+				argset.getVal()+argset.getErrorHi()) ) for varName,argset in varDict.iteritems() ] ) )
+	return valList
 
 
 def getVarInfo( dataset ):
@@ -181,16 +261,23 @@ def getVarInfo( dataset ):
 	"""
 	#FIXME: Control de errores
 	varinfo = {}
-	#TODO: Cosmetics: EFficiency-> #varepsilon
-	#TODO: Get The binning, and all stuff 
 
-	arg = dataset.get()
+	try:
+		arg = dataset.get()
+	except AttributeError:
+		message = '\033[1;31mgetVarInfo: The object %s is not a RooDataSet\033[1;m' % str(dataset)
 	#-- Get the list with the name of the variables
 	varList = arg.contentsString().split(',')
 	for name in varList:
 		if isinstance(arg[name],ROOT.RooCategory):
 			continue
-		varinfo[name] = { 'unit': arg[name].getUnit(), 'latexName': arg[name].getTitle() }
+		binN, arrayBin = getBinning( arg[name] )
+		varinfo[name] = { 'unit': arg[name].getUnit(), 'latexName': arg[name].getTitle().Data(), \
+				'binN' : binN, 'arrayBins': arrayBin 
+				} #Nota some TString instance--> normalizing to str with Data method
+
+	effName = filter( lambda x: x.lower().find('eff') != -1, [i for i in varinfo.iterkeys()] )[0]
+	varinfo[effName]['latexName'] = '#varepsilon'
 
 	return varinfo
 
@@ -210,6 +297,10 @@ class pytnp(dict):
 	__fileroot__ = None
 	#-- Attribute dictionary
 	__attrDict__ = {}
+	#-- Binned variables (efficiencies are calculated respect to)
+	x = None
+	y = None
+	eff = None
 	def __init__(self, filerootName, **keywords):
 		"""
                 pytnp(filerootName, resonance=('name','nameLatex'), dataset='type', mcTrue=true ) -> pytnp object instance
@@ -229,16 +320,18 @@ class pytnp(dict):
 
 		which again are dictionaries analogous of the 
 		instance itself and can be extracted as datamembers.
+
+		TODO: Put dictionary output
 		"""
 		#--- Checking the keys dictionary passed ----#
 		#--- Keys valid
-		valid_keys = ['resonance', 'dataset', 'mcTrue']
+		valid_keys = ['resonance', 'dataset', 'mcTrue','variables']
 		#---- Some initializations using user inputs ---#
 		dataset = ''
 		for i in keywords.keys():
 			if not i in valid_keys:
 				message = '\033[1;31mpytnp: invalid instance of pytnp: you can not use %s as key argument, ' % i
-				message += ' key arguments valids are \'resonance\', \'dataset\', \'mcTrue\' \033[1;m' 
+				message += ' key arguments valids are \'resonance\', \'dataset\', \'mcTrue\', \'variables\' \033[1;m' 
 				raise IOError, message
 			#---Checking the correct format and storing
 			#---the names provided by the user
@@ -260,6 +353,15 @@ class pytnp(dict):
 					self.resLatex  = keywords['resonance'][1]
 			elif i == 'dataset':
 				dataset = keywords['dataset']
+			elif i == 'variables':
+				#-- Sanity checks
+				if len(i) != 2:
+					message ='\033[1;31mpytnp: Not valid variables=%s key; must be a tuple containing 2 elements\033[1;m'
+					print message
+					raise KeyError
+				self.x = i[0]
+				self.y = i[1]
+
                 #--------------------------------------------#
 		#--- Extracting the members
 		print 'Extracting info from '+filerootName+'.',
@@ -270,17 +372,39 @@ class pytnp(dict):
 		if fileroot.IsZombie():
 			message = '\033[1;31mpytnp: Invalid root dataset or root dataset not found, %s \033[1;m' % filerootName
 			raise IOError, message
+		
 		#Building the dictionary 
 		self.__dict__ = {}
 		#--- Extract all the objects of the rootfile
 		self.__dict__ = self.__extract__(fileroot, self.__dict__, dataset) 
 		print ''
+		
 		#--- Getting the variables names of the RooDataSet 
 		#----- (By construction in CMSSW package all the RooDataSet
 		#------ should contain the same variables)
 		for dataset in self.__dict__['RooDataSet'].itervalues(): 
 			self.variables = getVarInfo(dataset) 
 			#break -> In principle all dataset must contain the same variables
+		
+		#------ Setting the binned Variables: extract efficiencies from last list
+		self.binnedVar = filter( lambda x: x.lower().find('eff') == -1, self.variables ) 
+		self.eff = filter( lambda x: x.lower().find('eff') != -1, self.variables )[0]
+		#------ Check the variables introduced by user are there, and put in
+		if self.x and self.y:
+			message = """\033[1;33mWarning: Variable %s is not in the root file, using %s and %s"""
+			if not self.x in self.binnedVar:
+				#FIXME: Que pasa si solo tengo una variable???
+				message = message % (self.x,self.binnedVar[0],self.binnedVar[1])
+				print message
+				self.x = self.binnedVar[0]
+			elif not self.y in self.binnedVar:
+				message = message % (self.x,self.binnedVar[0],self.binnedVar[1])
+				print message
+				self.y = self.binnedVar[1]
+		else:
+			self.x = self.binnedVar[0]
+			self.y = self.binnedVar[1]
+
 		self.__fileroot__ = fileroot
 		#-- Get the resonances names
 		#----- If it does not provided by the user
@@ -311,6 +435,7 @@ class pytnp(dict):
 		#--- We are not instested about the sbs and cnt not MC
 		map( lambda y: self.__attrDict__.pop( y[0] ), filter( lambda x: x[1]['isMC'] == 0 and x[1]['methodUsed'] != 'fit_eff',\
 				self.__attrDict__.iteritems() ) ) 
+		_prov = set()
 		#--- The dictionary itself contains only the RooDataSets
 		for name, dataSet in self.__dict__['RooDataSet'].iteritems():
 			#Warning this change is potentially dangerous, may leave some parts 
@@ -324,6 +449,20 @@ class pytnp(dict):
 			self[name]['dataset'] = dataSet
 			#self[name]['variables'] = getVarInfo(dataSet)
 			#self[name]['ArgSet']
+			#--To store the categories we have
+			_prov.add( self[name]['objectType'] )
+		#-- Storing the categories we have 
+		self.categories = list(_prov)
+		#-- In case don't introduce binned variables--> default
+		if len( filter( lambda x: x == 'variables', keywords.keys()) ) == 0:
+				try:
+					message = """\033[1;34mpytnp: you have not introduced any binned variables, I will use '%s' and '%s'\033[1;m""" % \
+							( self.binnedVar[0], self.binnedVar[1] )
+					print message
+				except IndexError:
+					message = """\033[1;31mpytnp: Unexpected error! I only found one variable: %s. Exiting...""" % str(self.binnedVar)
+					print message
+					raise IndexError
 
 	def __str__(self):
 		"""
@@ -339,7 +478,6 @@ class pytnp(dict):
 		return message
 
 	def __getType__(self, name, structure):
-		#FIXME: Es realmente necesario??
 		"""
 		__getType__( 'RooDataSet name', dictionary ) --> dictionary
 		Build a dictionary where the key is the pathname (in standard T&P format)
@@ -462,6 +600,9 @@ class pytnp(dict):
 	## Getters for attributes ######################################################################
 	def getCategory( self, name ):
 		"""
+		getCategory( name ) -> 'category'
+
+		Getting the name of the object, return the category belongs to 
 		"""
 		try:
 			return self.__attrDict__[name]['objectType']
@@ -472,6 +613,9 @@ class pytnp(dict):
 	
 	def getFitEffList( self ):
 		"""
+		getFitEffList() -> [ 'name1', ... ]
+
+		Returns a string's list of the names of RooDataSet which are fit_eff
 		"""
 		fitEffList = []
 		for name,Dict in filter( lambda (name,Dict): Dict['methodUsed'] == 'fit_eff' ,self.__attrDict__.iteritems() ):
@@ -486,6 +630,9 @@ class pytnp(dict):
 	
 	def getCountMCName( self, name ):
 		"""
+		getCountMCName( name ) -> 'nameMCcountig'
+
+		Gived the RooDataSet name (fit_eff like), returns the name of its MC True counting equivalent.
 		"""
 		try:
 			return self.__attrDict__[name]['refMC']['cnt_eff']
@@ -620,79 +767,163 @@ ERROR: What the f***!! This is an expected error... Exiting
 
 		return rangeStr
 		
-
+	#FIXME: Nota que la funcio no te gaire sentit per mes de dos variables
 	def plotEff1D( self, name ):
-		#FIXME
-		#TODO: Cambiar esta funcion para que utilice el
-		#      RooDataSet o ambos...
 		"""
-		plotEff1D( namePlot) -> ROOT.RooHist
+		plotEff1D( RooDataSet ) -> ROOT.RooHist
 	
-		Given a name directory-like for a ROOT.RooPlot object,
+		Given a name directory-like for a ROOT.RooDataSet object,
 	 	the function creates a 1-dim plot etracted from the
 		object and it will save it in a eps file. Also
 		it will store in the dictionary of the instance if
 		the object does not exist.
 		"""
-                #-- Name for the histo and for to save the plot
-		histoName = name
+		ROOT.gROOT.SetBatch(1) #----------------------------___> QUITALO
 		#-- Checking if the object exists
-		if self.has_key(histoName):
+		if not self.RooDataSet.has_key(name):
 			# So, skipping the action.. it's done
+			message = """\033[1;34mpytnp.plotEff1D: there is no RooDataSet with name %s\033[1;m""" % name
+			print message
 			return None
 		#--- Title from name: name must be 
 		#--- in standard directory-like name
-		title = self.resLatex+' '+self.inferInfo(name)+', '+self.searchRange(name)
-		#FIXME: Flexibilidad para entrar variables de entradaa
-		rooPlot = None
+		title = None #self.resLatex+' '+self.inferInfo(name)+', '+self.searchRange(name)
+		dataset = None
 		try:
-			rooPlot = self.RooPlot[name]
-			#-- Plotted variable
-			var = rooPlot.getPlotVar()
-			xlabel = var.getTitle().Data()  #is a TString
-			varUnit = var.getUnit()
-			h = rooPlot.getHist()
+			dataset = self.RooDataSet[name]
 		except KeyError:
-		  	print """Error: you must introduce a valid name"""
-			print plotEff1D.__doc__ # OJO ESTO, esta sin comprobar
+		  	print """\033[1;33mpytnp.plotEff1D Error: you must introduce a valid name, %s is not a RooDataSet in the root file\033[1;m""" % name
+			print plotEff1D.__doc__
 			raise KeyError
-		except AttributeError:
-			#Changed from the new version of T&P
-			tcanvas = self.TCanvas[name]
-			#FIXME: Cuidado control de errores
-			h = filter(lambda x: x.Class_Name() == 'RooHist', tcanvas.GetListOfPrimitives())[0]
-			hist1D = filter(lambda x: x.Class_Name() == 'TH1D', tcanvas.GetListOfPrimitives())[0]
-			xlabel = hist1D.GetXaxis().GetTitle()
-			varUnit = ''
 		
-		#--- Graph, getHist returns a RooHist which inherits from
-		#--- TGraphErrorAsym
-		ymin = 0
-		#ymin = h.GetYaxis().GetBinLowEdge(1) #Solo tiene un bin?
-		#if ymin < 0:
-		#	ymin = 0
-		#	ymax = h.GetYaxis().GetBinUpEdge( h.GetYaxis().GetNbins() )
-		ymax = 1.0
-		xmin = h.GetXaxis().GetBinLowEdge(1) #Solo tiene un bin, es un TGraph
-		xmax = h.GetXaxis().GetBinUpEdge( h.GetXaxis().GetNbins() )
-		#Make canvas
-		c = ROOT.TCanvas()
-		frame = c.DrawFrame(xmin,ymin,xmax,ymax)
-		# Preparing to plot, setting variables, etc..
-		frame.SetTitle( title )
-		h.SetTitle( title )  #To Store the info
-		if varUnit != '':
-			xlabel += '('+varUnit+')'
-		frame.GetXaxis().SetTitle( xlabel ) 
-		h.GetXaxis().SetTitle( xlabel )
-		frame.GetYaxis().SetTitle( 'Efficiency' )
-		h.GetYaxis().SetTitle( 'Efficiency' )
-		h.Draw('P')
-		c.SaveAs(self.resonance+'_'+histoName.replace('/','_')+'.eps')
-		c.Close()
-		del c
-		#--- Storing the histo
-		self[histoName] = h
+		histo = None
+		#argSet = dataset.get()
+		#eff = argSet[self.eff]
+		#argSetDict = dict( [ (i, argSet[i]) for i in self.binnedVar ] )
+		#For all var1 bin, get eff respect var2
+		for varName in self.binnedVar:
+			binsN = self.variables[varName]['binN']
+			arrayBins = self.variables[varName]['arrayBins']
+			for bin in xrange(binsN):
+				Lo = arrayBins[bin]
+				Hi = arrayBins[bin+1]
+				title = self.resLatex+', ('+str(Lo)+','+str(Hi)+') '+self.variables[varName]['latexName']+' range'
+				graphName = self[name]['methodUsed']+'_'+self[name]['effType']+'_'+\
+						self[name]['objectType']+'__'+varName+'_bin'+str(bin)+'_' 
+				#Getting list of efficiency values plus variables 
+				Central = (Hi-Lo)/2.0
+				_plotList = eval('getEff(dataset,'+varName+'='+str(Central)+')')
+				print _plotList[0][0]
+				#Extracting info to plot
+				eff,effErrorLo,effErrorHi,otherVarDict = _plotList[0] #FIXME:Control de errores?!
+				graph = {}
+				frame = {}
+				_max = {}
+				_min = {}
+				for otherVarName, val in otherVarDict.iteritems():
+					graphName = graphName+otherVarName 
+					graph[otherVarName] = ROOT.TGraphAsymmErrors()
+					graph[otherVarName].SetName( graphName )
+					graph[otherVarName].SetMarkerSize(1)
+					frame[otherVarName] = ROOT.TH1F()
+					frame[otherVarName].SetName( 'frame_'+graphName )
+					frame[otherVarNamexlabel].GetXaxis().SetTitle(\
+							self.variables[otherVarName]['latexName']+' '+self.variables[otherVarName]['unit'])
+					frame[otherVarName].GetYaxis().SetTitle( '#varepsilon_{'+self.resLatex+'}' )
+					_max[otherVarName] = 0.0
+					_min[otherVarName] = 0.0
+				entry = 0
+				for eff,effErrorLo,effErrorHi,otherVarDict in _plotList: 
+					for otherVarName, (central, low, high) in otherVarDict.iteritems():
+						_min[otherVarName] = min( _min[otherVarName], low )
+						_max[otherVarName] = max( _max[otherVarName], high )
+						graph[otherVarName].SetPoint(entry, central, eff.getVal() )
+						graph[otherVarName].SetPointEXlow( entry, low )
+						graph[otherVarName].SetPointEXhigh( entry, high) 
+						graph[otherVarName].SetPointEYlow( entry, effErrorLo )
+						graph[otherVarName].SetPointEYhigh( entry, effErrorHi )
+				#-- Nota que ya tienes definido otherVar unas lineas mas arriba
+				for otherVarName, (central, low, high) in otherVarDict.iteritems():
+					frame[otherVarName].SetBins(100,_min[otherVarName],_max[otherVarName])
+					c = ROOT.TCanvas()
+					frame[otherVarName].Draw()
+					graph[otherVarName].Draw('P')
+					c.SaveAs( graph[otherVarName].GetName()+'.eps' ) 
+					c.Close()
+
+
+			#print '\033[1;33mPlotting \''+varName+'\' bins in all the range of '+varIntegratedName+'\033[1;m'
+
+#		for varName in self.binnedVar:
+#			varIntegratedName = filter(lambda x: x != varName, self.binnedVar)[0]
+#			print '\033[1;33mPlotting \''+varName+'\' bins in all the range of '+varIntegratedName+'\033[1;m'
+#			varInt = argSetDict[varIntegratedName]
+#			#var = argSetDict[varName]
+#			xlabel = self.variables[varIntegratedName]['latexName']
+#			varUnit = self.variables[varIntegratedName]['unit']
+#			#-- Preparing the loop for all varName bins
+#			arrayBins = self.variables[varName]['arrayBins']
+#			binsN = self.variables[varName]['binN']
+#			binsNIntVar = self.variables[varIntegratedName]['binN']
+#			for bin in xrange(binsN-1):
+#				low = arrayBins[bin]
+#				#-- Remember #bins+1=#points in the array
+#				high = arrayBins[bin+1]
+#				title = self.resLatex+', ('+str(low)+','+str(high)+') '+self.variables[varName]['latexName']+' range'
+#				graphName = self[name]['methodUsed']+'_'+self[name]['effType']+'_'+\
+#						self[name]['objectType']+'__'+varName+'_bin'+str(bin)+'_'+varIntegratedName 
+#				graph = ROOT.TGraphAsymmErrors() 
+#				graph.SetName( graphName )
+#				graph.SetMarkerSize(1)
+#				#-- Get the efficiencies for the var1 ranges:
+#				for entry in xrange(dataset.numEntries()):
+#					_dummy = dataset.get(entry)
+#					graph.SetPoint(entry, varInt.getVal(), eff.getVal() )
+#					graph.SetPointEXlow( entry, varInt.getErrorLo() )
+#					graph.SetPointEXhigh( entry, varInt.getErrorHi() )
+#					graph.SetPointEYlow( entry, eff.getErrorLo() )
+#					graph.SetPointEYhigh( entry, eff.getErrorHi() )
+#				c = ROOT.TCanvas()
+#				frame = c.DrawFrame(self.variables[varIntegratedName]['arrayBins'][0], 0.0, \
+#						self.variables[varIntegratedName]['arrayBins'][binsNIntVar], 1.05 )
+#				frame.SetTitle( title )
+#				frame.GetXaxis().SetTitle( xlabel+' '+varUnit )
+#				frame.GetYaxis().SetTitle( '#varepsilon_{'+self.resLatex+'}' )
+#				graph.Draw('P')
+#				c.SaveAs( graphName+'.eps' )
+#				c.Close()
+#				return -1
+		
+#---------------OLD VERSION--> It doesn't work for the lastest CMSSW TnP packages
+#		#--- Graph, getHist returns a RooHist which inherits from
+#		#--- TGraphErrorAsym
+#		ymin = 0
+#		#ymin = h.GetYaxis().GetBinLowEdge(1) #Solo tiene un bin?
+#		#if ymin < 0:
+#		#	ymin = 0
+#		#	ymax = h.GetYaxis().GetBinUpEdge( h.GetYaxis().GetNbins() )
+#		ymax = 1.0
+#		xmin = h.GetXaxis().GetBinLowEdge(1) #Solo tiene un bin, es un TGraph
+#		xmax = h.GetXaxis().GetBinUpEdge( h.GetXaxis().GetNbins() )
+#		#Make canvas
+#		c = ROOT.TCanvas()
+#		frame = c.DrawFrame(xmin,ymin,xmax,ymax)
+#		# Preparing to plot, setting variables, etc..
+#		frame.SetTitle( title )
+#		h.SetTitle( title )  #To Store the info
+#		if varUnit != '':
+#			xlabel += '('+varUnit+')'
+#		frame.GetXaxis().SetTitle( xlabel ) 
+#		h.GetXaxis().SetTitle( xlabel )
+#		frame.GetYaxis().SetTitle( 'Efficiency' )
+#		h.GetYaxis().SetTitle( 'Efficiency' )
+#		h.Draw('P')
+#		c.SaveAs(self.resonance+'_'+histoName.replace('/','_')+'.eps')
+#		c.Close()
+#		del c
+#		#--- Storing the histo
+#		self[histoName] = h
+#------------------------------------------------------------------------------------------
 
 	
 	def plotEff2D( self, name ):
