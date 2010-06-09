@@ -1,7 +1,29 @@
 """
 """
+#TODO: Portar las funciones a utils. Crear una 
+#     funcion que chechea si las variables
+#      estan en el dataset (usa dicha funcion tableLatex, getEff,...
 import ROOT
 import sys
+
+def checkbinnedVar( dataset ):
+	"""
+	NEWWWWWWWWWW
+	"""
+	#---- Checking the variables in dataset
+	_swapDict = getVarInfo( dataset )
+	#---  All the binned variables in the dataset
+	datasetVarList = filter( lambda x: x.lower().find('eff') == -1, _swapDict.iterkeys() )
+	effList = filter( lambda x: x.lower().find('eff') != -1, _swapDict.iterkeys() )
+	#---- Sanity check
+	if len(effList) != 1:
+		message ="""\033[1;31mpytnp.checkbinnedVar ERROR: Unexpected Error!! It seems that in %s there is no
+efficiency variable...\033[1;m""" % dataSet.GetName()
+		print message
+		raise 
+	effName = effList[0]
+
+	return datasetVarList, effName #lista binned, nombre eff
 
 def getResName( aFile ):
 	"""
@@ -22,7 +44,8 @@ def getResName( aFile ):
 	nameDict = { 'JPsi' : ('J/#Psi','JPsi'),
 			'Upsilon': ('All #Upsilon','AllUpsilons'),
 			'Z' : ('Z#rightarrow#mu#mu','Z'),
-			'DATA' : (' Data', '_DATA')
+			'DATA' : (' Data', '_DATA'),
+			'ReWeight' : (' ReWeight ', '_ReWeight')
 			}
 	try:
 		num = regexp.search( aFile ).group( 'NUMBER' )
@@ -93,7 +116,7 @@ efficiency variable...\033[1;m""" % dataSet.GetName()
 		varList.append( (var,value) )
 		nameVarList.append( var )
 	#---- Sanity check
-	if len(varList) != 1:
+	if len(varList) < 1:
 		message ="""\033[1;31mpytnp.getEff ERROR: You must introduce at least one variable\033[1;m"""
 		print message
 		print 'Usage:\n',getEff.__doc__
@@ -179,20 +202,62 @@ def tableLatex(dataset):
 	Giving a RooDataSet, the function returns a table in latex
 	format 
 	"""
+	#---- Checking the variables in dataset
+	_swapDict = getVarInfo( dataset )
+	#---  All the binned variables in the dataset
+	datasetVarList = filter( lambda x: x.lower().find('eff') == -1, _swapDict.iterkeys() )
+	_swapeffList = filter( lambda x: x.lower().find('eff') != -1, _swapDict.iterkeys() )
+	#---- Sanity check
+	if len(_swapeffList) != 1:
+		message ="""\033[1;31mpytnp.getEff ERROR: Unexpected Error!! It seems that in %s there is no
+efficiency variable...\033[1;m""" % dataSet.GetName()
+		print message
+		raise 
+	effName = _swapeffList[0]
+
 	#Getting table
 	effList = tableEff(dataset)
-	##Getting how many eta and pt bins we have
-	etaBins = set([ (i['eta'][1],i['eta'][2]) for i in effList] )
-	etaBins = sorted(list(etaBins))
+	## Getting bins of variables
+	#---- Dictionary with the bins for each binned variable
+	binsTMP = map( lambda nameVar: { nameVar: set([ (i[nameVar][1],i[nameVar][2]) for i in effList ]) }, datasetVarList )
+	bins =  {} #List from the map, only each item is a dict. Joining
+	for Dict in binsTMP:
+		for key,valDict in Dict.iteritems():
+			bins[key] = valDict
+	for key,SET in bins.iteritems():
+		bins[key] = sorted(list(SET))
+	#Assuming we have 2 binned variables:
+	if len(bins) != 2:
+		message = """\033[1;31mtableLatex Error: only two variables, by the moment\033[1;31m"""
+		print message
+	#FIXME
+	etaBins = None
+	for i,j in sorted(bins.iteritems()):
+		etaBins = j
+		etaName = i
+		break
+	ptBins = None
+	KK = 0
+	for i,j in sorted(bins.iteritems()):
+		if KK == 1:
+			ptBins = j
+			ptName = i
+			break
+		KK += 1
+#	Nbins = map( lambda i: len(i), bins )
+#	##Getting how many eta and pt bins we have
+#	etaBins = set([ (i['eta'][1],i['eta'][2]) for i in effList] )
+#	etaBins = sorted(list(etaBins))
 	etaNbins = len(etaBins)
-	ptBins  = set([ (i['pt'][1],i['pt'][2]) for i in effList] )
-	ptBins  = sorted(list(ptBins)) 
+#	ptBins  = set([ (i['pt'][1],i['pt'][2]) for i in effList] )
+#	ptBins  = sorted(list(ptBins)) 
 	ptNbins = len(ptBins)
 	#Some usefuls function
 	edges = lambda x,y: '(%0.1f, %0.1f)' % (x,y) 
-	effsetter = lambda eff,lo,hi: '$%.3f\\pm^{%.3f}_{%.3f}$ & ' % (eff,hi,-lo) 
+	effsetter = lambda eff,lo,hi: '$%.3f\\pm^{%.3f}_{%.3f}$ & ' % (eff,hi-eff,eff-lo) 
 	central = lambda low,high: (high+low)/2.0
 
+	
 	toLatex = '\\begin{tabular}{c'
 	#Number of columns
 	toLatex += 'c'*etaNbins+'}\\toprule\n'
@@ -206,7 +271,7 @@ def tableLatex(dataset):
 		toLatex += edges(lowPt,highPt)+' & '
 		for lowEta,highEta in etaBins:
 			try:
-				eff,effErrorLow,effErrorHig,effErr = getEff(dataset,central(lowPt,highPt),central(lowEta,highEta))
+				eff,effErrorLow,effErrorHig = eval('getEff(dataset,'+ptName+'=central(lowPt,highPt), '+etaName+'=central(lowEta,highEta))')
 			#Empty bin
 			except TypeError:
 				toLatex += ' & '
@@ -214,12 +279,12 @@ def tableLatex(dataset):
 		toLatex = toLatex[:-2]+'\\\\\n'
 	toLatex += ' \\bottomrule\n'
     	toLatex += '\\end{tabular}'
-
+#
 	print toLatex
 	return toLatex
 
 	
-def tableEff(dataSet):
+def tableEff(dataSet,*badpoints,**effName):
 	"""
 	tableEff( dataSet ) --> tableList
 
@@ -229,13 +294,23 @@ def tableEff(dataSet):
 	                { 'var1':  (pt, minimum pt bin, maximum pt bin),
 	                  'var2': (eta, minimum eta bin, maximum eta bin),
 			   ...
-			  'nameEfficiency': (eff, error low, error high, error)
+			  'nameEfficiency': (eff, eff low, eff high)
 			}
 
 	"""
 	#---- Checking the variables in dataset
 	_swapDict = getVarInfo( dataSet )
 	datasetVarList = [ i for i in _swapDict.iterkeys() ]
+	#--- Bad points
+	checkPoints = False
+	for key,name in effName.itervalues():
+		if len(badpoints) == 2:
+			checkPoints = True
+			effName = name
+			#---- Check the efficiency name is in the dataset
+			if not effName in datasetVarList:
+				print '\033[1;31pytnp.tableEff Error: % is not the name of the efficiency in the dataset %s\033[1;m' % (effName,dataSet.GetName())
+				raise KeyError
 	try:
 		argSet = dataSet.get()
 	except AttributeError:
@@ -247,9 +322,15 @@ def tableEff(dataSet):
 	for i in xrange(dataSet.numEntries()):
 		dataSet.get(i)
 		# Watch: for binned variables Hi and Lo is the limit of the bin
-		#        for efficiencies. is the asymmetric error
+		#        for efficiencies are the upper and lower 
 		valList.append( dict( [ (varName,(argset.getVal(), argset.getVal()+argset.getErrorLo(),\
 				argset.getVal()+argset.getErrorHi()) ) for varName,argset in varDict.iteritems() ] ) )
+		# Remove badpoints
+		if checkPoints:
+			isBad = filter( lambda (eff,lo,hi): (eff- badpoints[0]) < 1e-10 and ((eff-lo)-badpoints[1]) < 1e-10 , valList[-1][name] ) 
+			if len(isBad) != 0:
+				varList = varList[:-1]
+	
 	return valList
 
 
@@ -274,7 +355,9 @@ def getVarInfo( dataset ):
 	for name in varList:
 		if isinstance(arg[name],ROOT.RooCategory):
 			continue
-		binN, arrayBin = getBinning( arg[name] )
+		binN, arrayBinPointer = getBinning( arg[name] )
+		# Some memory problems with the Double array--> to tuple
+		arrayBin = tuple( [ arrayBinPointer[i] for i in xrange(binN+1) ] )
 		varinfo[name] = { 'unit': arg[name].getUnit(), 'latexName': arg[name].getTitle().Data(), \
 				'binN' : binN, 'arrayBins': arrayBin 
 				} #Nota some TString instance--> normalizing to str with Data method
@@ -304,19 +387,29 @@ class pytnp(dict):
 	x = None
 	y = None
 	eff = None
+	# Efficiency value considered outlier (error in the fit)
+	badPoint = (0.9,0.051)
 	def __init__(self, filerootName, **keywords):
 		"""
-                pytnp(filerootName, resonance=('name','nameLatex'), dataset='type', mcTrue=true ) -> pytnp object instance
+                pytnp(filerootName, resonance=('name','nameLatex'), dataset='type', mcTrue=true, badPoint=(value,error) ) -> pytnp object instance
 
 		Create a dictionary which are going to be populate
 		with the plots and datasets already contained in the
 		file.
-		If dataset is included, it will only  map 
-		the object matching with 'dataset'.
-		If resonance=(name,latexName) is included the filename is not necessary
-		to be an standard tag and probe name (i.e. Resonance_blabla.root).
-		If mcTrue is set to True it will store the mcTrue info
-		and will associate each dataset with their mcTrue dataset.
+		KEYWORDS:
+			If 'dataset' is included, it will only  map 
+			the object matching with 'dataset'.
+			
+			If 'resonance'=(name,latexName) is included the filename is not necessary
+			to be an standard tag and probe NAME (i.e. Resonance_blabla.root).
+			
+			If 'mcTrue' is set to True it will store the mcTrue info
+			and will associate each dataset with their mcTrue dataset.
+
+			If 'badPoint'=(value,error) is included, it will skip all 
+			values of efficiencies that matches with value, considering
+			as a outlier points due to a error in the fit.
+			WARNING: By default, considered bad points are eff=0.9, err=0.051
 		The instance will contain the follow datamembers:
 		    
 		    TCanvas, RooDataSet, RooPlot, RooFitResults
@@ -358,12 +451,19 @@ class pytnp(dict):
 				dataset = keywords['dataset']
 			elif i == 'variables':
 				#-- Sanity checks
-				if len(i) != 2:
-					message ='\033[1;31mpytnp: Not valid variables=%s key; must be a tuple containing 2 elements\033[1;m'
+				if len(keywords[i]) != 2:
+					message ='\033[1;31mpytnp: Not valid variables=%s key; must be a tuple containing 2 elements\033[1;m' % str(keywords[i])
 					print message
 					raise KeyError
-				self.x = i[0]
-				self.y = i[1]
+				self.x = keywords[i][0]
+				self.y = keywords[i][1]
+			elif i == 'badPoint':
+				#-- Sanity checks
+				if len(keywords[i]) != 2:
+					message ='\033[1;31mpytnp: Not valid badPoint=%s key; must be a tuple containing 2 elements (value,error)\033[1;m' % str(keywords[i])
+					print message
+					raise KeyError
+				self.badPoint= keyword[i][0]
 
                 #--------------------------------------------#
 		#--- Extracting the members
@@ -433,27 +533,30 @@ class pytnp(dict):
 						self.__attrDict__[Name]['refMC'][ mcDict['methodUsed'] ] =  mcName 
 					except KeyError:
 						self.__attrDict__[Name]['refMC'] = { mcDict['methodUsed'] : mcName }
-		#--- We are not interested about the MC, only in cnt and fit_eff
-		map( lambda (Name,Dumm): self.__attrDict__.pop(Name), mcTrueData )
-		#--- We are not instested about the sbs and cnt not MC
-		map( lambda y: self.__attrDict__.pop( y[0] ), filter( lambda x: x[1]['isMC'] == 0 and x[1]['methodUsed'] != 'fit_eff',\
-				self.__attrDict__.iteritems() ) ) 
 		_prov = set()
 		#--- The dictionary itself contains only the RooDataSets
 		for name, dataSet in self.__dict__['RooDataSet'].iteritems():
-			#Warning this change is potentially dangerous, may leave some parts 
-			#inuseful
-			#self[name] = dataSet
-			try:
-				self[name] = self.__attrDict__[name]
-			# To get also the no fit_eff --> Am I sure?? TODO: to be Checked
-			except KeyError:
-				self[name] = self.__getType__(name,{})[name]
+			#try:
+			self[name] = self.__attrDict__[name]
+				# To get also the no fit_eff --> Except sbs (not implemented yet) and cnt no MC
+			#except KeyError:
+			#	self[name] = self.__getType__(name,{})[name]
+				#--- Skipping sbs, cnt no MC
+			if self.__attrDict__[name]['methodUsed'] == 'sbs_eff' or \
+					( self.__attrDict__[name]['methodUsed'] == 'cnt_eff' and self.__attrDict__[name]['isMC'] == 0):
+				self.pop(name)
+				continue
+
 			self[name]['dataset'] = dataSet
 			#self[name]['variables'] = getVarInfo(dataSet)
 			#self[name]['ArgSet']
 			#--To store the categories we have
 			_prov.add( self[name]['objectType'] )
+		#--- We are not interested about the MC, only in cnt and fit_eff
+		map( lambda (Name,Dumm): self.__attrDict__.pop(Name), mcTrueData )
+		#--- We are not instested about the sbs and cnt not MC
+		map( lambda y: self.__attrDict__.pop( y[0] ), filter( lambda x: x[1]['isMC'] == 0 and x[1]['methodUsed'] != 'fit_eff',\
+				self.__attrDict__.iteritems() ) ) 
 		#-- Storing the categories we have 
 		self.categories = list(_prov)
 		#-- In case don't introduce binned variables--> default
@@ -786,110 +889,94 @@ There's no class named %s!
 		it will store in the dictionary of the instance if
 		the object does not exist.
 		"""
-		#-- Checking if the object exists
-		if not self.RooDataSet.has_key(name):
-			# So, skipping the action.. it's done
-			message = """\033[1;34mpytnp.plotEff1D: there is no RooDataSet with name %s\033[1;m""" % name
-			print message
-			return None
-		#--- Title from name: name must be 
-		#--- in standard directory-like name
-		title = None #self.resLatex+' '+self.inferInfo(name)+', '+self.searchRange(name)
+		#title = None #self.resLatex+' '+self.inferInfo(name)+', '+self.searchRange(name)
+		self[name]['tgraphs'] = {}
 		dataset = None
+		#-- Checking if the object exists
 		try:
 			dataset = self.RooDataSet[name]
 		except KeyError:
 		  	print """\033[1;33mpytnp.plotEff1D Error: you must introduce a valid name, %s is not a RooDataSet in the root file\033[1;m""" % name
 			print plotEff1D.__doc__
 			raise KeyError
+		#--- Empty dataset
+		if self.RooDataSet[name].numEntries() == 0:
+			message = """\033[1;34mpytnp.plotEff1D: Empty RooDataSet %s. Skipping...\033[1;m""" % name
+			print message
+			return None
 		
-		#histo = None
+		print '\033[1;34mPloting 1-dimensional efficiencies curves for '+name+' RooDataSet:'
 		#For all var1 bin, get eff respect var2
+		#---- Problemas con memoria!!!!
 		for varName in self.binnedVar:
-			binsN = self.variables[varName]['binN']
-			arrayBins = self.variables[varName]['arrayBins']
 			_otherVarList_ = filter( lambda x: x != varName, self.binnedVar )
 			_otherVar_ = ''
 			for i in _otherVarList_:
 				_otherVar_ += i+', '
 			_otherVar_ = _otherVar_[:-2]	
-			print '\033[1;34mPlotting \''+varName+'\' bins in all the range of '+_otherVar_+'\033[1;m'
+			print '\033[1;34m   \''+varName+'\' bins in all the range of '+_otherVar_+'\033[1;m' 
+			#--- Extracting bins and array of bins
+			binsN = self.variables[varName]['binN']
+			arrayBins = self.variables[varName]['arrayBins']
 			for bin in xrange(binsN):
+				arrayBins = self.variables[varName]['arrayBins']
 				Lo = arrayBins[bin]
 				Hi = arrayBins[bin+1]
-				title = self.resLatex+', ('+str(Lo)+','+str(Hi)+') '+self.variables[varName]['latexName']+' range'
+				Central = (Hi+Lo)/2.0
 				graphName = self[name]['methodUsed']+'_'+self[name]['effType']+'_'+\
 						self[name]['objectType']+'__'+varName+'_bin'+str(bin)+'_' 
 				#Getting list of efficiency values plus variables 
-				Central = (Hi+Lo)/2.0
 				_plotList = eval('getEff(dataset,'+varName+'='+str(Central)+')')
 				#Extracting info to plot
 				(eff,effErrorLo,effErrorHi),otherVarDict = _plotList[0] #FIXME:Control de errores?!
+				if len(filter( lambda (eff,__dic): eff[0] == 0.0, _plotList )) == len(_plotList):
+					print '\033[1;33m     Warning: skipping, efficiencies in the dataset not calculated\033[1;m' 
+					continue
 				graph = {}
 				_max = {}
 				_min = {}
 				for otherVarName, val in otherVarDict.iteritems():
 					graphName = graphName+otherVarName 
+					if self[name]['isMC'] == 1:
+						graphName += '__mcTrue'
 					graph[otherVarName] = ROOT.TGraphAsymmErrors()
 					graph[otherVarName].SetName( graphName )
 					graph[otherVarName].SetMarkerSize(1)
 					_max[otherVarName] = 0.0
 					_min[otherVarName] = 0.0
 				entry = 0
-				for (eff,effErrorLo,effErrorHi),otherVarDict in _plotList: 
+				for (eff,effLo,effHi),otherVarDict in _plotList: 
+					#-- Extract bad points:: TODO
+					#if (eff - self.badPoint[0]) < 1e-10:# and ( eff-effLo ) - self.badPoint[1] < 1e-8:
+					#	continue
 					for otherVarName, (central, low, high) in otherVarDict.iteritems():
 						_min[otherVarName] = min( _min[otherVarName], low )
 						_max[otherVarName] = max( _max[otherVarName], high )
 						graph[otherVarName].SetPoint(entry, central, eff )
 						graph[otherVarName].SetPointEXlow( entry, central-low )
 						graph[otherVarName].SetPointEXhigh( entry, high-central) 
-						graph[otherVarName].SetPointEYlow( entry, eff-effErrorLo )
-						graph[otherVarName].SetPointEYhigh( entry, effErrorHi-eff )
+						graph[otherVarName].SetPointEYlow( entry, eff-effLo )
+						graph[otherVarName].SetPointEYhigh( entry, effHi-eff )
 					entry += 1
+
 				#-- Nota que ya tienes definido otherVar unas lineas mas arriba
+				title = self.resLatex+', ('+str(Lo)+','+str(Hi)+') '+self.variables[varName]['latexName']+' range, '
+				title += self[name]['objectType']+' category'
 				for otherVarName, (central, low, high) in otherVarDict.iteritems():
 					c = ROOT.TCanvas()
 					frame = c.DrawFrame(_min[otherVarName],0,_max[otherVarName],1.05)
 					frame.SetName( 'frame_'+graphName )
 					frame.SetTitle( title )
+					graph[otherVarName].SetTitle( title )
 					frame.GetXaxis().SetTitle(self.variables[otherVarName]['latexName']+' '+self.variables[otherVarName]['unit'])
+					graph[otherVarName].GetXaxis().SetTitle(self.variables[otherVarName]['latexName']+' '+self.variables[otherVarName]['unit'])
 					frame.GetYaxis().SetTitle( '#varepsilon' )
+					graph[otherVarName].GetYaxis().SetTitle( '#varepsilon' )
 					frame.Draw()
 					graph[otherVarName].Draw('P')
 					c.SaveAs( graph[otherVarName].GetName()+'.eps' ) 
 					c.Close()
-
-		
-#---------------OLD VERSION--> It doesn't work for the lastest CMSSW TnP packages
-#		#--- Graph, getHist returns a RooHist which inherits from
-#		#--- TGraphErrorAsym
-#		ymin = 0
-#		#ymin = h.GetYaxis().GetBinLowEdge(1) #Solo tiene un bin?
-#		#if ymin < 0:
-#		#	ymin = 0
-#		#	ymax = h.GetYaxis().GetBinUpEdge( h.GetYaxis().GetNbins() )
-#		ymax = 1.0
-#		xmin = h.GetXaxis().GetBinLowEdge(1) #Solo tiene un bin, es un TGraph
-#		xmax = h.GetXaxis().GetBinUpEdge( h.GetXaxis().GetNbins() )
-#		#Make canvas
-#		c = ROOT.TCanvas()
-#		frame = c.DrawFrame(xmin,ymin,xmax,ymax)
-#		# Preparing to plot, setting variables, etc..
-#		frame.SetTitle( title )
-#		h.SetTitle( title )  #To Store the info
-#		if varUnit != '':
-#			xlabel += '('+varUnit+')'
-#		frame.GetXaxis().SetTitle( xlabel ) 
-#		h.GetXaxis().SetTitle( xlabel )
-#		frame.GetYaxis().SetTitle( 'Efficiency' )
-#		h.GetYaxis().SetTitle( 'Efficiency' )
-#		h.Draw('P')
-#		c.SaveAs(self.resonance+'_'+histoName.replace('/','_')+'.eps')
-#		c.Close()
-#		del c
-#		#--- Storing the histo
-#		self[histoName] = h
-#------------------------------------------------------------------------------------------
+					self[name]['tgraphs'][graph[otherVarName].GetName()] = graph[otherVarName]
 
 	
 	def plotEff2D( self, name, **keywords ):
@@ -937,21 +1024,33 @@ There's no class named %s!
 		#---- Preparing all the stuff
 		title = self.resLatex+', '+self[name]['objectType']+' '+self[name]['effType']+' '+dataSet.GetTitle()
 		yNbins = self.variables[y]['binN']
-		arrayBinsY = self.variables[y]['arrayBins']
+		#arrayBinsY = self.variables[y]['arrayBins']---> # I need the PyDoubleBuffer
+		#------------------------------------------
+		__argSet__ = dataSet.get()
+		dum, arrayBinsY = getBinning( __argSet__[y] )
+		#------------------------------------------
 		xNbins = self.variables[x]['binN']
-		arrayBinsX = self.variables[x]['arrayBins']
+		#arrayBinsX = self.variables[x]['arrayBins']---> # I need the PyDoubleBuffer
+		#------------------------------------------
+		dum, arrayBinsX = getBinning( __argSet__[x] )
+		#------------------------------------------
 		hTitleOfHist = name.replace('/','_')
-		h = ROOT.TH2F( hTitleOfHist, '', xNbins, arrayBinsX, yNbins, arrayBinsY )
+		h = ROOT.TH2F( hTitleOfHist, '', xNbins, arrayBinsX, yNbins, arrayBinsY ) 
 	  	hlo = h.Clone("eff_lo")
 		hlo.SetName( 'low_'+hTitleOfHist )
 		hhi = h.Clone("eff_hi")
 		hhi.SetName( 'high_'+hTitleOfHist )
 		#-- Getting the efficiencies
 		_tableEffList = tableEff(self.RooDataSet[name])
+		skipPoints = False
 		for binDict in _tableEffList:
+			#-- Extract error values
+			if abs(binDict[self.eff][0]-self.badPoint[0]) < 1e-9:
+				skipPoints = True
+				continue
 			b = h.FindBin( binDict[x][0] , binDict[y][0] )
 			h.SetBinContent(b, binDict[self.eff][0])
-			h.SetBinError(b, (-binDict[self.eff][1]+binDict[self.eff][2])/2.0 ) # WATCH: Error 'Simetrized' 
+			h.SetBinError(b, (binDict[self.eff][2]-binDict[self.eff][1])/2.0 ) # WATCH: Error 'Simetrized' 
 			hlo.SetBinContent(b, binDict[self.eff][1])
 			hhi.SetBinContent(b, binDict[self.eff][2])
 		c = ROOT.TCanvas()
@@ -969,78 +1068,21 @@ There's no class named %s!
 		#	htext.Draw('ESAMETEXT0')
 		#else:
 		ROOT.gStyle.SetPaintTextFormat("1.3f")
-		htext.Draw('SAMETEXT0')
+		#htext.SetMarkerSize(2.2)
+		htext.Draw('SAMETEXTE0')
 		#plotName = self.resonance+'_'+name.replace('/','_')+isLog[0]+'.eps'
 		plotName = self.resonance+'_'+name.replace('/','_')+'.eps'
 		c.SaveAs(plotName)
 
+		if skipPoints:
+			message = '\033[1;33mplotEff2D Warning: Some efficiencies points are failed in the fit, the last plot will skip values with %.4f\033[1;m' % self.badPoint[0]
+			print message
+
 		#FIXME: Ponerlo en el diccionario del RooDataSEt
 		try:
-		
 			self.TH2F[histoName] = (h, hlo, hhi)
 		except AttributeError:
 			self.__setattr__('TH2F',{}) 
 			self.TH2F[histoName] = (h, hlo, hhi)
-
-#---------------OLD VERSION--> DEPRECATED.  To be removed
-##		argSet = dataSet.get()
-##	  	pt = argSet['pt'];
-##	        eta = argSet['eta'];
-##	        eff = argSet['efficiency'];
-#		# Este metodo no me gusta... lo hago a mana
-#		#h = dataSet.createHistogram(eta, pt)
-#		##### Creacion histograma
-#		##-- Bineado 
-#		ptNbins, arrayBinsPt = getBinning( pt )
-#		etaNbins, arrayBinsEta = getBinning( eta )
-#		#-- To avoid warning in pyROOT
-#		hTitleOfHist = name.replace('/','_')
-#		h = ROOT.TH2F( hTitleOfHist, '', etaNbins, arrayBinsEta, ptNbins, arrayBinsPt )
-#		#h.SetTitle( title )
-#		#h = ROOT.TH2F( 'h', '', ptNbins, arrayBinsPt, etaNbins, arrayBinsEta )
-#	  	hlo = h.Clone("eff_lo")
-#		hlo.SetName( 'low_'+hTitleOfHist )
-#		hhi = h.Clone("eff_hi")
-#		hhi.SetName( 'high_'+hTitleOfHist )
-#		
-#		# To control the case where we don't have entries
-#		# If we don't have entries, b will be None
-#		b = None
-#		for i in xrange(dataSet.numEntries()):
-#			_dummy = dataSet.get(i)
-#			b = h.FindBin(eta.getVal(), pt.getVal())
-#			h.SetBinContent(b, eff.getVal())
-#			h.SetBinError(b, (-eff.getErrorLo()+eff.getErrorHi())/2.0) # WATCH: Error 'Simetrized' 
-#			hlo.SetBinContent(b, eff.getVal()+eff.getErrorLo())
-#			hhi.SetBinContent(b, eff.getVal()+eff.getErrorHi())
-##			print 'bin=',b,' pt =', pt.getVal(),' eta=',eta.getVal()
-#		if b:
-#			#Si es plot --> Entra un histo, graph o lo que sea, de momento
-#			#Lo dejo asi, pero hay que cambiarlo
-#			for isLog in [ ('',0), ('_log',1) ]:
-#				c = ROOT.TCanvas()
-#				c.SetLogy(isLog[1]) 
-#				h.GetYaxis().SetTitle('p_{t} (GeV/c)')
-#				h.GetXaxis().SetTitle('#eta')
-#				h.GetZaxis().SetTitle('eff')
-#				h.SetTitle( title )
-#				h.Draw('COLZ')
-#				htext = h.Clone('htext')
-#				htext.SetMarkerSize(1.0)
-#				htext.SetMarkerColor(1)
-#				if isLog[1]:
-#					ROOT.gStyle.SetPaintTextFormat("1.2f")
-#					htext.Draw('ESAMETEXT0')
-#				else:
-#					ROOT.gStyle.SetPaintTextFormat("1.3f")
-#					htext.Draw('SAMETEXT0')
-#				plotName = self.resonance+'_'+name.replace('/','_')+isLog[0]+'.eps'
-#				c.SaveAs(plotName)
-#			#-- Storing the histo
-#			try:
-#				self.TH2F[histoName] = (h, hlo, hhi)
-#			except AttributeError:
-#				self.__setattr__('TH2F',{}) 
-#				self.TH2F[histoName] = (h, hlo, hhi)
 
 
