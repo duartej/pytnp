@@ -409,8 +409,12 @@ if __name__ == '__main__':
 	if opt.dim1Plots and not opt.allUpsilons:
 		tnp = pytnp.pytnp(opt.fileName, dataset=whatPlots)
 		resonance = tnp.resLatex
+		print '#'*20
+		print '#'*10+' DEBUG '+'#'*10
+		tnp.plotEff1D('histoMuFromTk/Glb_pt_eta/fit_eff')
+		exit(0)
 		try:
-			for name,rootPlot in tnp.RooPlot.iteritems():
+			for name,dataset in tnp.RooDataSet.iteritems():
 				#Counting case:
 				#if name.find('mcTrue') == -1:
 				tnp.plotEff1D(name)

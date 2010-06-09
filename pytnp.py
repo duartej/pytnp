@@ -259,6 +259,7 @@ def getVarInfo( dataset ):
 					 ... 
 				       }
 	"""
+	#TODO: Diccionario con valore s bonitos de pt, eta, etc...
 	#FIXME: Control de errores
 	varinfo = {}
 
@@ -266,6 +267,8 @@ def getVarInfo( dataset ):
 		arg = dataset.get()
 	except AttributeError:
 		message = '\033[1;31mgetVarInfo: The object %s is not a RooDataSet\033[1;m' % str(dataset)
+		print message
+		raise KeyError
 	#-- Get the list with the name of the variables
 	varList = arg.contentsString().split(',')
 	for name in varList:
@@ -443,7 +446,7 @@ class pytnp(dict):
 			#self[name] = dataSet
 			try:
 				self[name] = self.__attrDict__[name]
-			# To get also the no fit_eff 	
+			# To get also the no fit_eff --> Am I sure?? TODO: to be Checked
 			except KeyError:
 				self[name] = self.__getType__(name,{})[name]
 			self[name]['dataset'] = dataSet
@@ -683,91 +686,96 @@ There's no class named %s!
 
 		print message
 
-
-	def inferInfo( self, name ):
-		"""
-		inferInfo( name ) -> str
-
-		Giving a standard directory-like name of an object,
-		the function returns what kind of efficiency is,
-		MuonID or Trigger.
-		"""
-		#TODO: Si mantegno __attrDict__ se puede extraer
-		#      de ese diccionario dicrectamente
-		info = name.split('/')
-		toReturn = ''
-		if len(info) != 1:
-			toReturn = info[1].split('_')[0]
-			if info[0] == 'histoMuFromTk':
-				toReturn += ' MuonID'
-			elif info[0] == 'histoTrigger':
-				### ---- FIXED---------------------------------------
-				### There is no underscore, change it in tnp Producer
-				### Neither if is Global or tracker
-				#toReturn = info[1].split('pt')[0]
-				### -------------------------------------------------
-				toReturn += ' Trigger'
-	
-		return toReturn
-
-	def searchRange( self, name ):
-		"""
-		searchRange(name) -> 'range'
-
-		Getting a directory-like name of a RooPlot
-		extracts which's the range of the hidden 
-		variable. It uses the directory-like notation
-		to find which datased was used to generate the
-		plot:
-		RooPlot    -->  histoMuFromTk/Glb_pt_eta_mcTrue/fit_eff_plots/eta_plot__pt_bin10__mcTrue_true
-		RooDataSet -->  histoMuFromTk/Glb_pt_eta_mcTrue/fit_eff
-		"""
-		#-- Getting the dataset name
-		sName = name.split('_plots/')
-		dataSet = None
-		try:
-			dataSet = self.RooDataSet[ sName[0] ]
-		except KeyError:
-			message = """
-ERROR: What the f***!! This is an expected error... Exiting
-                        """
-			exit()
-		#-- var1_plot__var2_binX[__something_else]
-		#-- var1 is the plotted variable, var2 is the hidden
-		#   variable and could be something labels, but doesn't
-		#   matter to us
-		try:
-			Var = sName[1].split('__')
-			plotVar = Var[0].split('_plot')
-			hidVar = Var[1].split('_')[0]
-		#The TCanvas version
-		except IndexError:
-			Var = sName[1].split('_PLOT_')
-			plotVar = Var[0]
-			hidVar = Var[1].split('_')[0]
-		try:
-			nBin = int(Var[1].split('_bin')[1])
-		#To deal with the new marvelous notation for Trigger
-		except ValueError:
-			swap = Var[1].split('_bin')[1]
-			nBin = int(swap.split('_')[0])
-		######---Hay otra forma mas facil: 
-		#hidVar = self.RootPlot[name].GetTitle()
-		# Devuelve 'variable_binX'
-		argSet = dataSet.get()
-		# FIXME
-		#-- WARNING! If hidVar doesn't exist
-		#   the program will crash when trying
-		#   to retrieve the variable. I can't
-		#   found a secure method to extract it.
-		v = argSet[hidVar]
-		bins, arrayBins = getBinning( v )
-		rangeStr = hidVar+' range '
-		rangeStr += '('+str(arrayBins[nBin])+','+str(arrayBins[nBin+1])+')'
-
-		return rangeStr
+###############################################################################################################
+###################### FIXME :  DEPRECATED, to be removed #####################################################
+###############################################################################################################
+#	def inferInfo( self, name ):
+#		"""
+#		inferInfo( name ) -> str
+#
+#		Giving a standard directory-like name of an object,
+#		the function returns what kind of efficiency is,
+#		MuonID or Trigger.
+#		"""
+#		#TODO: Si mantegno __attrDict__ se puede extraer
+#		#      de ese diccionario dicrectamente
+#		info = name.split('/')
+#		toReturn = ''
+#		if len(info) != 1:
+#			toReturn = info[1].split('_')[0]
+#			if info[0] == 'histoMuFromTk':
+#				toReturn += ' MuonID'
+#			elif info[0] == 'histoTrigger':
+#				### ---- FIXED---------------------------------------
+#				### There is no underscore, change it in tnp Producer
+#				### Neither if is Global or tracker
+#				#toReturn = info[1].split('pt')[0]
+#				### -------------------------------------------------
+#				toReturn += ' Trigger'
+#	
+#		return toReturn
+###############################################################################################################
+###################### FIXME :  DEPRECATED, to be removed #####################################################
+###############################################################################################################
+#	def searchRange( self, name ):
+#		"""
+#		searchRange(name) -> 'range'
+#
+#		Getting a directory-like name of a RooPlot
+#		extracts which's the range of the hidden 
+#		variable. It uses the directory-like notation
+#		to find which datased was used to generate the
+#		plot:
+#		RooPlot    -->  histoMuFromTk/Glb_pt_eta_mcTrue/fit_eff_plots/eta_plot__pt_bin10__mcTrue_true
+#		RooDataSet -->  histoMuFromTk/Glb_pt_eta_mcTrue/fit_eff
+#		"""
+#		#-- Getting the dataset name
+#		sName = name.split('_plots/')
+#		dataSet = None
+#		try:
+#			dataSet = self.RooDataSet[ sName[0] ]
+#		except KeyError:
+#			message = """
+#ERROR: What the f***!! This is an expected error... Exiting
+#                        """
+#			exit()
+#		#-- var1_plot__var2_binX[__something_else]
+#		#-- var1 is the plotted variable, var2 is the hidden
+#		#   variable and could be something labels, but doesn't
+#		#   matter to us
+#		try:
+#			Var = sName[1].split('__')
+#			plotVar = Var[0].split('_plot')
+#			hidVar = Var[1].split('_')[0]
+#		#The TCanvas version
+#		except IndexError:
+#			Var = sName[1].split('_PLOT_')
+#			plotVar = Var[0]
+#			hidVar = Var[1].split('_')[0]
+#		try:
+#			nBin = int(Var[1].split('_bin')[1])
+#		#To deal with the new marvelous notation for Trigger
+#		except ValueError:
+#			swap = Var[1].split('_bin')[1]
+#			nBin = int(swap.split('_')[0])
+#		######---Hay otra forma mas facil: 
+#		#hidVar = self.RootPlot[name].GetTitle()
+#		# Devuelve 'variable_binX'
+#		argSet = dataSet.get()
+#		# FIXME
+#		#-- WARNING! If hidVar doesn't exist
+#		#   the program will crash when trying
+#		#   to retrieve the variable. I can't
+#		#   found a secure method to extract it.
+#		v = argSet[hidVar]
+#		bins, arrayBins = getBinning( v )
+#		rangeStr = hidVar+' range '
+#		rangeStr += '('+str(arrayBins[nBin])+','+str(arrayBins[nBin+1])+')'
+#
+#		return rangeStr
 		
 	#FIXME: Nota que la funcio no te gaire sentit per mes de dos variables
+	#TODO:  Extract the failed fit value 
 	def plotEff1D( self, name ):
 		"""
 		plotEff1D( RooDataSet ) -> ROOT.RooHist
@@ -778,7 +786,6 @@ ERROR: What the f***!! This is an expected error... Exiting
 		it will store in the dictionary of the instance if
 		the object does not exist.
 		"""
-		ROOT.gROOT.SetBatch(1) #----------------------------___> QUITALO
 		#-- Checking if the object exists
 		if not self.RooDataSet.has_key(name):
 			# So, skipping the action.. it's done
@@ -796,14 +803,17 @@ ERROR: What the f***!! This is an expected error... Exiting
 			print plotEff1D.__doc__
 			raise KeyError
 		
-		histo = None
-		#argSet = dataset.get()
-		#eff = argSet[self.eff]
-		#argSetDict = dict( [ (i, argSet[i]) for i in self.binnedVar ] )
+		#histo = None
 		#For all var1 bin, get eff respect var2
 		for varName in self.binnedVar:
 			binsN = self.variables[varName]['binN']
 			arrayBins = self.variables[varName]['arrayBins']
+			_otherVarList_ = filter( lambda x: x != varName, self.binnedVar )
+			_otherVar_ = ''
+			for i in _otherVarList_:
+				_otherVar_ += i+', '
+			_otherVar_ = _otherVar_[:-2]	
+			print '\033[1;34mPlotting \''+varName+'\' bins in all the range of '+_otherVar_+'\033[1;m'
 			for bin in xrange(binsN):
 				Lo = arrayBins[bin]
 				Hi = arrayBins[bin+1]
@@ -811,13 +821,11 @@ ERROR: What the f***!! This is an expected error... Exiting
 				graphName = self[name]['methodUsed']+'_'+self[name]['effType']+'_'+\
 						self[name]['objectType']+'__'+varName+'_bin'+str(bin)+'_' 
 				#Getting list of efficiency values plus variables 
-				Central = (Hi-Lo)/2.0
+				Central = (Hi+Lo)/2.0
 				_plotList = eval('getEff(dataset,'+varName+'='+str(Central)+')')
-				print _plotList[0][0]
 				#Extracting info to plot
-				eff,effErrorLo,effErrorHi,otherVarDict = _plotList[0] #FIXME:Control de errores?!
+				(eff,effErrorLo,effErrorHi),otherVarDict = _plotList[0] #FIXME:Control de errores?!
 				graph = {}
-				frame = {}
 				_max = {}
 				_min = {}
 				for otherVarName, val in otherVarDict.iteritems():
@@ -825,74 +833,32 @@ ERROR: What the f***!! This is an expected error... Exiting
 					graph[otherVarName] = ROOT.TGraphAsymmErrors()
 					graph[otherVarName].SetName( graphName )
 					graph[otherVarName].SetMarkerSize(1)
-					frame[otherVarName] = ROOT.TH1F()
-					frame[otherVarName].SetName( 'frame_'+graphName )
-					frame[otherVarNamexlabel].GetXaxis().SetTitle(\
-							self.variables[otherVarName]['latexName']+' '+self.variables[otherVarName]['unit'])
-					frame[otherVarName].GetYaxis().SetTitle( '#varepsilon_{'+self.resLatex+'}' )
 					_max[otherVarName] = 0.0
 					_min[otherVarName] = 0.0
 				entry = 0
-				for eff,effErrorLo,effErrorHi,otherVarDict in _plotList: 
+				for (eff,effErrorLo,effErrorHi),otherVarDict in _plotList: 
 					for otherVarName, (central, low, high) in otherVarDict.iteritems():
 						_min[otherVarName] = min( _min[otherVarName], low )
 						_max[otherVarName] = max( _max[otherVarName], high )
-						graph[otherVarName].SetPoint(entry, central, eff.getVal() )
-						graph[otherVarName].SetPointEXlow( entry, low )
-						graph[otherVarName].SetPointEXhigh( entry, high) 
-						graph[otherVarName].SetPointEYlow( entry, effErrorLo )
-						graph[otherVarName].SetPointEYhigh( entry, effErrorHi )
+						graph[otherVarName].SetPoint(entry, central, eff )
+						graph[otherVarName].SetPointEXlow( entry, central-low )
+						graph[otherVarName].SetPointEXhigh( entry, high-central) 
+						graph[otherVarName].SetPointEYlow( entry, eff-effErrorLo )
+						graph[otherVarName].SetPointEYhigh( entry, effErrorHi-eff )
+					entry += 1
 				#-- Nota que ya tienes definido otherVar unas lineas mas arriba
 				for otherVarName, (central, low, high) in otherVarDict.iteritems():
-					frame[otherVarName].SetBins(100,_min[otherVarName],_max[otherVarName])
 					c = ROOT.TCanvas()
-					frame[otherVarName].Draw()
+					frame = c.DrawFrame(_min[otherVarName],0,_max[otherVarName],1.05)
+					frame.SetName( 'frame_'+graphName )
+					frame.SetTitle( title )
+					frame.GetXaxis().SetTitle(self.variables[otherVarName]['latexName']+' '+self.variables[otherVarName]['unit'])
+					frame.GetYaxis().SetTitle( '#varepsilon' )
+					frame.Draw()
 					graph[otherVarName].Draw('P')
 					c.SaveAs( graph[otherVarName].GetName()+'.eps' ) 
 					c.Close()
 
-
-			#print '\033[1;33mPlotting \''+varName+'\' bins in all the range of '+varIntegratedName+'\033[1;m'
-
-#		for varName in self.binnedVar:
-#			varIntegratedName = filter(lambda x: x != varName, self.binnedVar)[0]
-#			print '\033[1;33mPlotting \''+varName+'\' bins in all the range of '+varIntegratedName+'\033[1;m'
-#			varInt = argSetDict[varIntegratedName]
-#			#var = argSetDict[varName]
-#			xlabel = self.variables[varIntegratedName]['latexName']
-#			varUnit = self.variables[varIntegratedName]['unit']
-#			#-- Preparing the loop for all varName bins
-#			arrayBins = self.variables[varName]['arrayBins']
-#			binsN = self.variables[varName]['binN']
-#			binsNIntVar = self.variables[varIntegratedName]['binN']
-#			for bin in xrange(binsN-1):
-#				low = arrayBins[bin]
-#				#-- Remember #bins+1=#points in the array
-#				high = arrayBins[bin+1]
-#				title = self.resLatex+', ('+str(low)+','+str(high)+') '+self.variables[varName]['latexName']+' range'
-#				graphName = self[name]['methodUsed']+'_'+self[name]['effType']+'_'+\
-#						self[name]['objectType']+'__'+varName+'_bin'+str(bin)+'_'+varIntegratedName 
-#				graph = ROOT.TGraphAsymmErrors() 
-#				graph.SetName( graphName )
-#				graph.SetMarkerSize(1)
-#				#-- Get the efficiencies for the var1 ranges:
-#				for entry in xrange(dataset.numEntries()):
-#					_dummy = dataset.get(entry)
-#					graph.SetPoint(entry, varInt.getVal(), eff.getVal() )
-#					graph.SetPointEXlow( entry, varInt.getErrorLo() )
-#					graph.SetPointEXhigh( entry, varInt.getErrorHi() )
-#					graph.SetPointEYlow( entry, eff.getErrorLo() )
-#					graph.SetPointEYhigh( entry, eff.getErrorHi() )
-#				c = ROOT.TCanvas()
-#				frame = c.DrawFrame(self.variables[varIntegratedName]['arrayBins'][0], 0.0, \
-#						self.variables[varIntegratedName]['arrayBins'][binsNIntVar], 1.05 )
-#				frame.SetTitle( title )
-#				frame.GetXaxis().SetTitle( xlabel+' '+varUnit )
-#				frame.GetYaxis().SetTitle( '#varepsilon_{'+self.resLatex+'}' )
-#				graph.Draw('P')
-#				c.SaveAs( graphName+'.eps' )
-#				c.Close()
-#				return -1
 		
 #---------------OLD VERSION--> It doesn't work for the lastest CMSSW TnP packages
 #		#--- Graph, getHist returns a RooHist which inherits from
@@ -926,90 +892,155 @@ ERROR: What the f***!! This is an expected error... Exiting
 #------------------------------------------------------------------------------------------
 
 	
-	def plotEff2D( self, name ):
+	def plotEff2D( self, name, **keywords ):
 		"""
-		plotEff2D( name ) 
+		plotEff2D( name, x='var1', y='var1' ) 
 
 		Giving a RooDataSet name in directory-like format,
 		the function will do a bi-dimensional plot of 
 		efficiency with pt and eta variables. Also, it
 		will stores in the object instance
 		"""
-		#TODO: Flexibilidad para entrar variables de entrada
 		#FIXME: Meter los errores en la misma linea (ahora te salta
 		#       de linea (TEXT option)
 		try:
 			dataSet = self.RooDataSet[name]
 		except KeyError:
-		  	print """Error: you must introduce a valid name"""
+			message = """\033[1;33mpytnp.plotEff2D Error: there is no RooDataSet with name %s\033[1;m""" % name
+			print message
 			print plotEff2D.__doc__
 			raise KeyError
+		x = None
+		y = None
+		hasVars = 0
+		for axis, varName in keywords:
+			if axis != 'x' or axis != 'y':
+				message = """\033[1;33mpytnp.plotEff2D Error: the keyword %s is not valid. Use 'x' and 'y' as keywords\033[1;m""" % axis
+				print message
+				raise KeyError
+			else:
+				hasVars +=1
+		if hasVars == 2:
+			x = keywords['x']
+			y = keywords['y']
+		else:
+			#Default
+			x = self.binnedVar[0] #FIXME: Control Errores
+			y = self.binnedVar[1] #FIXME: Control Errores 
+
 		#--- Name for the histo and for the plot file to be saved
 		histoName = 'TH2F_'+name
 		#--- Checking if the histo is already stored and plotted
 		if self.has_key(histoName):
 			#-- Skipping, work it's done!
 			return None
-		#--- Title for the plot file
-		title = self.resLatex+' '+self.inferInfo(name)+' '+dataSet.GetTitle()
-		argSet = dataSet.get()
-	  	pt = argSet['pt'];
-	        eta = argSet['eta'];
-	        eff = argSet['efficiency'];
-		# Este metodo no me gusta... lo hago a mana
-		#h = dataSet.createHistogram(eta, pt)
-		##### Creacion histograma
-		##-- Bineado 
-		ptNbins, arrayBinsPt = getBinning( pt )
-		etaNbins, arrayBinsEta = getBinning( eta )
-		#-- To avoid warning in pyROOT
+		#---- Preparing all the stuff
+		title = self.resLatex+', '+self[name]['objectType']+' '+self[name]['effType']+' '+dataSet.GetTitle()
+		yNbins = self.variables[y]['binN']
+		arrayBinsY = self.variables[y]['arrayBins']
+		xNbins = self.variables[x]['binN']
+		arrayBinsX = self.variables[x]['arrayBins']
 		hTitleOfHist = name.replace('/','_')
-		h = ROOT.TH2F( hTitleOfHist, '', etaNbins, arrayBinsEta, ptNbins, arrayBinsPt )
-		#h.SetTitle( title )
-		#h = ROOT.TH2F( 'h', '', ptNbins, arrayBinsPt, etaNbins, arrayBinsEta )
+		h = ROOT.TH2F( hTitleOfHist, '', xNbins, arrayBinsX, yNbins, arrayBinsY )
 	  	hlo = h.Clone("eff_lo")
 		hlo.SetName( 'low_'+hTitleOfHist )
 		hhi = h.Clone("eff_hi")
 		hhi.SetName( 'high_'+hTitleOfHist )
+		#-- Getting the efficiencies
+		_tableEffList = tableEff(self.RooDataSet[name])
+		for binDict in _tableEffList:
+			b = h.FindBin( binDict[x][0] , binDict[y][0] )
+			h.SetBinContent(b, binDict[self.eff][0])
+			h.SetBinError(b, (-binDict[self.eff][1]+binDict[self.eff][2])/2.0 ) # WATCH: Error 'Simetrized' 
+			hlo.SetBinContent(b, binDict[self.eff][1])
+			hhi.SetBinContent(b, binDict[self.eff][2])
+		c = ROOT.TCanvas()
+		#c.SetLogy(isLog[1]) 
+		h.GetYaxis().SetTitle(self.variables[y]['latexName'])
+		h.GetXaxis().SetTitle(self.variables[x]['latexName'])
+		h.GetZaxis().SetTitle(self.variables[self.eff]['latexName'])
+		h.SetTitle( title )
+		h.Draw('COLZ')
+		htext = h.Clone('htext')
+		htext.SetMarkerSize(1.0)
+		htext.SetMarkerColor(1)
+		#if isLog[1]:
+		#	ROOT.gStyle.SetPaintTextFormat("1.2f")
+		#	htext.Draw('ESAMETEXT0')
+		#else:
+		ROOT.gStyle.SetPaintTextFormat("1.3f")
+		htext.Draw('SAMETEXT0')
+		#plotName = self.resonance+'_'+name.replace('/','_')+isLog[0]+'.eps'
+		plotName = self.resonance+'_'+name.replace('/','_')+'.eps'
+		c.SaveAs(plotName)
+
+		#FIXME: Ponerlo en el diccionario del RooDataSEt
+		try:
 		
-		# To control the case where we don't have entries
-		# If we don't have entries, b will be None
-		b = None
-		for i in xrange(dataSet.numEntries()):
-			_dummy = dataSet.get(i)
-			b = h.FindBin(eta.getVal(), pt.getVal())
-			h.SetBinContent(b, eff.getVal())
-			h.SetBinError(b, (-eff.getErrorLo()+eff.getErrorHi())/2.0) # WATCH: Error 'Simetrized' 
-			hlo.SetBinContent(b, eff.getVal()+eff.getErrorLo())
-			hhi.SetBinContent(b, eff.getVal()+eff.getErrorHi())
-#			print 'bin=',b,' pt =', pt.getVal(),' eta=',eta.getVal()
-		if b:
-			#Si es plot --> Entra un histo, graph o lo que sea, de momento
-			#Lo dejo asi, pero hay que cambiarlo
-			for isLog in [ ('',0), ('_log',1) ]:
-				c = ROOT.TCanvas()
-				c.SetLogy(isLog[1]) 
-				h.GetYaxis().SetTitle('p_{t} (GeV/c)')
-				h.GetXaxis().SetTitle('#eta')
-				h.GetZaxis().SetTitle('eff')
-				h.SetTitle( title )
-				h.Draw('COLZ')
-				htext = h.Clone('htext')
-				htext.SetMarkerSize(1.0)
-				htext.SetMarkerColor(1)
-				if isLog[1]:
-					ROOT.gStyle.SetPaintTextFormat("1.2f")
-					htext.Draw('ESAMETEXT0')
-				else:
-					ROOT.gStyle.SetPaintTextFormat("1.3f")
-					htext.Draw('SAMETEXT0')
-				plotName = self.resonance+'_'+name.replace('/','_')+isLog[0]+'.eps'
-				c.SaveAs(plotName)
-			#-- Storing the histo
-			try:
-				self.TH2F[histoName] = (h, hlo, hhi)
-			except AttributeError:
-				self.__setattr__('TH2F',{}) 
-				self.TH2F[histoName] = (h, hlo, hhi)
+			self.TH2F[histoName] = (h, hlo, hhi)
+		except AttributeError:
+			self.__setattr__('TH2F',{}) 
+			self.TH2F[histoName] = (h, hlo, hhi)
+
+#---------------OLD VERSION--> DEPRECATED.  To be removed
+##		argSet = dataSet.get()
+##	  	pt = argSet['pt'];
+##	        eta = argSet['eta'];
+##	        eff = argSet['efficiency'];
+#		# Este metodo no me gusta... lo hago a mana
+#		#h = dataSet.createHistogram(eta, pt)
+#		##### Creacion histograma
+#		##-- Bineado 
+#		ptNbins, arrayBinsPt = getBinning( pt )
+#		etaNbins, arrayBinsEta = getBinning( eta )
+#		#-- To avoid warning in pyROOT
+#		hTitleOfHist = name.replace('/','_')
+#		h = ROOT.TH2F( hTitleOfHist, '', etaNbins, arrayBinsEta, ptNbins, arrayBinsPt )
+#		#h.SetTitle( title )
+#		#h = ROOT.TH2F( 'h', '', ptNbins, arrayBinsPt, etaNbins, arrayBinsEta )
+#	  	hlo = h.Clone("eff_lo")
+#		hlo.SetName( 'low_'+hTitleOfHist )
+#		hhi = h.Clone("eff_hi")
+#		hhi.SetName( 'high_'+hTitleOfHist )
+#		
+#		# To control the case where we don't have entries
+#		# If we don't have entries, b will be None
+#		b = None
+#		for i in xrange(dataSet.numEntries()):
+#			_dummy = dataSet.get(i)
+#			b = h.FindBin(eta.getVal(), pt.getVal())
+#			h.SetBinContent(b, eff.getVal())
+#			h.SetBinError(b, (-eff.getErrorLo()+eff.getErrorHi())/2.0) # WATCH: Error 'Simetrized' 
+#			hlo.SetBinContent(b, eff.getVal()+eff.getErrorLo())
+#			hhi.SetBinContent(b, eff.getVal()+eff.getErrorHi())
+##			print 'bin=',b,' pt =', pt.getVal(),' eta=',eta.getVal()
+#		if b:
+#			#Si es plot --> Entra un histo, graph o lo que sea, de momento
+#			#Lo dejo asi, pero hay que cambiarlo
+#			for isLog in [ ('',0), ('_log',1) ]:
+#				c = ROOT.TCanvas()
+#				c.SetLogy(isLog[1]) 
+#				h.GetYaxis().SetTitle('p_{t} (GeV/c)')
+#				h.GetXaxis().SetTitle('#eta')
+#				h.GetZaxis().SetTitle('eff')
+#				h.SetTitle( title )
+#				h.Draw('COLZ')
+#				htext = h.Clone('htext')
+#				htext.SetMarkerSize(1.0)
+#				htext.SetMarkerColor(1)
+#				if isLog[1]:
+#					ROOT.gStyle.SetPaintTextFormat("1.2f")
+#					htext.Draw('ESAMETEXT0')
+#				else:
+#					ROOT.gStyle.SetPaintTextFormat("1.3f")
+#					htext.Draw('SAMETEXT0')
+#				plotName = self.resonance+'_'+name.replace('/','_')+isLog[0]+'.eps'
+#				c.SaveAs(plotName)
+#			#-- Storing the histo
+#			try:
+#				self.TH2F[histoName] = (h, hlo, hhi)
+#			except AttributeError:
+#				self.__setattr__('TH2F',{}) 
+#				self.TH2F[histoName] = (h, hlo, hhi)
 
 
