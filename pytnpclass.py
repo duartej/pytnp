@@ -182,8 +182,8 @@ class pytnp(dict):
 			#except KeyError:
 			#	self[name] = self.__getType__(name,{})[name]
 				#--- Skipping sbs, cnt no MC
-			if self.__attrDict__[name]['methodUsed'] == 'sbs_eff' or \
-					( self.__attrDict__[name]['methodUsed'] == 'cnt_eff' and self.__attrDict__[name]['isMC'] == 0):
+			if self.__attrDict__[name]['methodUsed'] == 'sbs_eff': #or \
+					#	( self.__attrDict__[name]['methodUsed'] == 'cnt_eff' and self.__attrDict__[name]['isMC'] == 0):
 				self.pop(name)
 				continue
 

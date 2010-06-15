@@ -7,34 +7,122 @@
 ###                                              ###
 ####J. Duarte Campderros, duarte@ifca.unican.es #### 
 
-function parseOpt() 
+# Function to show script usage
+usage()
 {
-	if [ $1 = "-o" ];
-	then
-		echo $1 $2
-	fi
+cat << EOF
+usage: $0 [options] PYNAME
 
+Build the configuration python files based in fit_PYNAME.py
+for each CATEGORY (passed with -c mandatory option) and the
+.sh jobs which will be send to the lxplus batch system. 
+
+OPTIONS:
+   -h      Show this message
+   -c      Categories (Glb, TMLSAT, ...) in a list space
+           separated and bounded by " ". The name must 
+           be the same as it is found in the TnP trees 
+           (Ntuples).   
+   -e	   Efficiencies types in a list space separated
+           and bounded by " ". Valid names are:
+                             MuonID
+		             Trigger	     
+   -o      castor output directory (mandatory)
+   -r      complete path for the CMSSW release directory 
+EOF
 }
 
-args=("$@")
+#Getting options
+while getopts "hc:e:o:r:" OPTION
+do
+     case $OPTION in
+         h)
+             usage
+             exit 1
+             ;;
+         c)
+             CATEGORIES=$OPTARG
+	     #Check errors
+             ;;
+	 e)
+	     EFF=$OPTARG
+	     #Check if arguments are right
+	     ;;  
+	 o)  
+             OUTPUTDIR=$OPTARG
+             ;;
+         r)
+	     RELEASE_DIR=$OPTARG
+	     #Check if dir exists
+             ;;	     
+         ?)
+             usage
+             exit
+             ;;
+     esac
+done
+#Recover the #of arguments without - options
+shift $(($OPTIND - 1))
 
+##########################################################################################
+# Checkin arguments
+##########################################################################################
+if [ -z $CATEGORIES ]; then
+	CATEGORIES='Glb POG_GlbPT TM POG_TMLSAT'
+	echo 
+	echo 'WARNING: I am using this categories ' $CATEGORIES
+	echo 'Uses the -c option if you want to specified them'
+	echo
+fi
+if [ -z $EFF ]; then
+	EFF="MuonID Trigger"
+	echo 
+	echo 'WARNING: I am using this efficiencies ' $CATEGORIES
+	echo 'Uses the -e option if you want to specified them'
+	echo
+fi
+if [ -z $OUTPUTDIR ]; then
+        echo '==================================================================='
+	echo 'Error, I need the name for the castor output file  '
+        echo '==================================================================='
+	usage
+	exit -1
+fi
+if [ -z $RELEASE_DIR ]; then
+        echo '==================================================================='
+	echo 'Error, I need the name of the CMSSW release dir'
+        echo '==================================================================='
+	usage
+	exit -1
+else
+   	if [ ! -d $RELEASE_DIR ]; then
+		echo '==================================================================='
+		echo 'Error, the directory' $RELEASE_DIR ' not exist'
+		echo '==================================================================='
+		exit -1
+   	fi
+fi
 if [ $# -lt 1 ]; then
-        echo '================================================================='
-	echo 'Error, I need the resonance name as argument:
-                           JPsi|Upsilon'
-        echo '================================================================='
+        echo '==================================================================='
+	echo 'Error, I need the name from the configuration python file you are  '
+        echo 'going to use.'                           
+        echo '==================================================================='
+        usage
         exit -1
+else
+	RES=$1
 fi
 
-for i in `seq $#`;
-do
-	parseOpt ${arg[$i]} -->Averigua como se sustituia
-done
-exit
-
+CFG_IN=fit_${RES}.py
+if [ ! -f $CFG_IN ]; then
+        echo '==================================================================='
+	echo 'Error, the file ' fit_${RES}.py 'must exist here'                  
+        echo '==================================================================='
+	exit -1
+fi
+##########################################################################################
 
 #RES=$1
-#CATEGORIES='Glb POG_GlbPT TM POG_TMLSAT'
 
 for CAT in $CATEGORIES;
 do
@@ -45,19 +133,12 @@ do
 		if [ $i = 'MuonID' ]; 
 		then
 			PROCESS='TnP_MuFromTk'
-	        elif [ $i = 'TriggerFrom' ];
+	        elif [ $i = 'Trigger' ];
 	        then
 			PROCESS='TnP_TriggerFrom'${CAT}
 		fi
 		CFG_OUT=fit_${RES}_${i}_${CAT}.py
-		CFG_IN=fit_${RES}.py
 		grep -B 100000 'process.TnP_MuFromTk = Template.clone(' $CFG_IN > $CFG_OUT
-	        if [ $? -ne 0 ]; then
-	        	echo '================================================================='
-	 		echo 'Error, the file' $CFG_IN 'must exit here'
-	        	echo '================================================================='
-	                exit -1
-	        fi
 		cat >> $CFG_OUT<<EOF
     InputFileNames = cms.vstring(INPUTFILE),
     InputDirectoryName = cms.string("histoMuFromTk"),
@@ -77,7 +158,7 @@ process.TnP_TriggerFrom${CAT} = Template.clone(
     InputFileNames = cms.vstring(INPUTFILE),
     InputDirectoryName = cms.string("histoTrigger"),
     InputTreeName = cms.string("fitter_tree"),
-    OutputFileName = cms.string(FILEPREFIX+"TnP_TriggerFrom${CAT}.root"),
+    OutputFileName = cms.string(FILEPREFIX+"TnP_TriggerFrom_${CAT}.root"),
     Efficiencies = cms.PSet()
 )
 
@@ -98,17 +179,15 @@ process.p = cms.Path(
         )
         
 EOF
-		OUTPUTDIR=/castor/cern.ch/user/d/duarte/BlindExercise/FIT02
+#		OUTPUTDIR=/castor/cern.ch/user/d/duarte/BlindExercise/FIT02
         	cat > job_${RES}_${i}_${CAT}.sh<<EOF
 #!/bin/sh
 
 NOW=\$PWD
 export VO_CMS_SW_DIR=/afs/cern.ch/project/gd/apps/cms
 source \$VO_CMS_SW_DIR/cmsset_default.sh 
-HOME_DIR=/afs/cern.ch/user/d/duarte
-RELEASE_DIR=CMSSW/CMSSW_3_5_6/src
 
-cd \$HOME_DIR/\$RELEASE_DIR
+cd $RELEASE_DIR
 eval \`scramv1 runtime -sh\`
 
 cd \$NOW
@@ -118,7 +197,7 @@ rfdir $OUTPUTDIR
 if [ \$? -ne 0 ]; then
 rfmkdir $OUTPUTDIR
 fi
-rfcp \$OUTPUTFILE $OUTPUTDIR/\`echo \$OUTPUTFILE|awk -F. '{print \$1}'\`_${i}.root
+rfcp \$OUTPUTFILE $OUTPUTDIR/\$OUTPUTFILE
 EOF
 	        chmod 755 job_${RES}_${i}_${CAT}.sh   
 		
