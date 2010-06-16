@@ -1,6 +1,14 @@
 #!/usr/bin/env python
 """
 """
+import sys
+if sys.version_info < (2,6):
+	print """\033[1;31mError: you must use python 2.6 or greater.\033[1;m
+Check you have init the CMSSW environment: 
+	$ cd /whereeverItIs/CMSSW/CMSSW_X_Y_Z/src
+	$ cmsenv"""
+	sys.exit(-1)
+
 import ROOT
 import pytnp
 from pytnp.utils.tnputils import getDiff2DPlots
