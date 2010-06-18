@@ -29,11 +29,14 @@ OPTIONS:
 		             Trigger	     
    -o      castor output directory (mandatory)
    -r      complete path for the CMSSW release directory 
+   -s	   simulate, create the files but without sending
+           to batch system 
 EOF
 }
 
+SIMULATE=false
 #Getting options
-while getopts "hc:e:o:r:" OPTION
+while getopts "hc:e:o:r:s" OPTION
 do
      case $OPTION in
          h)
@@ -54,6 +57,9 @@ do
          r)
 	     RELEASE_DIR=$OPTARG
 	     #Check if dir exists
+             ;;	     
+         s)
+	     SIMULATE=true
              ;;	     
          ?)
              usage
@@ -200,8 +206,11 @@ fi
 rfcp \$OUTPUTFILE $OUTPUTDIR/\$OUTPUTFILE
 EOF
 	        chmod 755 job_${RES}_${i}_${CAT}.sh   
-		
-        	bsub -q 1nw -R 'pool>500' job_${RES}_${i}_${CAT}.sh
+		if $SIMULATE; then
+		       echo 'Not sended to batch system'
+	        else
+		       bsub -q 1nw -R 'pool>500' job_${RES}_${i}_${CAT}.sh
+	        fi     
 		done
 done
 
