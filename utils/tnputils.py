@@ -407,10 +407,8 @@ def getDiff2DPlots( tnpRef, tnp2, *nameOfdataSet ):
 		try:		
 			e2,e2lo,e2hi = eval('getEff( dataSet2,'+ptName+'='+str(pt)+','+etaName+'='+str(eta)+')')
 		except TypeError:
-			#Not found efficiency in ptName-etaName  bin. 
-			e2 = 0.0
-			e2lo = 0.0
-			e2hi = 0.0
+			#Not found efficiency in ptName-etaName  bin. Ignore that bin
+			continue
 
 		finalEffError = sqrt( ((e1hi-e1lo)/2.0)**2.0 + ((e2hi-e2lo)/2.0)**2.0 )   #Simetrizing errors
 		#finalEff = abs(e1-e2)
