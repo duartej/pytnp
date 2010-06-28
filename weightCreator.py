@@ -1,8 +1,7 @@
 #!/usr/bin/env python
 
-#import ROOT
-#import FWCore.ParameterSet.Config as cms
-#ROOT.gROOT.SetBatch(1)
+import ROOT
+ROOT.gROOT.SetBatch(1)
 
 import sys
 if sys.version_info < (2,6):
@@ -189,7 +188,6 @@ def makeWeights(_files,treeName,category,_outputFile, BINS, PT, ETA):
 	"""
 	makeWeights( _fileDict, 'treename', 'category', 'outputfile' ) -> 
 	"""
-	import ROOT
 	ROOT.gROOT.SetBatch(1)
 
 	#treeName = 'histoMuFromTk/fitter_tree'
@@ -268,7 +266,6 @@ def redoTuple( fileRootName, treeName, categoryList, weightsDict, PT, ETA ):
 	"""
 	redoTuple( 'filename', 'treename', ['cat1',...] , {} ) ->
 	"""
-	import ROOT
 	import sys
 	# Dictionary to store the names of the branches
 	valueName = {}
@@ -332,7 +329,6 @@ def main(opt):
 	"""
 	"""
 	import shutil
-	import ROOT
 	# weights = { 'bin#': ( (eta_min,eta_max), ROOT.TH1F ) ,
 	#             .... }
 	# Checking th config file and extracting info from there
