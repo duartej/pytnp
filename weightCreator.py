@@ -135,6 +135,7 @@ def extractBINS( configPy, var ):
 	"""
 	import shutil
 	import os
+
 	#TODO: Better a temporary file
 	try:
 		shutil.copy( configPy, '_tmpPy.py')
@@ -150,6 +151,8 @@ def extractBINS( configPy, var ):
 	_file = open('_tmpPy.py','w')
 	_file.writelines(_lines)
 	_file.close()
+	# Append the working directory to do the import
+	sys.path.append( os.getcwd() )
 	#------------------------------------------------------------     
 	
 	try:
@@ -266,7 +269,6 @@ def redoTuple( fileRootName, treeName, categoryList, weightsDict, PT, ETA ):
 	"""
 	redoTuple( 'filename', 'treename', ['cat1',...] , {} ) ->
 	"""
-	import sys
 	# Dictionary to store the names of the branches
 	valueName = {}
 	# Dictionary to store the struct C++ objects pythonized
