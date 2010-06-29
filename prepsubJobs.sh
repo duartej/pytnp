@@ -87,7 +87,7 @@ fi
 if [ -z $EFF ]; then
 	EFF="MuonID Trigger"
 	echo 
-	echo 'WARNING: I am using this efficiencies ' $CATEGORIES
+	echo 'WARNING: I am using this efficiencies ' $EFF
 	echo 'Uses the -e option if you want to specified them'
 	echo
 fi
@@ -180,7 +180,7 @@ process.TnP_TriggerFrom${CAT} = Template.clone(
     Efficiencies = cms.PSet()
 )
 
-for trig in [ 'HLTMu3', 'L1DiMuOpen' ]:
+for trig in [ 'Mu3', 'L1DoubleMuOpen' ]:
     setattr( process.TnP_TriggerFrom${CAT}.Efficiencies, trig+'_pt_eta',
         cms.PSet(
             EfficiencyCategoryAndState = cms.vstring(trig,"pass"),
