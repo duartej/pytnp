@@ -29,6 +29,7 @@ OPTIONS:
 		             Trigger	     
    -o      castor output directory (mandatory)
    -r      complete path for the CMSSW release directory 
+   -w      include the weights
    -s	   simulate, create the files but without sending
            to batch system 
 EOF
@@ -36,7 +37,7 @@ EOF
 
 SIMULATE=false
 #Getting options
-while getopts "hc:e:o:r:s" OPTION
+while getopts "hc:e:o:r:sw" OPTION
 do
      case $OPTION in
          h)
@@ -60,6 +61,9 @@ do
              ;;	     
          s)
 	     SIMULATE=true
+             ;;	     
+         w)
+	     WEIGHT="cms.string(\"weight"
              ;;	     
          ?)
              usage
@@ -143,6 +147,13 @@ do
 	        then
 			PROCESS='TnP_TriggerFrom'${CAT}
 		fi
+		#Including the weights
+		if [ $WEIGHT ]; 
+		then
+			WEIGHT_MUONID="weight = "${WEIGHT}_$CAT\""),"
+			WEIGHT_TRIGGER="weight = eval('"${WEIGHT}_${CAT}_"'+trig+'\")'),"
+
+		fi
 		CFG_OUT=fit_${RES}_${i}_${CAT}.py
 		grep -B 100000 'process.TnP_MuFromTk = Template.clone(' $CFG_IN > $CFG_OUT
 		cat >> $CFG_OUT<<EOF
@@ -153,6 +164,7 @@ do
     Efficiencies = cms.PSet(
         ${CAT}_pt_eta = cms.PSet(
             EfficiencyCategoryAndState = cms.vstring("${CAT}","pass"),
+	    $WEIGHT_MUONID
             UnbinnedVariables = cms.vstring("mass"),
             BinnedVariables = BINS,
             BinToPDFmap = cms.vstring("gaussPlusLinear")
@@ -172,6 +184,7 @@ for trig in [ 'HLTMu3', 'L1DiMuOpen' ]:
     setattr( process.TnP_TriggerFrom${CAT}.Efficiencies, trig+'_pt_eta',
         cms.PSet(
             EfficiencyCategoryAndState = cms.vstring(trig,"pass"),
+	    $WEIGHT_TRIGGER
             UnbinnedVariables = cms.vstring("mass"),
             BinnedVariables = BINS.clone(
                 ${CAT} = cms.vstring("pass")
