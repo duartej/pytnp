@@ -164,7 +164,8 @@ Error: the file name %s introduced is not in a standard format,
 		leg.Draw()
 		#-- includes all resonances
 		title = hMRLatex+', '+title
-		hframe.SetTitle( title )
+		#hframe.SetTitle( title )--> No titles
+		hframe.SetTitle( '' )
 		c.SaveAs(howMuchRes+GRAPHNAME+'.eps')
 		c.Close()
 

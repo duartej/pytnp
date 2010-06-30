@@ -519,8 +519,10 @@ There's no class named %s!
 					c = ROOT.TCanvas()
 					frame = c.DrawFrame(_min[otherVarName],0,_max[otherVarName],1.05)
 					frame.SetName( 'frame_'+graphName )
-					frame.SetTitle( title )
-					graph[otherVarName].SetTitle( title )
+					#frame.SetTitle( title ) ---> Out titless
+					frame.SetTitle( '' )
+					#graph[otherVarName].SetTitle( title ) --> Out titles
+					graph[otherVarName].SetTitle( '' )
 					frame.GetXaxis().SetTitle(self.variables[otherVarName]['latexName']+' '+self.variables[otherVarName]['unit'])
 					graph[otherVarName].GetXaxis().SetTitle(self.variables[otherVarName]['latexName']+' '+self.variables[otherVarName]['unit'])
 					frame.GetYaxis().SetTitle( '#varepsilon' )
@@ -611,7 +613,8 @@ There's no class named %s!
 		h.GetYaxis().SetTitle(self.variables[y]['latexName'])
 		h.GetXaxis().SetTitle(self.variables[x]['latexName'])
 		h.GetZaxis().SetTitle(self.variables[self.eff]['latexName'])
-		h.SetTitle( title )
+		#h.SetTitle( title ) --> Out titles
+		h.SetTitle('' ) 
 		h.Draw('COLZ')
 		htext = h.Clone('htext')
 		htext.SetMarkerSize(1.0)
