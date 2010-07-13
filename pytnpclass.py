@@ -520,7 +520,7 @@ There's no class named %s!
 					frame = c.DrawFrame(_min[otherVarName],0,_max[otherVarName],1.05)
 					frame.SetName( 'frame_'+graphName )
 					#frame.SetTitle( title ) ---> Out titless
-					hframe.SetTitle( '  CMS Preliminary,'+Lumi+' #sqrt{s}=7 TeV  ' )
+					frame.SetTitle( '  CMS Preliminary,'+Lumi+' #sqrt{s}=7 TeV  ' )
 					#frame.SetTitle( '' )
 					#graph[otherVarName].SetTitle( title ) --> Out titles
 					graph[otherVarName].SetTitle( '' )
