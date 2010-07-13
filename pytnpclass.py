@@ -432,7 +432,7 @@ There's no class named %s!
 		
 	#FIXME: Nota que la funcio no te gaire sentit per mes de dos variables
 	#TODO:  Extract the failed fit value 
-	def plotEff1D( self, name ):
+	def plotEff1D( self, name, Lumi ): ## FIXME: Lumi added! Better in other way
 		"""
 		plotEff1D( RooDataSet ) -> ROOT.RooHist
 	
@@ -520,7 +520,8 @@ There's no class named %s!
 					frame = c.DrawFrame(_min[otherVarName],0,_max[otherVarName],1.05)
 					frame.SetName( 'frame_'+graphName )
 					#frame.SetTitle( title ) ---> Out titless
-					frame.SetTitle( '' )
+					hframe.SetTitle( '  CMS Preliminary,'+Lumi+' #sqrt{s}=7 TeV  ' )
+					#frame.SetTitle( '' )
 					#graph[otherVarName].SetTitle( title ) --> Out titles
 					graph[otherVarName].SetTitle( '' )
 					frame.GetXaxis().SetTitle(self.variables[otherVarName]['latexName']+' '+self.variables[otherVarName]['unit'])
@@ -534,7 +535,7 @@ There's no class named %s!
 					self[name]['tgraphs'][graph[otherVarName].GetName()] = graph[otherVarName]
 
 	
-	def plotEff2D( self, name, **keywords ):
+	def plotEff2D( self, name, Lumi, **keywords ):
 		"""
 		plotEff2D( name, x='var1', y='var1' ) 
 
@@ -614,7 +615,8 @@ There's no class named %s!
 		h.GetXaxis().SetTitle(self.variables[x]['latexName'])
 		h.GetZaxis().SetTitle(self.variables[self.eff]['latexName'])
 		#h.SetTitle( title ) --> Out titles
-		h.SetTitle('' ) 
+		h.SetTitle( '  CMS Preliminary,'+Lumi+' #sqrt{s}=7 TeV  ' )
+		#h.SetTitle('' ) 
 		h.Draw('COLZ')
 		htext = h.Clone('htext')
 		htext.SetMarkerSize(1.0)

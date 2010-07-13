@@ -320,7 +320,7 @@ def tableEff(dataSet,*badpoints,**effName):
 	
 	return valList
 
-def getDiff2DPlots( tnpRef, tnp2, *nameOfdataSet ):
+def getDiff2DPlots( tnpRef, tnp2, Lumi, *nameOfdataSet ):
 	"""
 	getDiff2DPlots( pytnpRef, pytnpOther, nameOfdataSet, nameOfdataSet2 ) --> 
 
@@ -394,7 +394,8 @@ def getDiff2DPlots( tnpRef, tnp2, *nameOfdataSet ):
 		hTitleOfHist = 'h'+nameOfdataSet.replace('/','_')+str(k)
 		thisHisto['histo'] = ROOT.TH2F( hTitleOfHist, '', etaNbins, arrayBinsEta, ptNbins, arrayBinsPt )
 		#thisHisto['histo'].SetTitle( thisHisto['title'] ) --> Out titles
-		thisHisto['histo'].SetTitle( '' ) 
+		thisHisto['histo'].SetTitle( '  CMS Preliminary,'+Lumi+' #sqrt{s}=7 TeV  ' )
+		#thisHisto['histo'].SetTitle( '' ) 
 		thisHisto['histo'].GetZaxis().SetLimits(0,1.0) # (6.5 Por que??)
 		thisHisto['histo'].SetContour(50) # Aumenta el granulado de los colores
 		thisHisto['histo'].GetZaxis().SetLabelSize(0.02)
@@ -433,8 +434,9 @@ def getDiff2DPlots( tnpRef, tnp2, *nameOfdataSet ):
 		hist['histo'].GetYaxis().SetTitle('p_{t} (GeV/c)')
 		hist['histo'].GetXaxis().SetTitle('#eta')
 		hist['histo'].GetZaxis().SetTitle('eff')
-		#hist['histo'].SetTitle( hist['title'] ) --> Out title
-		hist['histo'].SetTitle( '' )
+		#hist['histo'].SetTitle( hist['title'] ) --> Out titlee
+		#hist['histo'].SetTitle( '' )
+		hist['histo'].SetTitle( '  CMS Preliminary,'+Lumi+' #sqrt{s}=7 TeV  ' )
 		hist['histo'].Draw('COLZ')
 		#--- Only if is sigma plot
 		if k >= 0: ###--- FIXME: De momento dejo que esten los valores

@@ -61,10 +61,10 @@ def doDiffEff( allFiles, refRes, whatPlots ):
 		for name in tnpDict[resName].RooDataSet.iterkeys():
 			#counting case
 			#if name.find('mcTrue') == -1:
-			getDiff2DPlots( tnpResRef, tnpDict[resName], name )
+			getDiff2DPlots( tnpResRef, tnpDict[resName], Lumi, name )
 
 
-def doComparationPlots( allFiles, whatPlots ):
+def doComparationPlots( allFiles, whatPlots, Lumi ):
 	"""
 	doCompartionPlots( 'file1,file2,..', 'whatPlots') 
 	"""
@@ -98,7 +98,7 @@ Error: the file name %s introduced is not in a standard format,
 			#-- Store the name of the RooDataSet
 			histoSet.add( name )
 			#-- Storing and plotting
-			tnpDict[resName].plotEff1D( name )
+			tnpDict[resName].plotEff1D( name, Lumi )
 	#--- In order doing comparations between datasets that have
 	#    different binnings we must select the data with LESS
 	#    number of binnings. 
@@ -165,7 +165,7 @@ Error: the file name %s introduced is not in a standard format,
 		#-- includes all resonances
 		title = hMRLatex+', '+title
 		#hframe.SetTitle( title )--> No titles
-		hframe.SetTitle( '' )
+		hframe.SetTitle( '  CMS Preliminary,'+Lumi+' #sqrt{s}=7 TeV  ' )
 		c.SaveAs(howMuchRes+GRAPHNAME+'.eps')
 		c.Close()
 
@@ -196,7 +196,7 @@ def sysMCFIT(_file):
 		exit(-1)
 
 	for tMC, tFit in pairFitMC:
-		getDiff2DPlots( tnp, tnp, tMC, tFit )
+		getDiff2DPlots( tnp, tnp, Lumi, tMC, tFit )
 
 
 if __name__ == '__main__':
@@ -215,6 +215,7 @@ if __name__ == '__main__':
         parser.add_option( '--sysTnP', action='store_true', dest='sysTnP', help='Do the plots (and a root file maps--Not yet) for the differences between counting MC and Tag and Probe fit efficiencies.' )
         parser.add_option( '-m', '--maps', action='store', dest='maps', metavar='CATEGORY', help='Create root files with TH2F and RooDataSets, give the name of the muon category' )
         parser.add_option( '-t', '--tables', action='store_true', dest='tables', help='Create latex tables from an efficiency map root file' )
+        parser.add_option( '-L', '--lumi', action='store', dest='Lumi', help='Integrated Luminosity (in nbar^{-1}' )
 
         ( opt, args ) = parser.parse_args()
 
@@ -227,6 +228,11 @@ if __name__ == '__main__':
 	from pytnp.utils.tnputils import *
 	import pytnp.utils.rootlogon
 
+	#Store luminosity if is provided
+	Lumi = ''
+	if opt.Lumi:
+		Lumi = ' L_{int}='+str(Lumi)+' nb^{-1} '
+
 	#Do not display graphics
 	ROOT.gROOT.SetBatch(1)
 	#Using MC info-- counting events instead of fit
@@ -236,7 +242,7 @@ if __name__ == '__main__':
 
 	if opt.allUpsilons:
 		allFiles = opt.fileName
-		doComparationPlots( allFiles, whatPlots )
+		doComparationPlots( allFiles, whatPlots, Lumi )
 
 	if opt.resToComp:
 		#--- 
@@ -251,11 +257,11 @@ if __name__ == '__main__':
 			for name,dataset in tnp.RooDataSet.iteritems():
 				#Counting case:
 				#if name.find('mcTrue') == -1:
-				tnp.plotEff1D(name)
+				tnp.plotEff1D(name,Lumi)
 		except AttributeError:
 			for name, tcanvas in tnp.TCanvas.iteritems():
 				if name.find('_PLOT_') != -1 and (name.find('pt_eta_') == -1 or name.find('eta_pt') == -1):
-					tnp.plotEff1D(name)
+					tnp.plotEff1D(name,Lumi)
 		del tnp
 
 	if opt.dim2Plots or opt.maps:
@@ -263,7 +269,7 @@ if __name__ == '__main__':
 		#resonance = tnp.resLatex
 		for name,dataSet in tnp.RooDataSet.iteritems():
 			#if name.find('mcTrue') == -1:
-			tnp.plotEff2D(name)
+			tnp.plotEff2D(name,Lumi)
 		if opt.maps:
 			#FIXME: De momento paso el valor del objecto
 			maps=opt.maps
