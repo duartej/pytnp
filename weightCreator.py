@@ -384,7 +384,7 @@ def main(opt):
 			if _fileW[_fileWName].IsZombie():
 				_fileW[_fileWName].Delete()
 				del _fileW[ _fileWName ]
-				print '\033[1;34mCreating the TH2F weights root files. Ignore the \'Error in <TFile::TFile>\' messages\033[1:m' 
+				print '\033[1;34mCreating the TH2F weights root files. Ignore the \'Error in <TFile::TFile>\' messages\033[1;m' 
 				weights = makeWeights(_files,_tree,cat,_fileWName,BINS,PT,ETA)
 			else:
 				weights = getWeightsFromFile(_fileW[_fileWName],cat,BINS,PT,ETA)
