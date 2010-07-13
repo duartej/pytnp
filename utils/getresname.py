@@ -20,10 +20,14 @@ def getResName( aFile ):
 	# Hardcoded dict: include here new resonances 
 	nameDict = { 'JPsi' : ('J/#Psi MC','JPsi'),
 			'Upsilon': ('All #Upsilon MC','AllUpsilons'),
-			'Z' : ('Z#rightarrow#mu#mu MC','Z'),
-			'DATA' : (' Data', '_DATA'),
+			'Z' : ('Z#rightarrow#mu#mu MC','Z')
+			}
+	# Complements
+	adjectDict = { 'DATA' : (' Data', '_DATA'),
 			'ReWeight' : (' ReWeight ', '_ReWeight'),
-			'GoodCowboys' : (' GCS', '_GoodCowboysAndSeagulls')
+			'GoodCowboys' : (' GCS', '_GoodCowboysAndSeagulls'),
+			'_MC_' : (' MC', ''),
+			'_Spring10_' : (' MC', ''),
 			}
 	try:
 		num = regexp.search( aFile ).group( 'NUMBER' )
@@ -34,9 +38,8 @@ def getResName( aFile ):
 		#Reverse sorted to assure DATA is the last one
 		for name, (resLatex,res) in sorted(nameDict.iteritems(),reverse=True):
 			if aFile.find( name ) != -1:
-				#Watch: we are including _DATA case
-				resonanceLatex += resLatex
-				resonance += res
+				resonanceLatex = resLatex
+				resonance = res
 		if resonance == '':
 			message ="""\033[1;33mgetResName: 
 		WARNING: This function is highly dependent of the 
@@ -53,5 +56,11 @@ def getResName( aFile ):
 		because this is an unexpected error\033[1;m"""
 		print message
 		exit(-1)
+	
+	#Including others..
+	for name, (resLatex,res) in sorted(adjectDict.iteritems(),reverse=True):
+		if aFile.find( name ) != -1:
+			resonanceLatex += resLatex
+			resonance += res
 
 	return resonance,resonanceLatex
