@@ -18,11 +18,12 @@ def getResName( aFile ):
 	resonance = ''
 	resonanceLatex = ''
 	# Hardcoded dict: include here new resonances 
-	nameDict = { 'JPsi' : ('J/#Psi','JPsi'),
-			'Upsilon': ('All #Upsilon','AllUpsilons'),
-			'Z' : ('Z#rightarrow#mu#mu','Z'),
+	nameDict = { 'JPsi' : ('J/#Psi MC','JPsi'),
+			'Upsilon': ('All #Upsilon MC','AllUpsilons'),
+			'Z' : ('Z#rightarrow#mu#mu MC','Z'),
 			'DATA' : (' Data', '_DATA'),
-			'ReWeight' : (' ReWeight ', '_ReWeight')
+			'ReWeight' : (' ReWeight ', '_ReWeight'),
+			'GoodCowboys' : (' GCS', '_GoodCowboysAndSeagulls')
 			}
 	try:
 		num = regexp.search( aFile ).group( 'NUMBER' )
