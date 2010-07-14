@@ -18,9 +18,9 @@ def getResName( aFile ):
 	resonance = ''
 	resonanceLatex = ''
 	# Hardcoded dict: include here new resonances 
-	nameDict = { 'JPsi' : ('J/#Psi MC','JPsi'),
-			'Upsilon': ('All #Upsilon MC','AllUpsilons'),
-			'Z' : ('Z#rightarrow#mu#mu MC','Z')
+	nameDict = { 'JPsi' : ('J/#Psi','JPsi'),
+			'Upsilon': ('All #Upsilon','AllUpsilons'),
+			'Z' : ('Z#rightarrow#mu#mu','Z')
 			}
 	# Complements
 	adjectDict = { 'DATA' : (' Data', '_DATA'),
