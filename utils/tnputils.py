@@ -381,8 +381,9 @@ def getDiff2DPlots( tnpRef, tnp2, Lumi, *nameOfdataSet ):
 		message = """\033[1;31mPROVISONAL ERROR: must be 2 binned variables in dataset %s""" % dataSet.GetName()
 		print message
 		raise KeyError
-	ptName = datasetVarList[1] 
-	etaName = datasetVarList[0] 
+	#FIXME: to be sure we have abseta or eta as etaName variable
+	ptName = datasetVarList[0] 
+	etaName = datasetVarList[1] 
 
 	argSet = dataSet.get()
 	PT = argSet[ptName];

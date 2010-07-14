@@ -77,28 +77,28 @@ shift $(($OPTIND - 1))
 ##########################################################################################
 # Checkin arguments
 ##########################################################################################
-if [ -z $CATEGORIES ]; then
+if [ -z "$CATEGORIES" ]; then
 	CATEGORIES='Glb POG_GlbPT TM POG_TMLSAT'
 	echo 
 	echo 'WARNING: I am using this categories ' $CATEGORIES
 	echo 'Uses the -c option if you want to specified them'
 	echo
 fi
-if [ -z $EFF ]; then
+if [ -z "$EFF" ]; then
 	EFF="MuonID Trigger"
 	echo 
 	echo 'WARNING: I am using this efficiencies ' $EFF
 	echo 'Uses the -e option if you want to specified them'
 	echo
 fi
-if [ -z $OUTPUTDIR ]; then
+if [ -z "$OUTPUTDIR" ]; then
         echo '==================================================================='
 	echo 'Error, I need the name for the castor output file  '
         echo '==================================================================='
 	usage
 	exit -1
 fi
-if [ -z $RELEASE_DIR ]; then
+if [ -z "$RELEASE_DIR" ]; then
         echo '==================================================================='
 	echo 'Error, I need the name of the CMSSW release dir'
         echo '==================================================================='
