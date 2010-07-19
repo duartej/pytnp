@@ -231,7 +231,7 @@ if __name__ == '__main__':
 	#Store luminosity if is provided
 	Lumi = ''
 	if opt.Lumi:
-		Lumi = ' L_{int}='+str(Lumi)+' nb^{-1} '
+		Lumi = ' L_{int}='+str(opt.Lumi)+' nb^{-1} '
 
 	#Do not display graphics
 	ROOT.gROOT.SetBatch(1)
