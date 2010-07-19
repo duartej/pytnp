@@ -124,7 +124,8 @@ Error: the file name %s introduced is not in a standard format,
 		#-----------FIXME: CLARA PATCH ----------------------#
 		text = ROOT.TPaveText(0.6,0.4,0.8,0.6,"NDC")
 		text.AddText('CMS Preliminary,  #sqrt{s}= 7 TeV')
-		text.AddText('#int#font[12]{L}dt = '+str(Lumi)+' nb^{-1}')
+		if Lumi != '':
+			text.AddText('#int#font[12]{L}dt = '+str(Lumi)+' nb^{-1}')
 		text.SetBorderSize(0)
 		text.SetFillColor(0)
 		text.SetTextSize(0.04);
@@ -253,7 +254,11 @@ if __name__ == '__main__':
 
 	if opt.allUpsilons:
 		allFiles = opt.fileName
-		doComparationPlots( allFiles, whatPlots, Lumi )
+		#--- FIXME: Provisional
+		Lumi2 = Lumi
+		if opt.Lumi:
+			Lumi2 = opt.Lumi
+		doComparationPlots( allFiles, whatPlots, Lumi2 )
 
 	if opt.resToComp:
 		#--- 
