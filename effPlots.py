@@ -128,6 +128,7 @@ Error: the file name %s introduced is not in a standard format,
 		hMRLatex = ''
 		hframe = None
 		color = [ 1, 38, 46, 28, 30 ] 
+		typeMarker = [ 20, 21, 22, 23, 24 ]
 		title = ''
 		i = 0
 		for resName,resLatex in sorted(resonance.iteritems()):
@@ -156,6 +157,7 @@ Error: the file name %s introduced is not in a standard format,
 					title = joinT(title,k)
 			htmp.SetLineColor(color[i])
 			htmp.SetMarkerColor(color[i])
+			htmp.SetMarkerStyle(typeMarker[i])
 			#hframe.SetTitle( title ) 
 			htmp.Draw( 'P'+inSame )
 			leg.AddEntry( htmp, resLatex, 'P' )
