@@ -1,6 +1,6 @@
 from distutils.core import setup
 setup(name='pytnp',
-		version='0.5.1_patch1',
+		version='0.5.1_patch2',
 		description='Python for Tag And Probe utils',
 		author='Jordi Duarte Campderros',
 		author_email='Jordi.Duarte.Campderros@cern.ch',
