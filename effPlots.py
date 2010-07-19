@@ -121,7 +121,15 @@ Error: the file name %s introduced is not in a standard format,
 	#   dict, but the first word (resonance dependent).
 	for RDSNAME,GRAPHNAME in graphName:			
 		c = ROOT.TCanvas()
-		leg = ROOT.TLegend(0.8,0.15,0.98,0.3)
+		#-----------FIXME: CLARA PATCH ----------------------#
+		text = ROOT.TPaveText(0.6,0.4,0.8,0.6,"NDC")
+		text.AddText('CMS Preliminary,  #sqrt{s}= 7 TeV')
+		text.AddText('#int#font[12]{L}dt = '+str(Lumi)+' nb^{-1}')
+		text.SetBorderSize(0)
+		text.SetFillColor(0)
+		text.SetTextSize(0.04);
+		#------------------ END CLARA PATCH -----------------#
+		leg = ROOT.TLegend(0.6,0.25,0.8,0.4)
 		inSame = '' 
 		#-- How much resonances? To save the plot..
 		howMuchRes = ''
@@ -164,10 +172,11 @@ Error: the file name %s introduced is not in a standard format,
 			inSame = 'SAME'
 			i += 1
 		leg.Draw()
+		text.Draw()
 		#-- includes all resonances
 		title = hMRLatex+', '+title
 		#hframe.SetTitle( title )--> No titles
-		hframe.SetTitle( '  CMS Preliminary,'+Lumi+' #sqrt{s}=7 TeV  ' )
+		#hframe.SetTitle( '  CMS Preliminary,'+Lumi+' #sqrt{s}=7 TeV  ' )
 		c.SaveAs(howMuchRes+GRAPHNAME+'.eps')
 		c.Close()
 
