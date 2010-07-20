@@ -365,6 +365,7 @@ def main(opt):
 	treesInNumerator = set( findTrees( _files['numerator'], [] ) )
 	treesInDenominator = set( findTrees( _files['denominator'], [] ) )
 	treesInCommon = treesInNumerator.intersection( treesInDenominator )
+	#--- FIXME: If len(treesInCommon) == 0--> something wrong
 	#Using only those trees common to both files
 	trees = list( treesInCommon )
 	treeCatDict = dict( [ (name, None) for name in trees ] )
