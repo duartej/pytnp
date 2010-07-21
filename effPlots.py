@@ -155,7 +155,7 @@ Error: the file name %s introduced is not in a standard format,
 				axisX = htmp.GetXaxis()
 				rangesX = ( axisX.GetBinLowEdge( axisX.GetFirst() ),\
 					axisX.GetBinUpEdge( axisX.GetLast() ) )
-				hframe = c.DrawFrame(rangesX[0], 0, rangesX[1], 1 )
+				hframe = c.DrawFrame( rangesX[0], 0, rangesX[1], 1.1 )
 				hframe.GetXaxis().SetTitle( htmp.GetXaxis().GetTitle() )
 				hframe.GetYaxis().SetTitle( htmp.GetYaxis().GetTitle() )
 				#-- Extract the resonance --------------
