@@ -145,7 +145,7 @@ then
 	CP=cp
 	MKDIR=mkdir
 	LS=ls
-	SUBMITER="qsub -P l.gaes -cwd -l h_rt=180 "  #---> Changes here tha CPU time
+	SUBMITER="qsub -P l.gaes -cwd -l h_rt=180:0:0 "  #---> Changes here tha CPU time
 elif [ "XBATCHSYSTEM" = "Xlxplus" ]; 
 then
 	CP=rfcp
