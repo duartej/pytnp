@@ -174,8 +174,8 @@ Check your config or change your input variable with --var option\033[1;m """ % 
                         raise KeyError
 
 	# All was fine. Remember: first variable is the pt-like (construct the weights respect it)
-	PT = variables[0]
-	ETA = variables[1]
+	PT = var[0]
+	ETA = var[1]
 
 	#bins = BINS
 	try:
