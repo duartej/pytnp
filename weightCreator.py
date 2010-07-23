@@ -4,6 +4,8 @@ import ROOT
 ROOT.gROOT.SetBatch(1)
 
 import sys
+import shutil
+import os
 if sys.version_info < (2,6):
 	message = '\033[1:31mError: I need python 2.6 or greater. Also I need the CMSSW_3_5_6 or greater environment set\033[1;m'
 	print message
@@ -106,7 +108,6 @@ def findCategory( _file, _treeName ):
 def writeConfig( _file, _dirName, weightList ):
 	"""
 	"""
-	import shutil
 	# Backup copy
 	copyFile = _file.replace('.py','_bck.py')
 	try:
@@ -133,8 +134,6 @@ def writeConfig( _file, _dirName, weightList ):
 def extractBINS( configPy, var ):
 	"""
 	"""
-	import shutil
-	import os
 
 	#TODO: Better a temporary file
 	try:
@@ -228,7 +227,8 @@ def makeWeights(_files,treeName,category,_outputFile, BINS, PT, ETA):
 			weights[category+'_bin'+str(k)] =( (eta[0],eta[1]), (pt[0],pt[1]), ROOT.gDirectory.Get(category+'_bin'+str(k)) )
 			#Acura els limits
 			weights[category+'_bin'+str(k)][2].GetXaxis().SetLimits( pt[0], pt[1] )  
-			weights[category+'_bin'+str(k)][2].SetNormFactor(1)  
+			print weights[category+'_bin'+str(k)][2].GetMaximum() ####################################### <----------
+			#weights[category+'_bin'+str(k)][2].SetNormFactor(1)  
 			k += 1
 	_out = ROOT.TFile(_outputFile,'RECREATE')
 	for name,(etaBins,ptBins,histo) in weights.iteritems():
@@ -330,7 +330,6 @@ def redoTuple( fileRootName, treeName, categoryList, weightsDict, PT, ETA ):
 def main(opt):
 	"""
 	"""
-	import shutil
 	# weights = { 'bin#': ( (eta_min,eta_max), ROOT.TH1F ) ,
 	#             .... }
 	# Checking th config file and extracting info from there
@@ -357,18 +356,35 @@ def main(opt):
 	for i in opt.denName.split('/')[-1].split('_')[1:]:
 		tailStr += '_'+i
 	_wOutputName = headStr+'_ReWeighted'+tailStr
-	print '\033[1;34mCopying from %s the new file which will store weights: %s\033[1;m' % (opt.denName,_wOutputName)
-	shutil.copy( opt.denName, _wOutputName ) 
+	#--- If the file exists in the working directory, it will be updated
+	if os.path.isfile( _wOutputName ):
+		print '\033[1;34mUpdating the file which will store weights: %s\033[1;m' % _wOutputName
+	else:
+		print '\033[1;34mCopying from %s the new file which will store weights: %s\033[1;m' % (opt.denName,_wOutputName)
+		shutil.copy( opt.denName, _wOutputName ) 
 	#FIXME: Check if is ok
 
 	#Find how many trees we have
 	treesInNumerator = set( findTrees( _files['numerator'], [] ) )
 	treesInDenominator = set( findTrees( _files['denominator'], [] ) )
 	treesInCommon = treesInNumerator.intersection( treesInDenominator )
-	#--- FIXME: If len(treesInCommon) == 0--> something wrong
+	#--- Some problem with the files: do not contain the same trees
+	if len(treesInCommon) == 0:
+		message = '\033[1;33mError: The files %s and %s do not contain the same trees. Check the files. ' % (_files['numerator'],
+				_files['denominator'])
+		raise IOError, message
 	#Using only those trees common to both files
 	trees = list( treesInCommon )
 	treeCatDict = dict( [ (name, None) for name in trees ] )
+
+	#--- Parsing the categories asked by the user
+	_categories = []
+	if opt.category:
+		_catList = opt.category.split(',')
+		for i in _catList:
+			_categories.append( i )
+	markToRemove = []
+	#--------------------------------------------
 
 	#Find what categories we have; for each tree we have a list of
 	#Muon categories
@@ -378,6 +394,29 @@ def main(opt):
 		_fileW = {}
 		weightsDict = {}
 		treeCatDict[_tree] = findCategory( _files['denominator'], _tree )
+		#--- Using the categories asked by the user, if exist
+		if len(_categories) != 0:
+			_CleanedCatList = filter( lambda x: x in treeCatDict[_tree], _categories )
+			if len(_CleanedCatList) != 0:
+				#- Overwrite with the categories asked by the user
+				#- if they are of this tree
+				treeCatDict[_tree] = _CleanedCatList
+			else:
+				message  = '\033[1;33mWarning: Do nothing for the tree \'%s\'\n' % _tree
+				message += ' '*10+' Categories in the tree: '
+				for _cat in treeCatDict[_tree]:
+					message += _cat+' '
+				message = message[:-1]+'\n'
+				message += ' '*10+' No matches with the introduced: '
+				for _cat in _categories:
+					message += _cat+' '
+				message = message[:-1]+'\033[1;m\n'
+				print message
+				#-- Marked to remove this tree 
+				markToRemove.append( _tree )
+				#-- And do nothing for this tree
+				continue
+		#----------------------------------------------------
 		for cat in treeCatDict[_tree]:
 			_fileWName = 'weights_out_'+_tree.split('/')[0]+'_'+cat.replace(':','_')+'.root'
 			_fileW[ _fileWName ] = ROOT.TFile(_fileWName)
@@ -390,10 +429,11 @@ def main(opt):
 			else:
 				weights = getWeightsFromFile(_fileW[_fileWName],cat,BINS,PT,ETA)
 			weightsDict[ cat ] = weights
-		#if _tree == 'histoTrigger/fitter_tree': #----> DEBUG!!!
-		#	continue
 		# Rebuild the Ntuple including the weights	
 		redoTuple( _wOutputName, _tree, treeCatDict[_tree], weightsDict, PT, ETA )
+        #--- Remove the tree don't need it
+	map( lambda treeOut: treeCatDict.pop(treeOut) , markToRemove )
+
 	message = '\033[1;34mUpdated %s with the weights for' % _wOutputName
 	for i in treeCatDict.iterkeys():       
 		message += ' '+i+','
@@ -412,12 +452,9 @@ def main(opt):
 	print message		
 
 
-
-
 if __name__ == '__main__':
 	"""
 	"""
-	#import shutil
         from optparse import OptionParser
 	#from pytnp.utils.getresname import getResName 
 
@@ -427,7 +464,7 @@ if __name__ == '__main__':
         parser.add_option( '-n', '--numerator', nargs = 1, action='store', dest='numName', help='Input root file name to use as numerator' )
         parser.add_option( '-p', '--configPy', nargs = 1, action='store', dest='configPy', help='Configuration python to be used in the fit process' )
         parser.add_option( '--var', nargs = 2, action='store', type = 'string', dest='var', help='Binned variables names. The first one is used to construct the weights respect to it. ' )
-        parser.add_option( '-c', '--category', action='store', dest='category', help='Muon category to build the weights (coma separeted list, no espace)' )
+	parser.add_option( '-c', '--category', action='store', dest='category', help='Muon category to build the weights (coma separeted list, no espace). The trigger weights are constructed with the identification category and the trigger, for example Glb:HLTMu3, will be a valid category' )
 
         ( opt, args ) = parser.parse_args()
 
@@ -443,6 +480,12 @@ if __name__ == '__main__':
 	if not opt.var:
 		Message="""Missed mandatory argument --var Var1 Var2"""
 		parser.error( Message )
+
+	if opt.category:
+		_catList = opt.category.split(',')
+		if len(_catList) == 0:
+			Message = """The list of categories must be comma separated with no espaces"""
+			parser.error( Message )
 
 	main( opt )
 
