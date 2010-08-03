@@ -68,7 +68,7 @@ def findCategory( _file, _treeName ):
 	"""
 	findCategory( ROOT.TFile ) -> [ category1, category2, ... ]
 	
-	Return alist with the names for the muon categories found in
+	Return a list with the names for the muon categories found in
 	a NTuple T&P root file. If there are multiple categories, 
 	as a trigger path for a muon category, then the list contains
 	'Muoncategory:triggerPath' such elements.
@@ -203,16 +203,20 @@ def makeWeights(_files,treeName,category,_outputFile, BINS, PT, ETA):
 	weights = {}
 
 	#checking if category contains a trigger also
-	condCategory = category+' == 1'
+	condCategory = ''#category+' == 1'        ----> BUGGGGGGGG
 	if category.find(':') != -1:
 		_catList = category.split(':')
 		muonCat = _catList[0]
-		triggerCat = _catList[1]
-		condCategory = muonCat+' == 1 && '+triggerCat+' == 1'
+		#triggerCat = _catList[1]
+		#---- Si activo esto para muonID entonces repeso en relacion a los passing
+		#     Solo tengo que hacerlo en el trigger, cuando quiero que sean Glb o TM, ...
+		condCategory = ' && '+muonCat+' == 1 '# BUG------> && '+triggerCat+' == 1' 
 
 	instName = lambda k,pt : PT+'>>h_'+category+name+str(k)+'(50,'+str(pt[0])+','+str(pt[1])+')'
 	cuts = lambda pt,eta: PT+' >= '+str(pt[0])+' && '+PT+' <'+str(pt[1])+\
-			' && '+ETA+' >= '+str(eta[0])+' && '+ETA+' < '+str(eta[1])+' && '+condCategory
+			' && '+ETA+' >= '+str(eta[0])+' && '+ETA+' < '+str(eta[1])+condCategory
+	#print cuts #--------------------------> PROVISONAL: PARECE QUE SE RECUPERAN LOS ESPECTROS DE LOS PASSING
+	           #-------------------------->               NO DE LOS ALL
 	k = 0
 	for i in xrange(len(BINS.__getattribute__(PT))-1):
 		pt = (BINS.__getattribute__(PT)[i],BINS.__getattribute__(PT)[i+1])
@@ -227,7 +231,6 @@ def makeWeights(_files,treeName,category,_outputFile, BINS, PT, ETA):
 			weights[category+'_bin'+str(k)] =( (eta[0],eta[1]), (pt[0],pt[1]), ROOT.gDirectory.Get(category+'_bin'+str(k)) )
 			#Acura els limits
 			weights[category+'_bin'+str(k)][2].GetXaxis().SetLimits( pt[0], pt[1] )  
-			print weights[category+'_bin'+str(k)][2].GetMaximum() ####################################### <----------
 			#weights[category+'_bin'+str(k)][2].SetNormFactor(1)  
 			k += 1
 	_out = ROOT.TFile(_outputFile,'RECREATE')
@@ -255,7 +258,7 @@ def getWeightsFromFile(fileW,category,BINS,PT,ETA):
 				# Then we are using a binning different of this one which contains the weight_out file
 				message = """\033[1;31mError: The binning defined by the config python file is different than
 the defined in the weights_out_*.root files. If your config file is correct,
-un this script in another location (to avoid remove the weights_out_*.root 
+run this script in another location (to avoid remove the weights_out_*.root 
 files). These are the bins used by the config python you have introduced 
 %s\033[1;m""" % str(BINS)
 				print message

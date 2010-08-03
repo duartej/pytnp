@@ -480,6 +480,7 @@ There's no class named %s!
 						self[name]['objectType']+'__'+varName+'_bin'+str(bin)+'_' 
 				#Getting list of efficiency values plus variables 
 				_plotList = eval('getEff(dataset,'+varName+'='+str(Central)+')')
+				#print _plotList
 				#Extracting info to plot
 				(eff,effErrorLo,effErrorHi),otherVarDict = _plotList[0] #FIXME:Control de errores?!
 				if len(filter( lambda (eff,__dic): eff[0] == 0.0, _plotList )) == len(_plotList):

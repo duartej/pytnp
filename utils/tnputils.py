@@ -159,6 +159,8 @@ efficiency variable...\033[1;m""" % dataSet.GetName()
 	message = message[:-2]+'\033[1;m'
 	print message
 
+	# FIXME: Strange behaviour with version 3_6_1_patch4 (really with the RooFit (3.12 ??) included in this version:
+	#        The values of the tableEff do not fill correctly. All the dictionary is filled of the same value (the last found value)
 	return None
 
 def getBinning( var ):
@@ -381,9 +383,13 @@ def getDiff2DPlots( tnpRef, tnp2, Lumi, *nameOfdataSet ):
 		message = """\033[1;31mPROVISONAL ERROR: must be 2 binned variables in dataset %s""" % dataSet.GetName()
 		print message
 		raise KeyError
-	#FIXME: to be sure we have abseta or eta as etaName variable
-	ptName = datasetVarList[0] 
-	etaName = datasetVarList[1] 
+	#---- The pt in the x-axis
+	try:
+		ptIndex = datasetVarList.index('pt')
+	except ValueError:
+		ptIndex = 0
+	ptName = datasetVarList[ptIndex]
+	etaName = datasetVarList[1-ptIndex] # -- datsetVarList have 2 elements
 
 	argSet = dataSet.get()
 	PT = argSet[ptName];
