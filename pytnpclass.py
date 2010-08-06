@@ -250,7 +250,9 @@ class pytnp(dict):
 			structure[name]['effType'] =  'muonId'
 		else:
 			message = '\033[1;33mWarning: I don\'t understand what efficiency is in the directory %s \033[1;m' % effType
-			print message
+			#print message
+			#Patch to new version of Tag and probe  (3.8.X)
+			structure[name]['effType'] = 'unknown'
 		#setattr(self.RooDataSet, structure[name]['effType'], {})
 		#---- Type of efficiency
 		structure[name]['objectType'] = objectType.split('_')[0]

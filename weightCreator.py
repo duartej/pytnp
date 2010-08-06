@@ -7,9 +7,40 @@ import sys
 import shutil
 import os
 if sys.version_info < (2,6):
-	message = '\033[1:31mError: I need python 2.6 or greater. Also I need the CMSSW_3_5_6 or greater environment set\033[1;m'
+	message = '\033[1;31mError: I need python 2.6 or greater. Also I need the CMSSW_3_5_6 or greater environment set\033[1;m'
 	print message
 	exit(-1)
+
+PLAIN = 'PLAIN'
+
+def treesToProcess( effTypes, treesList ):
+	"""
+	HARDCODED!!! FIXME
+	"""
+	if not effTypes:
+		return treesList
+
+	# Check the types (again, although it was done in the optparse)
+	_catList = effTypes.split(',')
+	noValidEffType = filter(lambda x: x != 'muonID' and x != 'Trigger', _catList )
+	if len(noValidEffType) != 0:
+		Message = """The efficiency types introduced is not supported: %sValid types are 'muonID' and 'Trigger'""" % str(noValidEffType)
+		print Message
+		raise
+	#--- End check -----------------------------------------------
+	deliverTrees = []
+	for _type in _catList:
+		for _treeName in treesList:
+			if _type == 'muonID':
+				if _treeName.find( 'MuFromTk') != -1:
+					deliverTrees.append( _treeName )
+			if _type == 'Trigger':
+				if _treeName.find( 'Trigger') != -1:
+					deliverTrees.append( _treeName )
+	
+	return deliverTrees	
+
+
 
 def findTrees( Dir, treeList ):
 	"""
@@ -64,7 +95,7 @@ def searchEndBlock( strList ):
 			return strList[:c+1]
 
 
-def findCategory( _file, _treeName ):
+def findCategory( _file, _treeName, _conditioned = None ):
 	"""
 	findCategory( ROOT.TFile ) -> [ category1, category2, ... ]
 	
@@ -92,16 +123,32 @@ def findCategory( _file, _treeName ):
 			triggerCat.append( i.split(':')[0].strip(' ') ) 
 		elif i.find('string tracked') != -1 or i.find('InputTag tracked') != -1:
 			categories.append( i.split(':')[0].strip(' ') )
+	# Checking if the conditional category is in the file
+	if _conditioned:
+		if _conditioned not in categories:
+			message = """\033[1;33mWarning: The conditional category %s is not in the tree %s \033[1;m""" % (_treeName,_conditioned)
+			_conditioned = None
+			print message
+		else:
+			categories.remove( _conditioned )
+			#Adding the conditional category			
+			for i in xrange(len(categories)):
+				categories[i] = _conditioned+':'+categories[i]
 	#Add the trigger to build categories with to checks
 	deliverCat = None
 	if len(triggerCat) == 0:
+		if _conditioned:
+			categoriesSet = set(map( lambda x: x.split(':')[:-1][0], categories ))
+			categories = list(categoriesSet)
+		else:
+			categories = [PLAIN]
 		deliverCat = categories
 	else:
 		deliverCat = []
-		for trigger in triggerCat:
-			for cat in categories:
-				deliverCat.append( cat+':'+trigger )
-	return deliverCat	
+		for cat in categories:
+			deliverCat.append( cat )
+	
+	return deliverCat
 
 
 #TODO: Por el momento, el trigger me sigue jodiendo... no es trivial 
@@ -133,6 +180,8 @@ def writeConfig( _file, _dirName, weightList ):
 
 def extractBINS( configPy, var ):
 	"""
+	extractBINS( 'nameConfig.py', ['var1','var2'] ) --> cms.PSet.BINS, 'PT-like', 'ETA-like'
+
 	"""
 
 	#TODO: Better a temporary file
@@ -202,15 +251,22 @@ def makeWeights(_files,treeName,category,_outputFile, BINS, PT, ETA):
 	histos = {}
 	weights = {}
 
-	#checking if category contains a trigger also
-	condCategory = ''#category+' == 1'        ----> BUGGGGGGGG
+	#-- The ':' token in A:B read as 'B conditioned to A' (look this unregular order)
+	#-- The categories are datamembers which can be 1 or 0, a condition;
+	#-- if we want to weight the pt-distribution of all probes for the L1Mu3 trigger
+	#-- category, we must decided with respect which muonID category (Glb, TMLSAT, ...), then
+	#-- reduce to a subset which the muonID category == 1 and calculate the weight of the
+	#-- pt-distribution
+	#-- The category variable can be A:B:C:..., the last one is the only one which we don't 
+	#-- want to reduce (see find category)
+	condCategory = ''
+	storeCategory = 'weight'
 	if category.find(':') != -1:
 		_catList = category.split(':')
-		muonCat = _catList[0]
-		#triggerCat = _catList[1]
-		#---- Si activo esto para muonID entonces repeso en relacion a los passing
-		#     Solo tengo que hacerlo en el trigger, cuando quiero que sean Glb o TM, ...
-		condCategory = ' && '+muonCat+' == 1 '# BUG------> && '+triggerCat+' == 1' 
+		#-- This for is to include the quality cuts and other possible categories
+		for i in xrange(len(_catList)-1):
+			condCategory += ' && '+_catList[i]+' == 1 '# BUG------> && '+triggerCat+' == 1' 
+			storeCategory += '_'+_catList[i]
 
 	instName = lambda k,pt : PT+'>>h_'+category+name+str(k)+'(50,'+str(pt[0])+','+str(pt[1])+')'
 	cuts = lambda pt,eta: PT+' >= '+str(pt[0])+' && '+PT+' <'+str(pt[1])+\
@@ -376,16 +432,11 @@ def main(opt):
 		message = '\033[1;33mError: The files %s and %s do not contain the same trees. Check the files. ' % (_files['numerator'],
 				_files['denominator'])
 		raise IOError, message
-	#Using only those trees common to both files
-	trees = list( treesInCommon )
+	#-- Using only those trees common to both files
+	#   and only the tree (efficiency type) asked by the user
+	trees = treesToProcess( opt.effType, list(treesInCommon) )
 	treeCatDict = dict( [ (name, None) for name in trees ] )
 
-	#--- Parsing the categories asked by the user
-	_categories = []
-	if opt.category:
-		_catList = opt.category.split(',')
-		for i in _catList:
-			_categories.append( i )
 	markToRemove = []
 	#--------------------------------------------
 
@@ -396,29 +447,29 @@ def main(opt):
 		#To avoid the histograms get lost over the memory
 		_fileW = {}
 		weightsDict = {}
-		treeCatDict[_tree] = findCategory( _files['denominator'], _tree )
+		treeCatDict[_tree] = findCategory( _files['denominator'], _tree, opt.category )
 		#--- Using the categories asked by the user, if exist
-		if len(_categories) != 0:
-			_CleanedCatList = filter( lambda x: x in treeCatDict[_tree], _categories )
-			if len(_CleanedCatList) != 0:
-				#- Overwrite with the categories asked by the user
-				#- if they are of this tree
-				treeCatDict[_tree] = _CleanedCatList
-			else:
-				message  = '\033[1;33mWarning: Do nothing for the tree \'%s\'\n' % _tree
-				message += ' '*10+' Categories in the tree: '
-				for _cat in treeCatDict[_tree]:
-					message += _cat+' '
-				message = message[:-1]+'\n'
-				message += ' '*10+' No matches with the introduced: '
-				for _cat in _categories:
-					message += _cat+' '
-				message = message[:-1]+'\033[1;m\n'
-				print message
-				#-- Marked to remove this tree 
-				markToRemove.append( _tree )
-				#-- And do nothing for this tree
-				continue
+#		if len(_categories) != 0:
+#			_CleanedCatList = filter( lambda x: x in treeCatDict[_tree], _categories )
+#			if len(_CleanedCatList) != 0:
+#				#- Overwrite with the categories asked by the user
+#				#- if they are of this tree
+#				treeCatDict[_tree] = _CleanedCatList
+#			else:
+#				message  = '\033[1;33mWarning: Do nothing for the tree \'%s\'\n' % _tree
+#				message += ' '*10+' Categories in the tree: '
+#				for _cat in treeCatDict[_tree]:
+#					message += _cat+' '
+#				message = message[:-1]+'\n'
+#				message += ' '*10+' No matches with the introduced: '
+#				for _cat in _categories:
+#					message += _cat+' '
+#				message = message[:-1]+'\033[1;m\n'
+#				print message
+#				#-- Marked to remove this tree 
+#				markToRemove.append( _tree )
+#				#-- And do nothing for this tree
+#				continue
 		#----------------------------------------------------
 		for cat in treeCatDict[_tree]:
 			_fileWName = 'weights_out_'+_tree.split('/')[0]+'_'+cat.replace(':','_')+'.root'
@@ -467,7 +518,8 @@ if __name__ == '__main__':
         parser.add_option( '-n', '--numerator', nargs = 1, action='store', dest='numName', help='Input root file name to use as numerator' )
         parser.add_option( '-p', '--configPy', nargs = 1, action='store', dest='configPy', help='Configuration python to be used in the fit process' )
         parser.add_option( '--var', nargs = 2, action='store', type = 'string', dest='var', help='Binned variables names. The first one is used to construct the weights respect to it. ' )
-	parser.add_option( '-c', '--category', action='store', dest='category', help='Muon category to build the weights (coma separeted list, no espace). The trigger weights are constructed with the identification category and the trigger, for example Glb:HLTMu3, will be a valid category' )
+	parser.add_option( '-e', '--effType', action='store', dest='effType', help='Efficiency type to build the weights (coma separeted list, no espace). Valid keys are muonID, Trigger' )
+	parser.add_option( '-c', '--category', action='store', dest='category', help='Conditionel category' )
 
         ( opt, args ) = parser.parse_args()
 
@@ -483,6 +535,17 @@ if __name__ == '__main__':
 	if not opt.var:
 		Message="""Missed mandatory argument --var Var1 Var2"""
 		parser.error( Message )
+
+	if opt.effType:
+		_catList = opt.effType.split(',')
+		if len(_catList) == 0:
+			Message = """The list of efficiency types (-e or --effType option) must be comma separated with no espaces"""
+			parser.error( Message )
+		noValidEffType = filter(lambda x: x != 'muonID' and x != 'Trigger', _catList )
+		if len(noValidEffType) != 0:
+			Message = """The efficiency types introduced is not supported: %s
+Valid types are 'muonID' and 'Trigger'""" % str(noValidEffType)
+			parser.error( Message )
 
 	if opt.category:
 		_catList = opt.category.split(',')
