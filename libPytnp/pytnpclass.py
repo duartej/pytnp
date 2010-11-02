@@ -79,10 +79,14 @@ class pytnp(dict):
 			message = '\033[1;31mpytnp: Invalid root dataset or root dataset not found, %s \033[1;m' % filerootName
 			raise IOError, message
 		
-		#Building the dictionary 
-		self.__dict__ = {}
+		#Building the dictionary (__dict__ is a list containing the attributes and methods of a class)
+		# In pytnp __dict__ contains the ...FIXME
 		#--- Extract all the objects of the rootfile
 		self.__dict__ = self.__extract__(fileroot, self.__dict__, dataset) 
+		#--- Checking everything was fine
+		if not 'RooDataSet' in self.__dict__.keys():
+			message = """\033[1;31mpytnp: The root file is not an standard T&P fit file\033[1;m"""
+			raise AttributeError, message
 		print ''
 		
 		#--- Getting the variables names of the RooDataSet 
@@ -93,17 +97,15 @@ class pytnp(dict):
 			#break -> In principle all dataset must contain the same variables 
 
 		#--- Check that efficiency is in there
-		if not self.effName in self.variables:
+		if not self.effName in self.variables.keys():
 			try:
-				message = """\033[1;33mError: The efficiency name introduce %s is not in the root file. I have these variables located:\033[1;m"""
-				message = message % keywords['effName']
+				message = """\033[1;33mError: The efficiency name introduce %s is not in the root file.
+  I have these variables located:\033[1;m""" % keywords['effName']
 			except KeyError:
-				message = """\033[1;33mError: The efficiency name per default 'eff' is not in the root file. You should introduced the name when
-  instance the class, 
-       a = pytnp( 'filename.root', effName='whatever' )
-
+				message = """\033[1;33mError: The efficiency name per default 'eff' is not in the root file. 
+  You should introduced the name when instance the class =>   a = pytnp( 'filename.root', effName='whatever' )
   I have these variables located:\033[1;m"""
-                        message += '\n  '
+  			message += ' '
   			for i in self.variables:
 				message += i+', '
 			message = message[:-2]+'\n'
@@ -123,7 +125,7 @@ class pytnp(dict):
 					self.binnedVar.append( self.variables[var] )
 		except TypeError:
 			#The user didn't introduce variables, I take everyone
-			self.binnedVar = filter( lambda x: x.lower().find(effName) == -1, self.variables ) 
+			self.binnedVar = filter( lambda x: x.lower().find(self.effName) == -1, self.variables ) 
 		if _errorPrint:
 			message += """\033[1;33m  I found this variables in your file:\n"""
 			for var in self.variables:
@@ -131,7 +133,7 @@ class pytnp(dict):
 			message = message[:-2]+'\033[1;33m'
 			print message 
 			raise UserWarning, message ## Checkear esto!!!! FIXME
-		self.eff = filter( lambda x: x.lower().find(effName) != -1, self.variables )[0]
+		self.eff = filter( lambda x: x.lower().find(self.effName) != -1, self.variables )[0]
 
 
 		self.__fileroot__ = fileroot
