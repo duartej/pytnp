@@ -34,7 +34,7 @@ class pytnp(dict):
 	def __init__(self, filerootName, **keywords):
 		"""
                 pytnp(filerootName, resonance=('name','nameLatex'), dataset='type', mcTrue=true, effName='efficiency_name',
-		                                     variables=('varname1','varname2',..)  ) -> pytnp object instance
+		                                     variables=['varname1','varname2',..]  ) -> pytnp object instance
 
 		Create a dictionary which are going to be populate
 		with the plots and datasets already contained in the
@@ -53,7 +53,7 @@ class pytnp(dict):
 			find inside the RooDataSets. Otherwise, we assume the name 'eff'.
 
 			If 'variables' is included, only it will be considered the binned variables
-			within the tuple
+			within the list
 
 		The instance will contain the follow datamembers:
 		    
@@ -116,23 +116,23 @@ class pytnp(dict):
 		#------ Setting the binned Variables: extract efficiencies from last list
 		message = ''
 		_errorPrint = False
+		self.binnedVar = []
 		try:
 			for var in self.userVariables:
-				if not var in variables:
-					message += """\033[1;33mError: Variable %s is not in the root file.\n\033[1;m""" % var
+				if not var in self.variables:
+					message += """\033[1;33mError: Variable '%s' is not in the root file.\n\033[1;m""" % var
 					_errorPrint = True
 				else:
 					self.binnedVar.append( self.variables[var] )
 		except TypeError:
-			#The user didn't introduce variables, I take everyone
+			#The user didn't introduce binned variables, I take everyone
 			self.binnedVar = filter( lambda x: x.lower().find(self.effName) == -1, self.variables ) 
 		if _errorPrint:
-			message += """\033[1;33m  I found this variables in your file:\n"""
+			message += """\033[1;33m  I found this variables in your file: """
 			for var in self.variables:
 				message += var+', '
-			message = message[:-2]+'\033[1;33m'
-			print message 
-			raise UserWarning, message ## Checkear esto!!!! FIXME
+			message = message[:-2]+'\033[1;m'
+			raise UserWarning, message
 		self.eff = filter( lambda x: x.lower().find(self.effName) != -1, self.variables )[0]
 
 
@@ -238,8 +238,8 @@ class pytnp(dict):
 				dataset = keywords[i]
 			elif i == 'variables':
 				#-- Sanity checks
-				if not isinstance(keywords[i], tuple):
-					message ='\033[1;31mpytnp: Not valid variables=%s key; must be a tuple containing n variables names\033[1;m' % str(keywords[i])
+				if not isinstance(keywords[i], list):
+                                        message ='\033[1;31mpytnp: Not valid \'variables=%s\' key; must be a tuple containing n variables names\033[1;m' % str(keywords[i])
 					print message
 					raise KeyError
 				else:
