@@ -25,14 +25,14 @@ os.chdir( oldPath )
 
 
 setup(name='pytnp',
-		version='0.6.0',
+		version='1.0.0',
 		description='Python for Tag And Probe utils',
 		author='Jordi Duarte Campderros',
 		author_email='Jordi.Duarte.Campderros@cern.ch',
 		url='http://devel.ifca.es/~duarte/tnp/dist',
 		#py_modules=['pytnpclass','__init__'],
-		scripts=['effPlots.py','prepsubJobs.sh','weightCreator.py', 'procsfile/.build/copyFile', 'procsfile/.build/CowboysNTuple'],
+		packages = ['pytnp','pytnp.libPytnp'],
 		package_dir={'pytnp':''},
-		packages=['pytnp','pytnp.utils'],
+		scripts=['bin/effPlots.py','bin/prepsubJobs.sh','bin/weightCreator.py', 'procsfile/.build/copyFile', 'procsfile/.build/CowboysNTuple'],
 		)
 
