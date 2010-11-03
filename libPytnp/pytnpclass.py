@@ -192,7 +192,7 @@ class pytnp(dict):
 		"""
 		Internal use: to check the keywords passed to the constructor
 		"""
-V		#FIXME : ojo, dataset ha quedado huerfana...
+		#FIXME : ojo, dataset ha quedado huerfana...
 		#--- Keys valid
 		valid_keys = ['resonance', 'dataset', 'mcTrue','variables', 'effName' ]
 		#---- Some initializations using user inputs ---#
