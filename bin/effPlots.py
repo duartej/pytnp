@@ -28,7 +28,7 @@ if __name__ == '__main__':
         parser.add_option( '--sysTnP', action='store_true', dest='sysTnP', help='Do the plots (and a root file maps--Not yet) for the differences between counting MC and Tag and Probe fit efficiencies.' )
         parser.add_option( '-m', '--maps', action='store', dest='maps', metavar='CATEGORY', help='Create root files with TH2F and RooDataSets, give the name of the muon category' )
         parser.add_option( '-t', '--tables', action='store_true', dest='tables', help='Create latex tables from an efficiency map root file' )
-        parser.add_option( '-L', '--lumi', action='store', dest='Lumi', nargs=2 help='Integrated Luminosity and unit' )
+        parser.add_option( '-L', '--lumi', action='store', dest='Lumi', nargs=2, help='Integrated Luminosity and unit' )
 	parser.add_option( '-e', '--effName', action='store', dest='effName', help='Efficiency name as will found in the rootfile (CAVEAT: The same name'\
                 ' for all RooDataSet in the rootfile is mandatory)' )
 
@@ -78,8 +78,8 @@ if __name__ == '__main__':
 		doComparationPlots( allFiles, whatPlots, Lumi2 )
 
 	if opt.resToComp:
-		from steerplots.plotsCreation import diffEff
-		from steer
+		from pytnp.steerplots.plotsCreation import diffEff
+		from pytnp.libPytnp.getresname import getResName
 		#--- 
 		allFiles = opt.fileName.split(',')
 		if len(allFiles) < 2:
@@ -93,14 +93,14 @@ if __name__ == '__main__':
 		#-- Dictionary of pytnp instance for every resonance
 		tnpDict = {}
 			
-		for aFile, resname in map( lambda _file,_resName: (x,y), allFiles,resNameList ):
+		for aFile, resname in map( lambda _file,_resName: (_file,_resName), allFiles,resNameList ):
 			#--- Extract from the standard name file the resonance ---
 			if not resname:
 				# resonance name and latex format name
 				resNameTuple = getResName( aFile )
 			else:
 				resNameTuple = ( resname, resname)
-			tnpDict[resName[0]] = pytnp( aFile, dataset=whatPlots, effName=opt.effName, resonance=resNameTuple )
+			tnpDict[resNameTuple[0]] = pytnp( aFile, dataset=whatPlots, effName=opt.effName, resonance=resNameTuple )
 
 		#--- Ready to run the plots
 		diffEff( tnpDict, opt.resToComp, Lumi )

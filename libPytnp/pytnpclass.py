@@ -112,6 +112,7 @@ class pytnp(dict):
 						self.__attrDict__[Name]['refMC'] = { mcDict['methodUsed'] : mcName }
 		_prov = set()
 		#--- The dictionary itself contains only the RooDataSets
+		todelete = []
 		for name, dataSet in self.__dict__['RooDataSet'].iteritems():
 			#try:
 			self[name] = self.__attrDict__[name]
@@ -122,6 +123,7 @@ class pytnp(dict):
 			if self.__attrDict__[name]['methodUsed'] == 'sbs_eff': #or \
 					#	( self.__attrDict__[name]['methodUsed'] == 'cnt_eff' and self.__attrDict__[name]['isMC'] == 0):
 				self.pop(name)
+				todelete.append( name )
 				continue
 
 			self[name]['dataset'] = dataSet
@@ -134,6 +136,9 @@ class pytnp(dict):
 				self.__attrDict__.iteritems() ) ) 
 		#-- Storing the categories we have 
 		self.categories = list(_prov)
+		#--- Don-'t forget delete also in RooDataSet attribute
+		for name in todelete:
+			self.RooDataSet.pop( name )
 		
 		#----- Variables, binned, efficiency, user introduced, ...
 		#--- The list will contain those dataset which don't have anyone of the variables entered  
@@ -182,7 +187,7 @@ class pytnp(dict):
 						raise UserWarning, message
 			self[name]['eff'] = filter( lambda x: x.lower().find(self.effName) != -1, self[name]['variables'] )[0]
 
-			for _dataout in deletetDataSet:
+			for _dataout in deleteDataset:
 				self.pop( _dataout )
 				self.RooDataSet.pop( _dataout )
 			

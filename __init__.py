@@ -15,6 +15,7 @@ Check you have init the CMSSW environment:
 
 # Importing the class
 import libPytnp
+import steerplots
 #from libPytnp.pytnpclass import pytnp
 
 

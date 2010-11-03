@@ -151,13 +151,18 @@ def diffEff( tnpDict, refRes, Lumi, **keywords ):
 	#Extract the reference resonance:
 	try:
 		tnpResRef = tnpDict.pop( refRes )
+		# List of tuples (res,resLatex) from
+		# the other but the reference
+		resonance = []
+		for tnp in tnpDict.itervalues():
+			resonance.append( (tnp.resName, tnp.resLatex) )
 		
 	except KeyError:
 		message ="""
 \033[1;31mError: the resonance name '%s' introduced is wrong, use either of %s \033[1;m""" % (refRes, [i for i in tnpDict.iterkeys()]) 
 		print message
 		raise KeyError
-	resonanceRef = resonance.pop( refRes )
+	#resonanceRef = resonance.pop( refRes )
 	for resName,resLatex in sorted(resonance.iteritems()):
 		for name in tnpDict[resName].RooDataSet.iterkeys():
 			getDiff2DPlots( tnpResRef, tnpDict[resName], Lumi, name )
