@@ -74,7 +74,7 @@ def getVarInfo( dataset ):
 
 	return varinfo
 
-def getEff( dataSet, **keywords):
+def getEff( dataSet, input_effName, **keywords):
 	"""
 	getEff(RooDataSet, var1=value, ...) --> eff, effErrorLow, effErrorHigh                
 	                                    --> eff, effErrorLow, effErrorHigh, dictionary
@@ -92,8 +92,8 @@ def getEff( dataSet, **keywords):
 	#---- Checking the variables in dataset
 	_swapDict = getVarInfo( dataSet )
 	#---  All the binned variables in the dataset
-	datasetVarList = filter( lambda x: x.lower().find('eff') == -1, _swapDict.iterkeys() )
-	effList = filter( lambda x: x.lower().find('eff') != -1, _swapDict.iterkeys() )
+	datasetVarList = filter( lambda x: x.lower().find(input_effName) == -1, _swapDict.iterkeys() )
+	effList = filter( lambda x: x.lower().find(input_effName) != -1, _swapDict.iterkeys() )
 	#---- Sanity check
 	if len(effList) != 1:
 		message ="""\033[1;31mpytnp.tnputils.getEff ERROR: Unexpected Error!! It seems that in %s there is no

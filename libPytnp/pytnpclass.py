@@ -26,8 +26,6 @@ class pytnp(dict):
 	__attrDict__ = {}
 	#-- Binned variables introduced by user
 	userVariables = None
-	#x = None
-	#y = None
 	effName = 'eff'
 	# Classes to store them
 	classNames = ['TCanvas','RooDataSet','RooFitResult']
@@ -67,7 +65,7 @@ class pytnp(dict):
 		#--- Checking the keys dictionary passed ----#
 #				self.x = keywords[i][0]
 #				self.y = keywords[i][1]
-		dataset = self.__check_keywords( keywords ) #FIXMEE
+		dataset = self.__check_keywords__( keywords ) #FIXMEE
 
                 #--------------------------------------------#
 		#--- Extracting the members
@@ -99,7 +97,7 @@ class pytnp(dict):
 		#--- Check that efficiency is in there
 		if not self.effName in self.variables.keys():
 			try:
-				message = """\033[1;33mError: The efficiency name introduce %s is not in the root file.
+				message = """\033[1;33mError: The efficiency name introduce '%s' is not in the root file.
   I have these variables located:\033[1;m""" % keywords['effName']
 			except KeyError:
 				message = """\033[1;33mError: The efficiency name per default 'eff' is not in the root file. 
@@ -123,10 +121,11 @@ class pytnp(dict):
 					message += """\033[1;33mError: Variable '%s' is not in the root file.\n\033[1;m""" % var
 					_errorPrint = True
 				else:
-					self.binnedVar.append( self.variables[var] )
+					self.binnedVar[var] = self.variables[var] 
 		except TypeError:
 			#The user didn't introduce binned variables, I take everyone
-			self.binnedVar = filter( lambda x: x.lower().find(self.effName) == -1, self.variables ) 
+			self.binnedVar = dict([ (var, self.variables[var]) for var in filter( lambda x: x.lower().find(self.effName) == -1, self.variables ) ])
+			#self.binnedVar = filter( lambda x: x.lower().find(self.effName) == -1, self.variables ) 
 		if _errorPrint:
 			message += """\033[1;33m  I found this variables in your file: """
 			for var in self.variables:
@@ -187,23 +186,13 @@ class pytnp(dict):
 				self.__attrDict__.iteritems() ) ) 
 		#-- Storing the categories we have 
 		self.categories = list(_prov)
-		#-- In case don't introduce binned variables--> default
-#		if len( filter( lambda x: x == 'variables', keywords.keys()) ) == 0:
-#				try:
-#					message = """\033[1;34mpytnp: you have not introduced any binned variables, I will use '%s' and '%s'\033[1;m""" % \
-#							( self.binnedVar[0], self.binnedVar[1] )
-#					print message
-#				except IndexError:
-#					message = """\033[1;31mpytnp: Unexpected error! I only found one variable: %s. Exiting...""" % str(self.binnedVar)
-#					print message
-#					raise IndexError
 
 
-	def __check_keywords(self, keywords ):
+	def __check_keywords__(self, keywords ):
 		"""
 		Internal use: to check the keywords passed to the constructor
 		"""
-		#FIXME : ojo, dataset ha quedado huerfana...
+V		#FIXME : ojo, dataset ha quedado huerfana...
 		#--- Keys valid
 		valid_keys = ['resonance', 'dataset', 'mcTrue','variables', 'effName' ]
 		#---- Some initializations using user inputs ---#
@@ -372,7 +361,6 @@ class pytnp(dict):
 				#----------------------------------
 				pytnp.counter += 1
 				#--Skipping if not match (Note that anything.find('') gives 0
-				print "?================="+ regexp
 				if (Dir.GetPath()+key.GetName()).find(regexp) == -1:
 					continue
 				try:
@@ -470,110 +458,161 @@ There's no class named %s!
 		print message
 
 		
-	#FIXME: Nota que la funcio no te gaire sentit per mes de dos variables
-	#TODO:  Extract the failed fit value 
-	def plotEff1D( self, name, Lumi ): ## FIXME: Lumi added! Better in other way
+	def plotEff1D( self, name, inputVarName, Lumi ):
 		"""
-		plotEff1D( RooDataSet ) -> ROOT.RooHist
+		plotEff1D( RooDataSet, 'variable_name', 'latex string Luminosity' ) 
 	
 		Given a name directory-like for a ROOT.RooDataSet object,
-	 	the function creates a 1-dim plot etracted from the
+	 	the function creates a 1-dim plot of 'variable_name' extracted from the
 		object and it will save it in a eps file. Also
-		it will store in the dictionary of the instance if
-		the object does not exist.
+		it will store the graph object:
+		                      self[nameRooDataSet]['tgraphs'] = { 'graph_name': TGraphAsymmErrors, ... }
 		"""
-		#title = None #self.resLatex+' '+self.inferInfo(name)+', '+self.searchRange(name)
-		self[name]['tgraphs'] = {}
 		dataset = None
 		#-- Checking if the object exists
 		try:
 			dataset = self.RooDataSet[name]
 		except KeyError:
-		  	print """\033[1;33mpytnp.plotEff1D Error: you must introduce a valid name, %s is not a RooDataSet in the root file\033[1;m""" % name
-			print plotEff1D.__doc__
+		  	print """\033[1;31mpytnp.plotEff1D Error: you must introduce a valid name, %s is not a RooDataSet in the root file\033[1;m""" % name
 			raise KeyError
 		#--- Empty dataset
 		if self.RooDataSet[name].numEntries() == 0:
 			message = """\033[1;34mpytnp.plotEff1D: Empty RooDataSet %s. Skipping...\033[1;m""" % name
 			print message
 			return None
+		#--- Checking variable
+		if not inputVarName in self.binnedVar.keys():
+		  	print """\033[1;31mpytnp.plotEff1D Error: you must introduce a valid binned variable name, '%s' is not in the '%s' RooDataSet\033[1;m""" % (inputVarName,name )
+			print """\033[1;31mpytnp.plotEff1D:  The list of binned variables are %s\033[1;m""" % str(self.binnedVar.keys())  
+			raise KeyError
 		
-		print '\033[1;34mPloting 1-dimensional efficiencies curves for '+name+' RooDataSet:'
-		#For all var1 bin, get eff respect var2
-		#---- Problemas con memoria!!!!
-		for varName in self.binnedVar:
-			_otherVarList_ = filter( lambda x: x != varName, self.binnedVar )
-			_otherVar_ = ''
-			for i in _otherVarList_:
-				_otherVar_ += i+', '
-			_otherVar_ = _otherVar_[:-2]	
-			print '\033[1;34m   \''+varName+'\' bins in all the range of '+_otherVar_+'\033[1;m' 
-			#--- Extracting bins and array of bins
-			binsN = self.variables[varName]['binN']
-			arrayBins = self.variables[varName]['arrayBins']
-			for bin in xrange(binsN):
-				arrayBins = self.variables[varName]['arrayBins']
-				Lo = arrayBins[bin]
-				Hi = arrayBins[bin+1]
-				Central = (Hi+Lo)/2.0
-				graphName = self[name]['methodUsed']+'_'+self[name]['effType']+'_'+\
-						self[name]['objectType']+'__'+varName+'_bin'+str(bin)+'_' 
-				#Getting list of efficiency values plus variables 
-				_plotList = eval('getEff(dataset,'+varName+'='+str(Central)+')')
-				#print _plotList
-				#Extracting info to plot
-				(eff,effErrorLo,effErrorHi),otherVarDict = _plotList[0] #FIXME:Control de errores?!
-				if len(filter( lambda (eff,__dic): eff[0] == 0.0, _plotList )) == len(_plotList):
-					print '\033[1;33m     Warning: skipping, efficiencies in the dataset not calculated\033[1;m' 
-					continue
-				graph = {}
-				_max = {}
-				_min = {}
-				for otherVarName, val in otherVarDict.iteritems():
-					graphName = graphName+otherVarName 
-					if self[name]['isMC'] == 1:
-						graphName += '__mcTrue'
-					graph[otherVarName] = ROOT.TGraphAsymmErrors()
-					graph[otherVarName].SetName( graphName )
-					graph[otherVarName].SetMarkerSize(1)
-					_max[otherVarName] = 0.0
-					_min[otherVarName] = 0.0
-				entry = 0
-				for (eff,effLo,effHi),otherVarDict in _plotList: 
-					#-- Extract bad points:: TODO
-					#if (eff - self.badPoint[0]) < 1e-10:# and ( eff-effLo ) - self.badPoint[1] < 1e-8:
-					#	continue
-					for otherVarName, (central, low, high) in otherVarDict.iteritems():
-						_min[otherVarName] = min( _min[otherVarName], low )
-						_max[otherVarName] = max( _max[otherVarName], high )
-						graph[otherVarName].SetPoint(entry, central, eff )
-						graph[otherVarName].SetPointEXlow( entry, central-low )
-						graph[otherVarName].SetPointEXhigh( entry, high-central) 
-						graph[otherVarName].SetPointEYlow( entry, eff-effLo )
-						graph[otherVarName].SetPointEYhigh( entry, effHi-eff )
-					entry += 1
+		self[name]['tgraphs'] = {}		
+		# Special case: we have only one variable
+		if len(self.binnedVar) == 1:
+			graphName = self[name]['methodUsed']+'_'+self[name]['effType']+'_'+\
+					self[name]['objectType']+'__'
+                        if self[name]['isMC'] == 1:
+				graphName += '__mcTrue'
+			#--- Extracting the efficiency values per bin
+			plotList = tableEff( dataset )
+			graph = ROOT.TGraphAsymmErrors()
+			graph.SetName( graphName )
+			graph.SetMarkerSize(1)	
+			_min = 0
+			_max = 0
+			entry = 0
+			#--- Setting the points and extracting the min and max value
+			#--- in order to build the frame to plot
+			for varDict in plotList:  
+				(eff,effLo,effHi) = varDict[self.effName]
+				(var,varLo,varHi) = varDict[inputVarName]
+				graph.SetPoint(entry, var, eff )
+				graph.SetPointEXlow( entry, var-varLo )
+				graph.SetPointEXhigh( entry, varHi-var )
+				graph.SetPointEYlow( entry, eff-effLo )
+				graph.SetPointEYhigh( entry, effHi-eff )
 
-				#-- Nota que ya tienes definido otherVar unas lineas mas arriba
-				title = self.resLatex+', ('+str(Lo)+','+str(Hi)+') '+self.variables[varName]['latexName']+' range, '
-				title += self[name]['objectType']+' category'
-				for otherVarName, (central, low, high) in otherVarDict.iteritems():
-					c = ROOT.TCanvas()
-					frame = c.DrawFrame(_min[otherVarName],0,_max[otherVarName],1.05)
-					frame.SetName( 'frame_'+graphName )
-					#frame.SetTitle( title ) ---> Out titless
-					frame.SetTitle( '  CMS Preliminary,'+Lumi+' #sqrt{s}=7 TeV  ' )
-					#frame.SetTitle( '' )
-					#graph[otherVarName].SetTitle( title ) --> Out titles
-					graph[otherVarName].SetTitle( '' )
-					frame.GetXaxis().SetTitle(self.variables[otherVarName]['latexName']+' '+self.variables[otherVarName]['unit'])
-					graph[otherVarName].GetXaxis().SetTitle(self.variables[otherVarName]['latexName']+' '+self.variables[otherVarName]['unit'])
-					frame.GetYaxis().SetTitle( '#varepsilon' )
-					graph[otherVarName].GetYaxis().SetTitle( '#varepsilon' )
-					frame.Draw()
-					graph[otherVarName].Draw('P')
-					c.SaveAs( graph[otherVarName].GetName()+'.eps' ) 
-					c.Close()
-					self[name]['tgraphs'][graph[otherVarName].GetName()] = graph[otherVarName]
+				_min = min( _min, varLo )
+				_max = max( _max, varHi )
+				entry += 1
+			#--- Cosmethics and storing the plot
+			title = self[name]['objectType']+' category'
+			c = ROOT.TCanvas()
+			frame = c.DrawFrame(_min,0,_max,1.05)
+			frame.SetName( 'frame_'+graphName )
+			frame.SetTitle( '  CMS Preliminary,'+Lumi+' #sqrt{s}=7 TeV  ' )
+			graph.SetTitle( '' )
+			frame.GetXaxis().SetTitle(self.variables[inputVarName]['latexName']+' '+self.variables[inputVarName]['unit'])
+			graph.GetXaxis().SetTitle(self.variables[inputVarName]['latexName']+' '+self.variables[inputVarName]['unit'])
+			frame.GetYaxis().SetTitle( '#varepsilon' )
+			graph.GetYaxis().SetTitle( '#varepsilon' )
+			frame.Draw()
+			graph.Draw('P')
+			c.SaveAs( graph.GetName()+'.eps' )
+			c.Close()
+
+			self[name]['tgraphs'][ graph.GetName() ] = graph 
+
+			return 
+
+		
+		#-- More than one binned variable
+		for varName in filter( lambda x: x != inputVarName, self.binnedVar.keys()):
+                        _otherVarList_ = filter( lambda x: x != varName, self.binnedVar.keys() )
+                        _otherVar_ = ''
+                        for i in _otherVarList_:
+                                _otherVar_ += i+', '
+                        _otherVar_ = _otherVar_[:-2]
+                        if len(_otherVar_ ) != 0:
+                                _otherVar_ = ' in all the range of ' +_otherVar_
+                        print '\033[1;34m   \''+varName+'\' bins'+_otherVar_+'\033[1;m'
+
+                        #--- Extracting bins and array of bins
+                        binsN = self.variables[varName]['binN']
+                        arrayBins = self.variables[varName]['arrayBins']
+                        for bin in xrange(binsN):
+                                arrayBins = self.variables[varName]['arrayBins']
+                                Lo = arrayBins[bin]
+                                Hi = arrayBins[bin+1]
+                                Central = (Hi+Lo)/2.0
+                                graphName = self[name]['methodUsed']+'_'+self[name]['effType']+'_'+\
+                                                self[name]['objectType']+'__'+varName+'_bin'+str(bin)+'_'
+                                #Getting list of efficiency values plus variables
+                                _plotList = eval('getEff(dataset,self.effName,'+varName+'='+str(Central)+')')
+                                #print _plotList
+                                #Extracting info to plot
+				#try:
+                                (eff,effErrorLo,effErrorHi),otherVarDict = _plotList[0]
+
+                                if len(filter( lambda (eff,__dic): eff[0] == 0.0, _plotList )) == len(_plotList):
+					print '\033[1;33mpytnp.plotEff1D: Warning: skipping, efficiencies in the dataset not calculated\033[1;m'
+                                        continue
+                                graph = {}
+                                _max = {}
+                                _min = {}
+                                for otherVarName, val in otherVarDict.iteritems():
+                                        graphName = graphName+otherVarName
+                                        if self[name]['isMC'] == 1:
+                                                graphName += '__mcTrue'
+                                        graph[otherVarName] = ROOT.TGraphAsymmErrors()
+                                        graph[otherVarName].SetName( graphName )
+                                        graph[otherVarName].SetMarkerSize(1)
+                                        _max[otherVarName] = 0.0
+                                        _min[otherVarName] = 0.0
+                                entry = 0
+                                for (eff,effLo,effHi),otherVarDict in _plotList:
+                                        for otherVarName, (central, low, high) in otherVarDict.iteritems():
+                                                _min[otherVarName] = min( _min[otherVarName], low )
+                                                _max[otherVarName] = max( _max[otherVarName], high )
+                                                graph[otherVarName].SetPoint(entry, central, eff )
+                                                graph[otherVarName].SetPointEXlow( entry, central-low )
+                                                graph[otherVarName].SetPointEXhigh( entry, high-central)
+                                                graph[otherVarName].SetPointEYlow( entry, eff-effLo )
+                                                graph[otherVarName].SetPointEYhigh( entry, effHi-eff )
+                                        entry += 1
+
+                                #-- Nota que ya tienes definido otherVar unas lineas mas arriba
+                                title = self.resLatex+', ('+str(Lo)+','+str(Hi)+') '+self.variables[varName]['latexName']+' range, '
+                                title += self[name]['objectType']+' category'
+                                for otherVarName, (central, low, high) in otherVarDict.iteritems():
+                                        c = ROOT.TCanvas()
+                                        frame = c.DrawFrame(_min[otherVarName],0,_max[otherVarName],1.05)
+                                        frame.SetName( 'frame_'+graphName )
+                                        #frame.SetTitle( title ) ---> Out titless
+                                        frame.SetTitle( '  CMS Preliminary,'+Lumi+' #sqrt{s}=7 TeV  ' )
+                                        #frame.SetTitle( '' )
+                                        #graph[otherVarName].SetTitle( title ) --> Out titles
+                                        graph[otherVarName].SetTitle( '' )
+                                        frame.GetXaxis().SetTitle(self.variables[otherVarName]['latexName']+' '+self.variables[otherVarName]['unit'])
+                                        graph[otherVarName].GetXaxis().SetTitle(self.variables[otherVarName]['latexName']+' '+self.variables[otherVarName]['unit'])
+                                        frame.GetYaxis().SetTitle( '#varepsilon' )
+                                        graph[otherVarName].GetYaxis().SetTitle( '#varepsilon' )
+                                        frame.Draw()
+                                        graph[otherVarName].Draw('P')
+                                        c.SaveAs( graph[otherVarName].GetName()+'.eps' )
+                                        c.Close()
+                                        self[name]['tgraphs'][graph[otherVarName].GetName()] = graph[otherVarName]
+
 
 	
 	def plotEff2D( self, name, Lumi, **keywords ):
