@@ -77,63 +77,13 @@ class pytnp(dict):
 			message = '\033[1;31mpytnp: Invalid root dataset or root dataset not found, %s \033[1;m' % filerootName
 			raise IOError, message
 		
-		#Building the dictionary (__dict__ is a list containing the attributes and methods of a class)
-		# In pytnp __dict__ contains the ...FIXME
-		#--- Extract all the objects of the rootfile
+		#--- Extract all the objects of the rootfile and put them as attributes of the instance
 		self.__dict__ = self.__extract__(fileroot, self.__dict__, dataset) 
 		#--- Checking everything was fine
 		if not 'RooDataSet' in self.__dict__.keys():
 			message = """\033[1;31mpytnp: The root file is not an standard T&P fit file\033[1;m"""
 			raise AttributeError, message
 		print ''
-		
-		#--- Getting the variables names of the RooDataSet 
-		#----- (By construction in CMSSW package all the RooDataSet
-		#------ should contain the same variables) ------------------ FIXME: CUidado con esta aseveracion!!
-		for dataset in self.__dict__['RooDataSet'].itervalues(): 
-			self.variables = getVarInfo(dataset) 
-			#break -> In principle all dataset must contain the same variables 
-
-		#--- Check that efficiency is in there
-		if not self.effName in self.variables.keys():
-			try:
-				message = """\033[1;33mError: The efficiency name introduce '%s' is not in the root file.
-  I have these variables located:\033[1;m""" % keywords['effName']
-			except KeyError:
-				message = """\033[1;33mError: The efficiency name per default 'eff' is not in the root file. 
-  You should introduced the name when instance the class =>   a = pytnp( 'filename.root', effName='whatever' )
-  I have these variables located:\033[1;m"""
-  			message += ' '
-  			for i in self.variables:
-				message += i+', '
-			message = message[:-2]+'\n'
-			print message
-			raise KeyError
-		
-		#--- Check the variables introduced by user are there and
-		#------ Setting the binned Variables: extract efficiencies from last list
-		message = ''
-		_errorPrint = False
-		self.binnedVar = []
-		try:
-			for var in self.userVariables:
-				if not var in self.variables:
-					message += """\033[1;33mError: Variable '%s' is not in the root file.\n\033[1;m""" % var
-					_errorPrint = True
-				else:
-					self.binnedVar[var] = self.variables[var] 
-		except TypeError:
-			#The user didn't introduce binned variables, I take everyone
-			self.binnedVar = dict([ (var, self.variables[var]) for var in filter( lambda x: x.lower().find(self.effName) == -1, self.variables ) ])
-			#self.binnedVar = filter( lambda x: x.lower().find(self.effName) == -1, self.variables ) 
-		if _errorPrint:
-			message += """\033[1;33m  I found this variables in your file: """
-			for var in self.variables:
-				message += var+', '
-			message = message[:-2]+'\033[1;m'
-			raise UserWarning, message
-		self.eff = filter( lambda x: x.lower().find(self.effName) != -1, self.variables )[0]
-
 
 		self.__fileroot__ = fileroot
 		#-- Get the resonances names
@@ -175,8 +125,6 @@ class pytnp(dict):
 				continue
 
 			self[name]['dataset'] = dataSet
-			#self[name]['variables'] = getVarInfo(dataSet)
-			#self[name]['ArgSet']
 			#--To store the categories we have
 			_prov.add( self[name]['objectType'] )
 		#--- We are not interested about the MC, only in cnt and fit_eff
@@ -186,6 +134,62 @@ class pytnp(dict):
 				self.__attrDict__.iteritems() ) ) 
 		#-- Storing the categories we have 
 		self.categories = list(_prov)
+		
+		#----- Variables, binned, efficiency, user introduced, ...
+		#--- The list will contain those dataset which don't have anyone of the variables entered  
+		#--- by the user (in case the user enter someone)
+		deleteDataset = []
+		#--- Getting the variables names of the RooDataSet 
+		for name, dataset in self.RooDataSet.iteritems(): 
+			self[name]['variables'] = getVarInfo(dataset)
+			#--- Check that efficiency is in there
+			if not self.effName in self[name]['variables'].keys():
+				try:
+					message = """\033[1;31mpytnp Error: The efficiency name introduce '%s' is not in the '%s' RooDataSet.
+  I have these variables located:\033[1;m""" % (keywords['effName'], name )
+                                except KeyError:
+				        message = """\033[1;31mpytnp Error: The efficiency name per default 'eff' is not in the '%s' RooDataSet. 
+  You should introduced the name when instance the class =>   a = pytnp( 'filename.root', effName='whatever' )
+  I have these variables located:\033[1;m"""
+                                message += ' '
+				for i in self[name]['variables']:
+					message += i+', '
+				message = message[:-2]
+				message += '\n\033[1;33mpytnp CAVEAT: The efficiency name \033[1;m\033[1;39mMUST\033[1;m\033[1;33m have the same name for all the RooDataSets in the rootfile\n\033[1;m'	
+				print message
+				raise KeyError
+			#--- Check the variables introduced by user are there and
+			#------ Setting the binned Variables: extract efficiencies from last list
+			message = ''
+			_warningPrint = False
+			self[name]['binnedVar'] = []
+			try:
+				for var in self.userVariables:
+					if not var in self[name]['variables']:
+						message += """\033[1;33mpytnp Warning: Variable '%s' is not in the '%s' RooDataSet. Skipping it... \n\033[1;m""" % ( var,name)
+						_warningPrint = True
+						deleteDataset.append( name ) 
+					else:
+						self[name]['binnedVar'][var] = self[name]['variables'][var] 
+			except TypeError:
+				#The user didn't introduce binned variables, I take everyone
+				self[name]['binnedVar'] = dict([ (var, self[name]['variables'][var]) for var in filter( lambda x: x.lower().find(self.effName) == -1, self[name]['variables'] ) ])
+				if _warningPrint:
+					message += """\033[1;33m  ----> I found: """
+					for var in self[name]['variables']:
+						message += var+', '
+						message = message[:-2]+'\033[1;m'
+						raise UserWarning, message
+			self[name]['eff'] = filter( lambda x: x.lower().find(self.effName) != -1, self[name]['variables'] )[0]
+
+			for _dataout in deletetDataSet:
+				self.pop( _dataout )
+				self.RooDataSet.pop( _dataout )
+			
+			if len(self) == 0:
+				message = """\033[1;31mpytnp Error: There is no RooDataSet that fulfill the binned variables introduced.\033[1;m""" 
+				print message
+				raise ValueError
 
 
 	def __check_keywords__(self, keywords ):
@@ -243,8 +247,12 @@ class pytnp(dict):
 		for name, Dict in self.iteritems():
 			message += '-- \033[1;29m'+name+'\033[1;m\n'
 			for key,value in sorted(Dict.iteritems()):
-				message += '     %s: %s ' % (key,str(value))
-				message += '\n'	
+				if isinstance(value,dict):
+					message += '     %s: %s (keys of the dictionary)' % (key,str(value.keys()))
+					message += '\n'	
+				else:
+					message += '     %s: %s ' % (key,str(value))
+					message += '\n'	
 
 		return message
 
@@ -481,14 +489,14 @@ There's no class named %s!
 			print message
 			return None
 		#--- Checking variable
-		if not inputVarName in self.binnedVar.keys():
+		if not inputVarName in self[name]['binnedVar'].keys():
 		  	print """\033[1;31mpytnp.plotEff1D Error: you must introduce a valid binned variable name, '%s' is not in the '%s' RooDataSet\033[1;m""" % (inputVarName,name )
-			print """\033[1;31mpytnp.plotEff1D:  The list of binned variables are %s\033[1;m""" % str(self.binnedVar.keys())  
+			print """\033[1;31mpytnp.plotEff1D:  The list of binned variables are %s\033[1;m""" % str(self[name]['binnedVar'].keys())  
 			raise KeyError
 		
 		self[name]['tgraphs'] = {}		
 		# Special case: we have only one variable
-		if len(self.binnedVar) == 1:
+		if len(self[name]['binnedVar']) == 1:
 			graphName = self[name]['methodUsed']+'_'+self[name]['effType']+'_'+\
 					self[name]['objectType']+'__'
                         if self[name]['isMC'] == 1:
@@ -522,8 +530,8 @@ There's no class named %s!
 			frame.SetName( 'frame_'+graphName )
 			frame.SetTitle( '  CMS Preliminary,'+Lumi+' #sqrt{s}=7 TeV  ' )
 			graph.SetTitle( '' )
-			frame.GetXaxis().SetTitle(self.variables[inputVarName]['latexName']+' '+self.variables[inputVarName]['unit'])
-			graph.GetXaxis().SetTitle(self.variables[inputVarName]['latexName']+' '+self.variables[inputVarName]['unit'])
+			frame.GetXaxis().SetTitle(self[name]['variables'][inputVarName]['latexName']+' '+self[name]['variables'][inputVarName]['unit'])
+			graph.GetXaxis().SetTitle(self[name]['variables'][inputVarName]['latexName']+' '+self[name]['variables'][inputVarName]['unit'])
 			frame.GetYaxis().SetTitle( '#varepsilon' )
 			graph.GetYaxis().SetTitle( '#varepsilon' )
 			frame.Draw()
@@ -537,8 +545,8 @@ There's no class named %s!
 
 		
 		#-- More than one binned variable
-		for varName in filter( lambda x: x != inputVarName, self.binnedVar.keys()):
-                        _otherVarList_ = filter( lambda x: x != varName, self.binnedVar.keys() )
+		for varName in filter( lambda x: x != inputVarName, self[name]['binnedVar'].keys()):
+                        _otherVarList_ = filter( lambda x: x != varName, self[name]['binnedVar'].keys() )
                         _otherVar_ = ''
                         for i in _otherVarList_:
                                 _otherVar_ += i+', '
@@ -548,10 +556,10 @@ There's no class named %s!
                         print '\033[1;34m   \''+varName+'\' bins'+_otherVar_+'\033[1;m'
 
                         #--- Extracting bins and array of bins
-                        binsN = self.variables[varName]['binN']
-                        arrayBins = self.variables[varName]['arrayBins']
+                        binsN = self[name]['variables'][varName]['binN']
+                        arrayBins = self[name]['variables'][varName]['arrayBins']
                         for bin in xrange(binsN):
-                                arrayBins = self.variables[varName]['arrayBins']
+                                arrayBins = self[name]['variables'][varName]['arrayBins']
                                 Lo = arrayBins[bin]
                                 Hi = arrayBins[bin+1]
                                 Central = (Hi+Lo)/2.0
@@ -592,7 +600,7 @@ There's no class named %s!
                                         entry += 1
 
                                 #-- Nota que ya tienes definido otherVar unas lineas mas arriba
-                                title = self.resLatex+', ('+str(Lo)+','+str(Hi)+') '+self.variables[varName]['latexName']+' range, '
+                                title = self.resLatex+', ('+str(Lo)+','+str(Hi)+') '+self[name]['variables'][varName]['latexName']+' range, '
                                 title += self[name]['objectType']+' category'
                                 for otherVarName, (central, low, high) in otherVarDict.iteritems():
                                         c = ROOT.TCanvas()
@@ -603,8 +611,10 @@ There's no class named %s!
                                         #frame.SetTitle( '' )
                                         #graph[otherVarName].SetTitle( title ) --> Out titles
                                         graph[otherVarName].SetTitle( '' )
-                                        frame.GetXaxis().SetTitle(self.variables[otherVarName]['latexName']+' '+self.variables[otherVarName]['unit'])
-                                        graph[otherVarName].GetXaxis().SetTitle(self.variables[otherVarName]['latexName']+' '+self.variables[otherVarName]['unit'])
+                                        frame.GetXaxis().SetTitle(self[name]['variables'][otherVarName]['latexName']+\
+							' '+self[name]['variables'][otherVarName]['unit'])
+                                        graph[otherVarName].GetXaxis().SetTitle(self[name]['variables'][otherVarName]['latexName']+\
+							' '+self[name]['variables'][otherVarName]['unit'])
                                         frame.GetYaxis().SetTitle( '#varepsilon' )
                                         graph[otherVarName].GetYaxis().SetTitle( '#varepsilon' )
                                         frame.Draw()
@@ -647,9 +657,9 @@ There's no class named %s!
 			x = keywords['x']
 			y = keywords['y']
 		else:
-			#Default
-			x = self.binnedVar[0] #FIXME: Control Errores
-			y = self.binnedVar[1] #FIXME: Control Errores 
+			message = """\033[1;33mpytnp.plotEff2D Error: I need two variables to do a 2-dim plot\033[1;m""" 
+			print message
+			raise KeyError
 
 		#--- Name for the histo and for the plot file to be saved
 		histoName = 'TH2F_'+name
@@ -659,14 +669,14 @@ There's no class named %s!
 			return None
 		#---- Preparing all the stuff
 		title = self.resLatex+', '+self[name]['objectType']+' '+self[name]['effType']+' '+dataSet.GetTitle()
-		yNbins = self.variables[y]['binN']
-		#arrayBinsY = self.variables[y]['arrayBins']---> # I need the PyDoubleBuffer
+		yNbins = self[name]['variables'][y]['binN']
+		#arrayBinsY = self[name]['variables'][y]['arrayBins']---> # I need the PyDoubleBuffer
 		#------------------------------------------
 		__argSet__ = dataSet.get()
 		dum, arrayBinsY = getBinning( __argSet__[y] )
 		#------------------------------------------
-		xNbins = self.variables[x]['binN']
-		#arrayBinsX = self.variables[x]['arrayBins']---> # I need the PyDoubleBuffer
+		xNbins = self[name]['variables'][x]['binN']
+		#arrayBinsX = self[name]['variables'][x]['arrayBins']---> # I need the PyDoubleBuffer
 		#------------------------------------------
 		dum, arrayBinsX = getBinning( __argSet__[x] )
 		#------------------------------------------
@@ -681,19 +691,19 @@ There's no class named %s!
 		skipPoints = False
 		for binDict in _tableEffList:
 			#-- Extract error values
-			if abs(binDict[self.eff][0]-self.badPoint[0]) < 1e-9:
+			if abs(binDict[self[name]['eff']][0]-self.badPoint[0]) < 1e-9:
 				skipPoints = True
 				continue
 			b = h.FindBin( binDict[x][0] , binDict[y][0] )
-			h.SetBinContent(b, binDict[self.eff][0])
-			h.SetBinError(b, (binDict[self.eff][2]-binDict[self.eff][1])/2.0 ) # WATCH: Error 'Simetrized' 
-			hlo.SetBinContent(b, binDict[self.eff][1])
-			hhi.SetBinContent(b, binDict[self.eff][2])
+			h.SetBinContent(b, binDict[self[name]['eff']][0])
+			h.SetBinError(b, (binDict[self[name]['eff']][2]-binDict[self[name]['eff']][1])/2.0 ) # WATCH: Error 'Simetrized' 
+			hlo.SetBinContent(b, binDict[self[name]['eff']][1])
+			hhi.SetBinContent(b, binDict[self[name]['eff']][2])
 		c = ROOT.TCanvas()
 		#c.SetLogy(isLog[1]) 
-		h.GetYaxis().SetTitle(self.variables[y]['latexName'])
-		h.GetXaxis().SetTitle(self.variables[x]['latexName'])
-		h.GetZaxis().SetTitle(self.variables[self.eff]['latexName'])
+		h.GetYaxis().SetTitle(self[name]['variables'][y]['latexName'])
+		h.GetXaxis().SetTitle(self[name]['variables'][x]['latexName'])
+		h.GetZaxis().SetTitle(self[name]['variables'][self[name]['eff']]['latexName'])
 		#h.SetTitle( title ) --> Out titles
 		h.SetTitle( '  CMS Preliminary,'+Lumi+' #sqrt{s}=7 TeV  ' )
 		#h.SetTitle('' ) 
