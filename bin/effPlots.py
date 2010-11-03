@@ -9,216 +9,17 @@ Check you have init the CMSSW environment:
 	$ cmsenv"""
 	sys.exit(-1)
 
-import ROOT
-import pytnp
-from pytnp.utils.tnputils import getDiff2DPlots
-
-def doDiffEff( allFiles, refRes, whatPlots ):
-	"""
-	doCompartionPlots( 'file1,file2,..', 'whatPlots') 
-
-	Given a files names, it will do the plots comparing the efficiencies 
-	between the datsets
-	"""
-	allFiles = allFiles.split(',')
-	if len(allFiles) < 2:
-		Message = """I need at least 2 input files comma separated without espaces. I read this %s""" % opt.fileName
-		parser.error( Message )
-	#-- Dictionary of pytnp instance for every resonance
-	tnpDict = {}
-	#-- List of resonance we have in Latex format
-	resonance = {}
-	#-- Set to store the names of the histos, no
-	#   resonance dependent
-	#histoSet = set()
-	for aFile in allFiles:
-		#--- Extract from the standard name file the resonance ---
-		#TODO: Pasar el nombre de la resonancia, para poder
-		#      usar el constructor adecuado
-		resName = getResName( aFile )[0]
-		if not resName:
-			#-- The file name must be standard
-			message = """
-\033[1;31mError: the file name %s introduced is not in a standard format,
-       Resonance_histo[MuFromTrk|Trigger]_....root\033[1;m""" % aFile
-                        print message
-			exit(-1)
-		#---------------------------------------------------------
-		#-- Create the pytnp instance
-		tnpDict[resName] = pytnp.pytnp( aFile, dataset=whatPlots )
-		resonance[ resName ] = tnpDict[resName].resLatex
-	#Extract the reference resonance:
-	try:
-		tnpResRef = tnpDict.pop( refRes )
-		
-	except KeyError:
-		message ="""
-\033[1;31mError: the resonance name '%s' introduced is wrong, use either of %s \033[1;m""" % (refRes, [i for i in tnpDict.iterkeys()]) 
-		print message
-		raise KeyError
-	resonanceRef = resonance.pop( refRes )
-	for resName,resLatex in sorted(resonance.iteritems()):
-		for name in tnpDict[resName].RooDataSet.iterkeys():
-			#counting case
-			#if name.find('mcTrue') == -1:
-			getDiff2DPlots( tnpResRef, tnpDict[resName], Lumi, name )
-
-
-def doComparationPlots( allFiles, whatPlots, Lumi ):
-	"""
-	doCompartionPlots( 'file1,file2,..', 'whatPlots') 
-	"""
-	allFiles = allFiles.split(',')
-	if len(allFiles) < 2:
-		Message = """I need at least 2 input files comma separated without espaces. I read this %s""" % opt.fileName
-		parser.error( Message )
-	#-- Dictionary of pytnp instance for every resonance
-	tnpDict = {}
-	#-- List of resonance we have in Latex format
-	resonance = {}
-	#-- Set to store the Vnames of the histos, no
-	#   resonance dependent
-	histoSet = set()
-	for aFile in allFiles:
-		#--- Extract from the standard name file the resonance ---
-		try:
-			resName = pytnp.getResName( aFile )[0]
-		except TypeError:
-			#-- The file name must be standard
-			message = """
-Error: the file name %s introduced is not in a standard format,
-       Resonance_histo[MuFromTrk|Trigger]_....root""" % aFile
-			exit()
-		#---------------------------------------------------------
-		#-- Create the pytnp instance
-		tnpDict[resName] = pytnp.pytnp( aFile, dataset=whatPlots )
-		resonance[ resName ] = tnpDict[resName].resLatex
-		#---- Making the plots for this resonance
-		for name in tnpDict[resName].RooDataSet.iterkeys():
-			#-- Store the name of the RooDataSet
-			histoSet.add( name )
-			#-- Storing and plotting
-			tnpDict[resName].plotEff1D( name, Lumi )
-	#--- In order doing comparations between datasets that have
-	#    different binnings we must select the data with LESS
-	#    number of binnings. 
-	#----WARNING: the user must check that he/she is using the
-	#    same binnings FIXME: Check this automatically
-	#FIXME: NOT WORKS--> I don't know
-#	print len(histoSet)
-#	minRooDataSetTuple = [ (len(x.RooDataSet, x.RooDataSet) for x in tnpDict.itervalues() ] # pairing lenght with names of RooPlots
-#	minValue = min( map( lambda x: x[0], minRooDataSetTuple ) )                        # getting the smallest RooPlot
-#	minRooDataSet = filter( lambda x: minValue == x[0], minRooDataSetTuple )[0][1]        # extracting the RooPlot
-#	minNamesList = set( [ i for i in minRooDataSet.iterkeys() ]) 
-#	histoSet = histoSet.intersection( minNamesList )
-	graphName = []
-	for __tnp in tnpDict.itervalues():
-		for NAMErds, DICT in __tnp.iteritems():
-			for NAMEgraph in DICT['tgraphs'].iterkeys():
-				graphName.append( (NAMErds,NAMEgraph) )
-	#--- Plots for the all resonances
-	#-- Assuming we have the same names for histos in every
-	#   dict, but the first word (resonance dependent).
-	for RDSNAME,GRAPHNAME in graphName:			
-		c = ROOT.TCanvas()
-		#-----------FIXME: CLARA PATCH ----------------------#
-		text = ROOT.TPaveText(0.6,0.4,0.8,0.6,"NDC")
-		text.AddText('CMS Preliminary,  #sqrt{s}= 7 TeV')
-		if Lumi != '':
-			text.AddText('#int#font[12]{L}dt = '+str(Lumi)+' nb^{-1}')
-		text.SetBorderSize(0)
-		text.SetFillColor(0)
-		text.SetTextSize(0.04);
-		#------------------ END CLARA PATCH -----------------#
-		leg = ROOT.TLegend(0.6,0.25,0.8,0.4)
-		inSame = '' 
-		#-- How much resonances? To save the plot..
-		howMuchRes = ''
-		hMRLatex = ''
-		hframe = None
-		color = [ 1, 38, 46, 28, 30 ] 
-		typeMarker = [ 20, 21, 22, 23, 24 ]
-		title = ''
-		i = 0
-		for resName,resLatex in sorted(resonance.iteritems()):
-			#Preparing the histo and draw
-			howMuchRes += resName
-			hMRLatex += resLatex+' '
-			#-- Avoiding different binnings
-			try:
-				htmp = tnpDict[resName][RDSNAME]['tgraphs'][GRAPHNAME]
-			except KeyError:
-				print """\033[1;31mWarning: There is no graph %s for the resonance %s\033[1;m""" % ( GRAPHNAME,resName)
-				continue
-			#Setting the frame, once
-			if not hframe:
-				axisX = htmp.GetXaxis()
-				rangesX = ( axisX.GetBinLowEdge( axisX.GetFirst() ),\
-					axisX.GetBinUpEdge( axisX.GetLast() ) )
-				hframe = c.DrawFrame( rangesX[0], 0, rangesX[1], 1.1 )
-				hframe.GetXaxis().SetTitle( htmp.GetXaxis().GetTitle() )
-				hframe.GetYaxis().SetTitle( htmp.GetYaxis().GetTitle() )
-				#-- Extract the resonance --------------
-				tmpTitle = htmp.GetTitle().split(' ')[1:]
-				joinT = lambda x,y : x+' '+y
-				title = ''
-				for k in tmpTitle:
-					title = joinT(title,k)
-			htmp.SetLineColor(color[i])
-			htmp.SetMarkerColor(color[i])
-			htmp.SetMarkerStyle(typeMarker[i])
-			#hframe.SetTitle( title ) 
-			htmp.Draw( 'P'+inSame )
-			leg.AddEntry( htmp, resLatex, 'P' )
-			inSame = 'SAME'
-			i += 1
-		leg.Draw()
-		text.Draw()
-		#-- includes all resonances
-		title = hMRLatex+', '+title
-		#hframe.SetTitle( title )--> No titles
-		#hframe.SetTitle( '  CMS Preliminary,'+Lumi+' #sqrt{s}=7 TeV  ' )
-		c.SaveAs(howMuchRes+GRAPHNAME+'.eps')
-		c.Close()
-
-
-def sysMCFIT(_file):
-        """
-	sysMCFIT( 'namerootfile' ) 
-
-	Compute the differences between MC True counting efficiency
-	and Tag and Probe fitted efficiency. Return plots and 
-	(TODO) root file containing maps of the absolute differencies
-        """
-        ROOT.gROOT.SetBatch(1)
-	
-	#TODO: Permitir que se puedan entrar dos ficheros
-	#      Ahora mc debe estar en el mismo fichero
-	tnp = pytnp.pytnp(_file)
-
-	effList = tnp.getFitEffList()
-	
-	pairFitMC = [ (tnp.getCountMCName(i),i) for i in effList ]
-	##- Checking if there are MC true info
-	for i in filter( lambda (mc,fitEff): not mc, pairFitMC ):
-		message = '\n'
-		message += """\033[1;31mERROR: The %s does not contains MC True information\033[1;m""" % _file
-		message += '\n'
-		print message
-		exit(-1)
-
-	for tMC, tFit in pairFitMC:
-		getDiff2DPlots( tnp, tnp, Lumi, tMC, tFit )
-
-
 if __name__ == '__main__':
 	"""
 	"""
         from optparse import OptionParser
 
         parser = OptionParser()
-	parser.set_defaults(counting=False)
+	parser.set_defaults(counting=False,effName='efficiency')
         parser.add_option( '-i', '--input', action='store', dest='fileName', help='Input root file name, comma separated, no espaces' )
+        parser.add_option(  '--resName', action='store', dest='resName', help='Resonance name for the files introduced with -i option (same order)' )
+	parser.add_option( '--content', action='store_true', dest='printContent', help='Print the Tag and Probe content of the root file(s) showing'\
+                ' their encapsulate structure and the exit ' )
         parser.add_option( '-u', action='store_true', dest='allUpsilons', help='1-dim plots comparing different efficiencies from different root files' )
         parser.add_option( '--dim1', action='store_true', dest='dim1Plots', help='Must I do 1-dim plots?' )
         parser.add_option( '--dim2', action='store_true', dest='dim2Plots', help='Must I do 2-dim map plots?' )
@@ -227,7 +28,9 @@ if __name__ == '__main__':
         parser.add_option( '--sysTnP', action='store_true', dest='sysTnP', help='Do the plots (and a root file maps--Not yet) for the differences between counting MC and Tag and Probe fit efficiencies.' )
         parser.add_option( '-m', '--maps', action='store', dest='maps', metavar='CATEGORY', help='Create root files with TH2F and RooDataSets, give the name of the muon category' )
         parser.add_option( '-t', '--tables', action='store_true', dest='tables', help='Create latex tables from an efficiency map root file' )
-        parser.add_option( '-L', '--lumi', action='store', dest='Lumi', help='Integrated Luminosity (in nbar^{-1}' )
+        parser.add_option( '-L', '--lumi', action='store', dest='Lumi', nargs=2 help='Integrated Luminosity and unit' )
+	parser.add_option( '-e', '--effName', action='store', dest='effName', help='Efficiency name as will found in the rootfile (CAVEAT: The same name'\
+                ' for all RooDataSet in the rootfile is mandatory)' )
 
         ( opt, args ) = parser.parse_args()
 
@@ -235,22 +38,36 @@ if __name__ == '__main__':
 		Message="""Missed mandatory argument -i FILENAME"""
 		parser.error( Message )
 	
-	import pytnp
-	from pytnp.utils.getresname import *
-	from pytnp.utils.tnputils import *
-	import pytnp.utils.rootlogon
+	from pytnp.libPytnp.pytnpclass import pytnp
+	#from pytnp.libPytnp.getresname import getresname
+	#from pytnp.libPytnp.tnputils import *
+	#import pytnp.libPytnp.rootlogon
+
+	#Print content and exit
+	if opt.printContent:
+                allFiles = opt.fileName.split(',')
+                if len(allFiles) < 1:
+                        Message = """I need at least 1 input files comma separated without espaces. I parsed '%s'""" % opt.fileName
+                        parser.error( Message )
+                for _f in allFiles:
+                        tnp = pytnp( _f, effName = opt.effName)
+                        print tnp
 
 	#Store luminosity if is provided
 	Lumi = ''
 	if opt.Lumi:
-		Lumi = ' L_{int}='+str(opt.Lumi)+' nb^{-1} '
+		Lumi = ' L_{int}='
+		for val in opt.Lumi:
+			Lumi += str(opt.Lumi)+' '
 
-	#Do not display graphics
-	ROOT.gROOT.SetBatch(1)
 	#Using MC info-- counting events instead of fit
 	whatPlots = 'fit_eff'
 	if opt.counting:
 		whatPlots = 'cnt_eff'
+	
+	#Do not display graphics
+	import ROOT
+	ROOT.gROOT.SetBatch(1)
 
 	if opt.allUpsilons:
 		allFiles = opt.fileName
@@ -261,13 +78,35 @@ if __name__ == '__main__':
 		doComparationPlots( allFiles, whatPlots, Lumi2 )
 
 	if opt.resToComp:
+		from steerplots.plotsCreation import diffEff
+		from steer
 		#--- 
-		allFiles = opt.fileName
-		#FIXME: Control de errores
-		doDiffEff( allFiles, opt.resToComp, whatPlots )
+		allFiles = opt.fileName.split(',')
+		if len(allFiles) < 2:
+			Message = """I need at least 2 input files comma separated without espaces. I read this %s""" % opt.fileName
+			parser.error( Message )
+		#--- Has the user introduced the resonance name?
+		try:
+			resNameLists = opt.resName.split(',')
+		except AttributeError:
+			resNameList = []
+		#-- Dictionary of pytnp instance for every resonance
+		tnpDict = {}
+			
+		for aFile, resname in map( lambda _file,_resName: (x,y), allFiles,resNameList ):
+			#--- Extract from the standard name file the resonance ---
+			if not resname:
+				# resonance name and latex format name
+				resNameTuple = getResName( aFile )
+			else:
+				resNameTuple = ( resname, resname)
+			tnpDict[resName[0]] = pytnp( aFile, dataset=whatPlots, effName=opt.effName, resonance=resNameTuple )
+
+		#--- Ready to run the plots
+		diffEff( tnpDict, opt.resToComp, Lumi )
 	
 	if opt.dim1Plots and not opt.allUpsilons:
-		tnp = pytnp.pytnp(opt.fileName, dataset=whatPlots)
+		tnp = pytnp(opt.fileName, dataset=whatPlots)
 		resonance = tnp.resLatex
 		try:
 			for name,dataset in tnp.RooDataSet.iteritems():
@@ -281,7 +120,7 @@ if __name__ == '__main__':
 		del tnp
 
 	if opt.dim2Plots or opt.maps:
-		tnp = pytnp.pytnp(opt.fileName, dataset=whatPlots)
+		tnp = pytnp(opt.fileName, dataset=whatPlots)
 		#resonance = tnp.resLatex
 		for name,dataSet in tnp.RooDataSet.iteritems():
 			#if name.find('mcTrue') == -1:
