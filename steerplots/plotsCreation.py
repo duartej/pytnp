@@ -3,6 +3,8 @@ Function utilities which uses the pytnp class to do several plots
   doDifEff
 """
 
+import ROOT
+
 def getDiff2DPlots( tnpRef, tnp2, Lumi, *nameOfdataSet ):
 	"""
 	getDiff2DPlots( pytnpRef, pytnpOther, nameOfdataSet, nameOfdataSet2 ) --> 
@@ -16,6 +18,9 @@ def getDiff2DPlots( tnpRef, tnp2, Lumi, *nameOfdataSet ):
 	The comparation will be done until the minimum of both
 	"""
 	from math import sqrt
+	from pytnp.libPytnp.tnputils import  *
+	#from pytnp.libPytnp.tnputils import checkbinnedVar
+	#from pytnp.libPytnp.tnputils import getBinning
 	#---- Initialiting -------------------------------
 	nameOfdataSet2 = None
 	#-- Comparation between different resonances
@@ -155,7 +160,7 @@ def diffEff( tnpDict, refRes, Lumi, **keywords ):
 		# the other but the reference
 		resonance = []
 		for tnp in tnpDict.itervalues():
-			resonance.append( (tnp.resName, tnp.resLatex) )
+			resonance.append( (tnp.resonance, tnp.resLatex) )
 		
 	except KeyError:
 		message ="""
@@ -163,7 +168,7 @@ def diffEff( tnpDict, refRes, Lumi, **keywords ):
 		print message
 		raise KeyError
 	#resonanceRef = resonance.pop( refRes )
-	for resName,resLatex in sorted(resonance.iteritems()):
+	for resName,resLatex in sorted(resonance):
 		for name in tnpDict[resName].RooDataSet.iterkeys():
 			getDiff2DPlots( tnpResRef, tnpDict[resName], Lumi, name )
 
