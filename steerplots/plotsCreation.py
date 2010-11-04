@@ -4,6 +4,7 @@ Function utilities which uses the pytnp class to do several plots
 """
 
 import ROOT
+import pytnp.libPytnp.rootlogon  #FIXME: Ponerlo en otro lado!!!
 
 def getDiff2DPlots( tnpRef, tnp2, Lumi, *nameOfdataSet ):
 	"""

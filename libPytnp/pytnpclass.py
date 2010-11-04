@@ -26,7 +26,7 @@ class pytnp(dict):
 	__attrDict__ = {}
 	#-- Binned variables introduced by user
 	userVariables = None
-	effName = 'eff'
+	effName = 'efficiency'
 	# Classes to store them
 	classNames = ['TCanvas','RooDataSet','RooFitResult']
 	def __init__(self, filerootName, **keywords):
@@ -153,7 +153,7 @@ class pytnp(dict):
 					message = """\033[1;31mpytnp Error: The efficiency name introduce '%s' is not in the '%s' RooDataSet.
   I have these variables located:\033[1;m""" % (keywords['effName'], name )
                                 except KeyError:
-				        message = """\033[1;31mpytnp Error: The efficiency name per default 'eff' is not in the '%s' RooDataSet. 
+				        message = """\033[1;31mpytnp Error: The efficiency name per default 'efficiency' is not in the '%s' RooDataSet. 
   You should introduced the name when instance the class =>   a = pytnp( 'filename.root', effName='whatever' )
   I have these variables located:\033[1;m"""
                                 message += ' '

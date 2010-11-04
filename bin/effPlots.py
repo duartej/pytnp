@@ -16,12 +16,12 @@ if __name__ == '__main__':
 
         parser = OptionParser()
 	parser.set_defaults(counting=False,effName='efficiency')
-        parser.add_option( '-i', '--input', action='store', dest='fileName', help='Input root file name, comma separated, no espaces' )
+        parser.add_option( '-i', '--input', action='store', dest='fileName', metavar='FILENAME1[,FILENAME2,...]', help='Input root file name, comma separated, no espaces' )
         parser.add_option(  '--resName', action='store', dest='resName', help='Resonance name for the files introduced with -i option (same order)' )
 	parser.add_option( '--content', action='store_true', dest='printContent', help='Print the Tag and Probe content of the root file(s) showing'\
                 ' their encapsulate structure and the exit ' )
         parser.add_option( '-u', action='store_true', dest='allUpsilons', help='1-dim plots comparing different efficiencies from different root files' )
-        parser.add_option( '--dim1', action='store_true', dest='dim1Plots', help='Must I do 1-dim plots?' )
+        parser.add_option( '--1d', action='store', dest='dim1Plots', metavar='VAR1[,VAR2,...]', help='1-dimensional plots of binned VAR1[, VAR2, ...]' )
         parser.add_option( '--dim2', action='store_true', dest='dim2Plots', help='Must I do 2-dim map plots?' )
 	parser.add_option( '-c', '--comp', action='store', dest='resToComp', metavar='RESONANCE', help='Comparation between efficiencies for different resonances taking RESONANCE as reference, plots of relative and absolute efficiencies' )
         parser.add_option( '--counting', action='store_true', dest='counting', help='If active this flag, do the plots using the MC information (counting events)' )
@@ -106,17 +106,25 @@ if __name__ == '__main__':
 		diffEff( tnpDict, opt.resToComp, Lumi )
 	
 	if opt.dim1Plots and not opt.allUpsilons:
-		tnp = pytnp(opt.fileName, dataset=whatPlots)
+		#--- Controling variables
+		variables = opt.dim1Plots.split(',') #FIXME: Control errores
+		#Aceptar palabra clave all => Todas las variables binned
+		tnp = pytnp(opt.fileName, dataset=whatPlots, effName = opt.effName )
 		resonance = tnp.resLatex
 		try:
-			for name,dataset in tnp.RooDataSet.iteritems():
-				#Counting case:
-				#if name.find('mcTrue') == -1:
-				tnp.plotEff1D(name,Lumi)
+			# Ploting all variables in dataset
+			for var in variables:
+				for name,dataset in tnp.RooDataSet.iteritems():
+					#Counting case:
+					#if name.find('mcTrue') == -1:
+					if var in tnp[name]['binnedVar'].keys():
+						tnp.plotEff1D(name,var, Lumi)
 		except AttributeError:
-			for name, tcanvas in tnp.TCanvas.iteritems():
-				if name.find('_PLOT_') != -1 and (name.find('pt_eta_') == -1 or name.find('eta_pt') == -1):
-					tnp.plotEff1D(name,Lumi)
+			pass 
+			#FIXME: PORQUE ESTA ESTO?
+			#for name, tcanvas in tnp.TCanvas.iteritems():
+			##	if name.find('_PLOT_') != -1 and (name.find('pt_eta_') == -1 or name.find('eta_pt') == -1):
+			#		tnp.plotEff1D(name,inputVarName, Lumi )
 		del tnp
 
 	if opt.dim2Plots or opt.maps:
