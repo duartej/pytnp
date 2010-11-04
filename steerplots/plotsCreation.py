@@ -152,8 +152,11 @@ def getDiff2DPlots( tnpRef, tnp2, Lumi, *nameOfdataSet ):
 
 def diffEff( tnpDict, refRes, Lumi, **keywords ):
 	"""
-	diffEff( pytnp1, pytnp2, 'reference_resonance') 
+	diffEff( pytnp1, pytnp2, 'reference_resonance', 'Luminosity' )
 
+	Plot 2-dim maps where each bin is calculated from the substraction
+	of one efficiency values with respect the other (refRes has the 
+	rol of first operand in the substraction)
 	"""
 	#Extract the reference resonance:
 	try:
@@ -166,7 +169,7 @@ def diffEff( tnpDict, refRes, Lumi, **keywords ):
 		
 	except KeyError:
 		message ="""
-\033[1;31mError: the resonance name '%s' introduced is wrong, use either of %s \033[1;m""" % (refRes, [i for i in tnpDict.iterkeys()]) 
+\033[1;31mError: the resonance name '%s' introduced is wrong, use either of '%s' \033[1;m""" % (refRes, [i for i in tnpDict.iterkeys()]) 
 		print message
 		raise KeyError
 	#resonanceRef = resonance.pop( refRes )

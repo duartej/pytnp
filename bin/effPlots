@@ -46,7 +46,8 @@ if __name__ == '__main__':
         parser.add_option( '--compPlots', action='store', dest='comparationPlots', metavar='VAR',\
 			help='1-dim plots of variable \'VAR\' comparing different efficiencies from different root files' )
         parser.add_option( '--1d', action='store', dest='dim1Plots', metavar='VAR1[,VAR2,...]', help='1-dimensional plots of binned VAR1[, VAR2, ...]' )
-        parser.add_option( '--dim2', action='store_true', dest='dim2Plots', help='Must I do 2-dim map plots?' )
+        parser.add_option( '--2d', action='store', dest='dim2Plots', metavar='VAR_X,VAR_Y', help='2-dim maps usign in the x-axis '\
+			'\'VAR_\' and \'VAR_Y\' in the y-axis' )
 	parser.add_option( '-c', '--comp', action='store', dest='resToComp', metavar='RESONANCE', help='Comparation between efficiencies for different resonances taking RESONANCE as reference, plots of relative and absolute efficiencies' )
         parser.add_option( '--counting', action='store_true', dest='counting', help='If active this flag, do the plots using the MC information (counting events)' )
         parser.add_option( '--sysTnP', action='store_true', dest='sysTnP', help='Do the plots (and a root file maps--Not yet) for the differences between counting MC and Tag and Probe fit efficiencies.' )
@@ -169,8 +170,9 @@ if __name__ == '__main__':
 
 		#--- Ready to run the plots
 		diffEff( tnpDict, opt.resToComp, Lumi )
+	#####################################################################################################
 	
-	#### QUITAR: DONE #####################################################################
+	#####################################################################################################
 	if opt.dim1Plots and not opt.comparationPlots:
 		#--- Only one file
 		Message = """I need only one root file. I parsed '%s'""" % opt.fileName
@@ -199,11 +201,15 @@ if __name__ == '__main__':
 	#### QUITAR: DONE #####################################################################
 
 	if opt.dim2Plots or opt.maps:
+		#-- Two variables
+		Message = """I need two binned variables root file. I parsed '%s'""" % opt.fileName
+		varList = parseOption( opt.dim2Plots, '!=', 2, Message )
+
 		tnp = pytnp(opt.fileName, dataset=whatPlots)
 		#resonance = tnp.resLatex
 		for name,dataSet in tnp.RooDataSet.iteritems():
 			#if name.find('mcTrue') == -1:
-			tnp.plotEff2D(name,Lumi)
+			tnp.plotEff2D(name,Lumi, x=varList[0], y=varList[1])
 		if opt.maps:
 			#FIXME: De momento paso el valor del objecto
 			maps=opt.maps

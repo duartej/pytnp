@@ -8,6 +8,9 @@ import sys
 from getresname import *  #FIXME: OJO CON ESTO
 from tnputils import *
 
+
+# TODO: clean function to drop those RooDataSet which don't have efficiency values (or all zero)
+
 class pytnp(dict):
 	"""
 	Class to retrieve and encapsulate the 'tag and probe' 
@@ -652,7 +655,7 @@ There's no class named %s!
 		x = None
 		y = None
 		hasVars = 0
-		for axis, varName in keywords:
+		for axis, varName in keywords.iteritems():
 			if axis != 'x' or axis != 'y':
 				message = """\033[1;33mpytnp.plotEff2D Error: the keyword %s is not valid. Use 'x' and 'y' as keywords\033[1;m""" % axis
 				print message
