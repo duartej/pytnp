@@ -4,7 +4,8 @@ Function utilities which uses the pytnp class to do several plots
 """
 
 import ROOT
-import pytnp.libPytnp.rootlogon  #FIXME: Ponerlo en otro lado!!!
+
+from pytnp.libPytnp.tnputils import  *
 
 def getDiff2DPlots( tnpRef, tnp2, Lumi, *nameOfdataSet ):
 	"""
@@ -19,7 +20,7 @@ def getDiff2DPlots( tnpRef, tnp2, Lumi, *nameOfdataSet ):
 	The comparation will be done until the minimum of both
 	"""
 	from math import sqrt
-	from pytnp.libPytnp.tnputils import  *
+	import pytnp.libPytnp.rootlogon 
 	#from pytnp.libPytnp.tnputils import checkbinnedVar
 	#from pytnp.libPytnp.tnputils import getBinning
 	#---- Initialiting -------------------------------
@@ -174,41 +175,30 @@ def diffEff( tnpDict, refRes, Lumi, **keywords ):
 			getDiff2DPlots( tnpResRef, tnpDict[resName], Lumi, name )
 
 
-def doComparationPlots( allFiles, whatPlots, Lumi ):
+def superImposed( tnpDict, variable, whatPlots, Lumi, **keywords ):
 	"""
-	doCompartionPlots( 'file1,file2,..', 'whatPlots') 
+	superImposed( { resName1: tnp1, resName2: tnp2,...} , 'variable', whatPlots, Lumi ) 
+	
+	Giving different pytnp instances, the function do the 1-dim plots of the 'variable'
+	in the same canvas. The pytnp instances must have the same object types 
+	(ex: Global muon identification efficiency, ...) with the SAME name.
+	See the objectType content of a pytnp instance usign the print function for a
+	pytnp instance. 
 	"""
-	allFiles = allFiles.split(',')
-	if len(allFiles) < 2:
-		Message = """I need at least 2 input files comma separated without espaces. I read this %s""" % opt.fileName
-		parser.error( Message )
-	#-- Dictionary of pytnp instance for every resonance
-	tnpDict = {}
-	#-- List of resonance we have in Latex format
-	resonance = {}
-	#-- Set to store the Vnames of the histos, no
+	#FIXME: Esta acabada?? Codigo enrevesado...
+	import pytnp.libPytnp.rootlogon
+	#-- Checking we have the same efficiency object for each instance
+
+	#-- Set to store the names of the histos, no
 	#   resonance dependent
 	histoSet = set()
-	for aFile in allFiles:
-		#--- Extract from the standard name file the resonance ---
-		try:
-			resName = pytnp.getResName( aFile )[0]
-		except TypeError:
-			#-- The file name must be standard
-			message = """
-Error: the file name %s introduced is not in a standard format,
-       Resonance_histo[MuFromTrk|Trigger]_....root""" % aFile
-			exit()
-		#---------------------------------------------------------
-		#-- Create the pytnp instance
-		tnpDict[resName] = pytnp.pytnp( aFile, dataset=whatPlots )
-		resonance[ resName ] = tnpDict[resName].resLatex
-		#---- Making the plots for this resonance
-		for name in tnpDict[resName].RooDataSet.iterkeys():
+	#---- Making the plots for this resonance 
+	for resName, tnp in tnpDict.iteritems():
+		for name in tnp.RooDataSet.iterkeys():
 			#-- Store the name of the RooDataSet
 			histoSet.add( name )
 			#-- Storing and plotting
-			tnpDict[resName].plotEff1D( name, Lumi )
+			tnp.plotEff1D( name, variable, Lumi )
 	#--- In order doing comparations between datasets that have
 	#    different binnings we must select the data with LESS
 	#    number of binnings. 
@@ -225,17 +215,17 @@ Error: the file name %s introduced is not in a standard format,
 	for __tnp in tnpDict.itervalues():
 		for NAMErds, DICT in __tnp.iteritems():
 			for NAMEgraph in DICT['tgraphs'].iterkeys():
-				graphName.append( (NAMErds,NAMEgraph) )
+				# Skipping the resonance name
+				graphName.append( (NAMErds,NAMEgraph.strip(__tnp.resonance+'_')) )
 	#--- Plots for the all resonances
 	#-- Assuming we have the same names for histos in every
 	#   dict, but the first word (resonance dependent).
+	howPlottedGraphs = 0
 	for RDSNAME,GRAPHNAME in graphName:			
 		c = ROOT.TCanvas()
 		#-----------FIXME: CLARA PATCH ----------------------#
 		text = ROOT.TPaveText(0.6,0.4,0.8,0.6,"NDC")
-		text.AddText('CMS Preliminary,  #sqrt{s}= 7 TeV')
-		if Lumi != '':
-			text.AddText('#int#font[12]{L}dt = '+str(Lumi)+' nb^{-1}')
+		text.AddText('CMS Preliminary,'+Lumi+'  #sqrt{s}= 7 TeV')
 		text.SetBorderSize(0)
 		text.SetFillColor(0)
 		text.SetTextSize(0.04);
@@ -250,15 +240,19 @@ Error: the file name %s introduced is not in a standard format,
 		typeMarker = [ 20, 21, 22, 23, 24 ]
 		title = ''
 		i = 0
-		for resName,resLatex in sorted(resonance.iteritems()):
+		howMuchLost = 0
+		for resName,tnp in sorted(tnpDict.iteritems()):
 			#Preparing the histo and draw
 			howMuchRes += resName
-			hMRLatex += resLatex+' '
+			hMRLatex += tnp.resLatex+' '
+			resLatex = tnp.resLatex
 			#-- Avoiding different binnings
-			try:
-				htmp = tnpDict[resName][RDSNAME]['tgraphs'][GRAPHNAME]
+			try: 
+				#Adding the resonance name
+				htmp = tnp[RDSNAME]['tgraphs'][tnp.resonance+'_'+GRAPHNAME]
 			except KeyError:
-				print """\033[1;31mWarning: There is no graph %s for the resonance %s\033[1;m""" % ( GRAPHNAME,resName)
+				print """\033[1;33mWarning: There is no graph '%s' for the resonance '%s'\033[1;m""" % ( GRAPHNAME,resName)
+				howMuchLost += 1
 				continue
 			#Setting the frame, once
 			if not hframe:
@@ -282,6 +276,10 @@ Error: the file name %s introduced is not in a standard format,
 			leg.AddEntry( htmp, resLatex, 'P' )
 			inSame = 'SAME'
 			i += 1
+		#-- If fail all the graphs, don't print (Always do the first one, so howMuchLost+1)
+		if howMuchLost+1 == len(tnpDict):
+			print """\033[1;33mWarning: --->Skipping the graph creation for '%s' \033[1;m""" % ( howMuchRes+GRAPHNAME)
+			continue
 		leg.Draw()
 		text.Draw()
 		#-- includes all resonances
@@ -290,21 +288,34 @@ Error: the file name %s introduced is not in a standard format,
 		#hframe.SetTitle( '  CMS Preliminary,'+Lumi+' #sqrt{s}=7 TeV  ' )
 		c.SaveAs(howMuchRes+GRAPHNAME+'.eps')
 		c.Close()
+		howPlottedGraphs += 1
+	
+	#-- If there no plotted graph, the user possibly misunderstood the functionality of this function
+	if howPlottedGraphs == 0:
+		print """ """
+		print """\033[1;39mCAVEAT: No graph has been plotted! The correct use of this function implies\n\033"""\
+				"""        that the root files involved contains the same object type efficiency.\n"""\
+				"""        (See the contents of a pytnp instance, for example  effPlots --content -i rootfile.root)"""\
+				"""        and look the 'objectType' key from the output\033[1;m"""
+		# Raise a exception ??
 
 
-def sysMCFIT(_file):
+
+def sysMCFIT(tnp, **keywords):
         """
 	sysMCFIT( 'namerootfile' ) 
 
 	Compute the differences between MC True counting efficiency
-	and Tag and Probe fitted efficiency. Return plots and 
-	(TODO) root file containing maps of the absolute differencies
+	and Tag and Probe fitted efficiency. Return plots (and 
+	(TODO) root file) containing maps of the absolute differencies
         """
+
+	import pytnp.libPytnp.rootlogon 
         ROOT.gROOT.SetBatch(1)
 	
 	#TODO: Permitir que se puedan entrar dos ficheros
 	#      Ahora mc debe estar en el mismo fichero
-	tnp = pytnp.pytnp(_file)
+	#tnp = pytnp.pytnp(_file)
 
 	effList = tnp.getFitEffList()
 	

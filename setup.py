@@ -33,6 +33,6 @@ setup(name='pytnp',
 		#py_modules=['pytnpclass','__init__'],
 		packages = ['pytnp','pytnp.libPytnp', 'pytnp.steerplots'],
 		package_dir={'pytnp':''},
-		scripts=['bin/effPlots.py','bin/prepsubJobs.sh','bin/weightCreator.py'], # 'procsfile/.build/copyFile', 'procsfile/.build/CowboysNTuple'],
+		scripts=['bin/effPlots','bin/prepsubJobs.sh','bin/weightCreator.py'], # 'procsfile/.build/copyFile', 'procsfile/.build/CowboysNTuple'],
 		)
 

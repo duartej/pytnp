@@ -9,6 +9,29 @@ Check you have init the CMSSW environment:
 	$ cmsenv"""
 	sys.exit(-1)
 
+
+#-----------------------------------------------------------------------------------------
+#--  Some auxiliary functions
+
+def parseOption( Opt, errorCondition, howManyFiles, errorMessage ):
+	"""
+	parseOption
+	"""
+	optList = Opt.split(',')
+	try:
+		isTrue = eval( 'len(optList) '+errorCondition+str(howManyFiles) )
+	except SyntaxError:
+		print ''  
+		print """INTERNAL ERROR! Bad use of the 'parseOption' function\n"""
+		exit(-1)
+
+	if isTrue:
+		parser.error( errorMessage )
+
+	return optList
+#-----------------------------------------------------------------------------------------
+
+
 if __name__ == '__main__':
 	"""
 	"""
@@ -20,7 +43,8 @@ if __name__ == '__main__':
         parser.add_option(  '--resName', action='store', dest='resName', help='Resonance name for the files introduced with -i option (same order)' )
 	parser.add_option( '--content', action='store_true', dest='printContent', help='Print the Tag and Probe content of the root file(s) showing'\
                 ' their encapsulate structure and the exit ' )
-        parser.add_option( '-u', action='store_true', dest='allUpsilons', help='1-dim plots comparing different efficiencies from different root files' )
+        parser.add_option( '--compPlots', action='store', dest='comparationPlots', metavar='VAR',\
+			help='1-dim plots of variable \'VAR\' comparing different efficiencies from different root files' )
         parser.add_option( '--1d', action='store', dest='dim1Plots', metavar='VAR1[,VAR2,...]', help='1-dimensional plots of binned VAR1[, VAR2, ...]' )
         parser.add_option( '--dim2', action='store_true', dest='dim2Plots', help='Must I do 2-dim map plots?' )
 	parser.add_option( '-c', '--comp', action='store', dest='resToComp', metavar='RESONANCE', help='Comparation between efficiencies for different resonances taking RESONANCE as reference, plots of relative and absolute efficiencies' )
@@ -39,19 +63,17 @@ if __name__ == '__main__':
 		parser.error( Message )
 	
 	from pytnp.libPytnp.pytnpclass import pytnp
-	#from pytnp.libPytnp.getresname import getresname
-	#from pytnp.libPytnp.tnputils import *
-	#import pytnp.libPytnp.rootlogon
 
+	#####################################################################################################
 	#Print content and exit
 	if opt.printContent:
-                allFiles = opt.fileName.split(',')
-                if len(allFiles) < 1:
-                        Message = """I need at least 1 input files comma separated without espaces. I parsed '%s'""" % opt.fileName
-                        parser.error( Message )
+                Message = """I need at least 1 input files comma separated without espaces. I parsed '%s'""" % opt.fileName
+		allFiles = parseOption( opt.fileName, '<',1, Message )
                 for _f in allFiles:
                         tnp = pytnp( _f, effName = opt.effName)
                         print tnp
+		exit(0)
+	#####################################################################################################
 
 	#Store luminosity if is provided
 	Lumi = ''
@@ -69,25 +91,68 @@ if __name__ == '__main__':
 	import ROOT
 	ROOT.gROOT.SetBatch(1)
 
-	if opt.allUpsilons:
-		allFiles = opt.fileName
-		#--- FIXME: Provisional
-		Lumi2 = Lumi
-		if opt.Lumi:
-			Lumi2 = opt.Lumi
-		doComparationPlots( allFiles, whatPlots, Lumi2 )
+	#####################################################################################################
+	# Do 1-dimensional plots of severals datasets (with the same objectType efficiency) drawn on the
+	# same canvas.
+	if opt.comparationPlots:
+		from pytnp.libPytnp.getresname import getResName
+		from pytnp.steerplots.plotsCreation import superImposed
+		
+		#-- Only I want one variable
+		Message = """I need only one variable. I parsed '%s'""" % opt.comparationPlots
+		variableList = parseOption( opt.comparationPlots, '>', 1, Message )
+		
+		variable = variableList[0]
 
+		Message = """I need at least 2 input files comma separated without espaces. I parsed '%s'""" % opt.fileName
+		allFiles = parseOption( opt.fileName, '<', 2, Message )
+
+		try:
+			resNameList = opt.resName.replace(' ','_').split(',')
+		except AttributeError:
+			resNameList = []
+		#-- Dictionary of pytnp instance for every resonance
+		tnpDict = {}
+		#-- Filling the dict, note if we have the same resonance name we're gone
+		#-- loose a file
+		for aFile, resname in map( lambda _file,_resName: (_file,_resName), allFiles,resNameList ):
+			#--- Extract from the standard name file the resonance ---
+			if not resname:
+				# resonance name and latex format name
+				try:
+					resNameTuple = getResName( aFile )
+				except TypeError:
+					#-- The file name must be standard
+					message = """\033[1;31mError: the file name '%s' introduced is not in a standard format:"""\
+							""" Resonance_histo[MuFromTrk|Trigger]_....root\033[1;m""" % aFile
+					exit(-1)
+			else:
+				resNameTuple = ( resname, resname)
+			#-- Raise an error if the user don't define diferent resonances names
+			if tnpDict.has_key(resNameTuple[0]):
+				message = """\033[1;31mError: There root input files names which have the same resonance names:\n\033[1;m"""
+				message += """\033[1;39m '%s': '%s'\n\033[1;m"""  % ( tnpDict[resNameTuple[0]].__fileroot__.GetName(), resNameTuple[0] ) 
+				message += """\033[1;39m '%s': '%s'\n\033[1;m"""  % ( aFile, resNameTuple[0] ) 
+				message += """\033[1;31m Impose the resonance name usign the '--resName' option (see --help for usage)\033[1;m""" 
+				print message
+				exit(-1)
+
+			tnpDict[resNameTuple[0]] = pytnp( aFile, dataset=whatPlots, resonance = resNameTuple )
+		#--- FIXME: Provisional
+		superImposed( tnpDict, variable, whatPlots, Lumi )
+	#####################################################################################################
+
+	#####################################################################################################
+	# 1-dimensional plot 
 	if opt.resToComp:
 		from pytnp.steerplots.plotsCreation import diffEff
 		from pytnp.libPytnp.getresname import getResName
 		#--- 
-		allFiles = opt.fileName.split(',')
-		if len(allFiles) < 2:
-			Message = """I need at least 2 input files comma separated without espaces. I read this %s""" % opt.fileName
-			parser.error( Message )
+		Message = """I need at least 2 input files comma separated without espaces. I parsed '%s'""" % opt.fileName
+		allFiles = parseOption( opt.fileName, '<', 2, Message )
 		#--- Has the user introduced the resonance name?
 		try:
-			resNameLists = opt.resName.split(',')
+			resNameList = opt.resName.split(',')
 		except AttributeError:
 			resNameList = []
 		#-- Dictionary of pytnp instance for every resonance
@@ -105,12 +170,17 @@ if __name__ == '__main__':
 		#--- Ready to run the plots
 		diffEff( tnpDict, opt.resToComp, Lumi )
 	
-	if opt.dim1Plots and not opt.allUpsilons:
+	#### QUITAR: DONE #####################################################################
+	if opt.dim1Plots and not opt.comparationPlots:
+		#--- Only one file
+		Message = """I need only one root file. I parsed '%s'""" % opt.fileName
+		allFiles = parseOption( opt.fileName, '>', 1, Message )
 		#--- Controling variables
 		variables = opt.dim1Plots.split(',') #FIXME: Control errores
 		#Aceptar palabra clave all => Todas las variables binned
 		tnp = pytnp(opt.fileName, dataset=whatPlots, effName = opt.effName )
 		resonance = tnp.resLatex
+		isNoVar = True
 		try:
 			# Ploting all variables in dataset
 			for var in variables:
@@ -126,6 +196,7 @@ if __name__ == '__main__':
 			##	if name.find('_PLOT_') != -1 and (name.find('pt_eta_') == -1 or name.find('eta_pt') == -1):
 			#		tnp.plotEff1D(name,inputVarName, Lumi )
 		del tnp
+	#### QUITAR: DONE #####################################################################
 
 	if opt.dim2Plots or opt.maps:
 		tnp = pytnp(opt.fileName, dataset=whatPlots)
@@ -150,10 +221,17 @@ if __name__ == '__main__':
 		del tnp
 
 	if opt.sysTnP:
-		sysMCFIT( opt.fileName )
+		# Ploting mc true-counting vs. fit_eff
+		allFiles = opt.fileName.split(',')
+		# The mc true can be in other file, then we need
+		tnp = pytnp( opt.fileName, effName = opt.effName )
+
+		sysMCFIT( tnp )
 
 	if opt.tables:
-		#FIXME Control de errores
+		Message = """I need only 1 input files. I parsed '%s'""" % opt.fileName
+		allFiles = parseOption( opt.fileName, '>', 1, Message )
+		
 		f = ROOT.TFile( opt.fileName )
 		dataList = [ f.Get(i.GetName()) for i in f.GetListOfKeys() if i.GetClassName() == 'RooDataSet' ]
 		if len(dataList) == 0:

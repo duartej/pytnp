@@ -481,6 +481,7 @@ There's no class named %s!
 		it will store the graph object:
 		                      self[nameRooDataSet]['tgraphs'] = { 'graph_name': TGraphAsymmErrors, ... }
 		"""
+		import pytnp.libPytnp.rootlogon
 		dataset = None
 		#-- Checking if the object exists
 		try:
@@ -502,10 +503,10 @@ There's no class named %s!
 		self[name]['tgraphs'] = {}		
 		# Special case: we have only one variable
 		if len(self[name]['binnedVar']) == 1:
-			graphName = self[name]['methodUsed']+'_'+self[name]['effType']+'_'+\
+			graphName = self.resonance+'_'+self[name]['methodUsed']+'_'+self[name]['effType']+'_'+\
 					self[name]['objectType']+'__'
                         if self[name]['isMC'] == 1:
-				graphName += '__mcTrue'
+				graphName += 'mcTrue__'
 			#--- Extracting the efficiency values per bin
 			plotList = tableEff( dataset )
 			graph = ROOT.TGraphAsymmErrors()
@@ -568,7 +569,7 @@ There's no class named %s!
                                 Lo = arrayBins[bin]
                                 Hi = arrayBins[bin+1]
                                 Central = (Hi+Lo)/2.0
-                                graphName = self[name]['methodUsed']+'_'+self[name]['effType']+'_'+\
+                                graphName = self.resonance+'_'+self[name]['methodUsed']+'_'+self[name]['effType']+'_'+\
                                                 self[name]['objectType']+'__'+varName+'_bin'+str(bin)+'_'
                                 #Getting list of efficiency values plus variables
                                 _plotList = eval('getEff(dataset,self.effName,'+varName+'='+str(Central)+')')
