@@ -215,7 +215,34 @@ def getBinning( var ):
 
 	return binsN, arrayBins
 
-def tableLatex(dataset):
+def newtableLatex( dataset, effName, **keyword ):
+	"""
+	tableLatex( dataset, effName, [outfile='name.tex', var=['var1','var2',..] ] )
+
+	Giving a RooDataSet, the function returns a table in latex
+	format. If enters the keyword 'outfile' also the table will put
+	it into the file.
+	The keyword var is a list with the name of the variables the user want to
+	dump. (TODO, not yet implemented)
+	"""
+	#TODO:	The keyword var is a list with the name of the variables the user want to dump.
+
+	#---- Checking the variables in dataset
+	_swapDict = getVarInfo( dataset )
+	#---  All the binned variables in the dataset
+	datasetVarList = filter( lambda x: x.lower().find(inputEffName) == -1, _swapDict.iterkeys() )
+	effList = filter( lambda x: x.lower().find(inputEffName) != -1, _swapDict.iterkeys() )
+	#---- Sanity check
+	if len(effList) != 1:
+		message ="""ERROR: Unexpected Error!! It seems that in '%s' there is no"""\
+				""" efficiency variable...""" % dataSet.GetName()
+		printError( tableLatex.__module__+'.'+tableLatex.__name__, message, AttributeError )
+
+	_tableDict = tableEff( dataset, effName )
+	#### TODO!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+
+def tableLatex(dataset, inputEffName):
 	"""
 
 	Giving a RooDataSet, the function returns a table in latex
@@ -224,14 +251,14 @@ def tableLatex(dataset):
 	#---- Checking the variables in dataset
 	_swapDict = getVarInfo( dataset )
 	#---  All the binned variables in the dataset
-	datasetVarList = filter( lambda x: x.lower().find('eff') == -1, _swapDict.iterkeys() )
-	_swapeffList = filter( lambda x: x.lower().find('eff') != -1, _swapDict.iterkeys() )
+	datasetVarList = filter( lambda x: x.lower().find(inputEffName) == -1, _swapDict.iterkeys() )
+	_swapeffList = filter( lambda x: x.lower().find(inputEffName) != -1, _swapDict.iterkeys() )
 	#---- Sanity check
 	if len(_swapeffList) != 1:
-		message ="""\033[1;31mpytnp.getEff ERROR: Unexpected Error!! It seems that in %s there is no
-efficiency variable...\033[1;m""" % dataSet.GetName()
-		print message
-		raise 
+		message ="""ERROR: Unexpected Error!! It seems that in '%s' there is no"""\
+				""" efficiency variable...""" % dataSet.GetName()
+		printError( tableLatex.__module__+'.'+tableLatex.__name__, message, AttributeError )
+
 	effName = _swapeffList[0]
 
 	#Getting table
@@ -279,24 +306,25 @@ efficiency variable...\033[1;m""" % dataSet.GetName()
 	
 	toLatex = '\\begin{tabular}{c'
 	#Number of columns
-	toLatex += 'c'*etaNbins+'}\\toprule\n'
+	toLatex += 'c'*etaNbins+'}\\hline\hline\n'
 	#header
 	toLatex += '$p_T^\\mu({\\rm GeV})$ {\\boldmath$\\backslash$}$\\eta^\\mu$  & '
 	for low,high in etaBins:
 		toLatex += edges(low,high)+' & '
-	toLatex = toLatex[:-2]+'\\\\ \\midrule\n'
+	toLatex = toLatex[:-2]+'\\\\ \\hline\n'
 	#Filling the table
 	for lowPt,highPt in ptBins:
 		toLatex += edges(lowPt,highPt)+' & '
 		for lowEta,highEta in etaBins:
 			try:
-				eff,effErrorLow,effErrorHig = eval('getEff(dataset,'+ptName+'=central(lowPt,highPt), '+etaName+'=central(lowEta,highEta))')
+				eff,effErrorLow,effErrorHig = eval('getEff(dataset,inputEffName,'+\
+						ptName+'=central(lowPt,highPt), '+etaName+'=central(lowEta,highEta))')
+				toLatex += effsetter(eff,effErrorLow,effErrorHig)
 			#Empty bin
 			except TypeError:
 				toLatex += ' & '
-			toLatex += effsetter(eff,effErrorLow,effErrorHig)
 		toLatex = toLatex[:-2]+'\\\\\n'
-	toLatex += ' \\bottomrule\n'
+	toLatex += ' \\hline\hline\n'
     	toLatex += '\\end{tabular}'
 #
 	print toLatex

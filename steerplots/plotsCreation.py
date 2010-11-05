@@ -150,9 +150,9 @@ def getDiff2DPlots( tnpRef, tnp2, Lumi, *nameOfdataSet ):
 		k += 1
 
 
-def diffEff( tnpDict, refRes, Lumi, **keywords ):
+def diffEffMaps( tnpDict, refRes, Lumi, **keywords ):
 	"""
-	diffEff( pytnp1, pytnp2, 'reference_resonance', 'Luminosity' )
+	diffEffMaps( pytnp1, pytnp2, 'reference_resonance', 'Luminosity' )
 
 	Plot 2-dim maps where each bin is calculated from the substraction
 	of one efficiency values with respect the other (refRes has the 
@@ -183,7 +183,7 @@ def superImposed( tnpDict, variable, whatPlots, Lumi, **keywords ):
 	superImposed( { resName1: tnp1, resName2: tnp2,...} , 'variable', whatPlots, Lumi ) 
 	
 	Giving different pytnp instances, the function do the 1-dim plots of the 'variable'
-	in the same canvas. The pytnp instances must have the same object types 
+	in the same canvas. The pytnp instances must have the same object types (objectType)
 	(ex: Global muon identification efficiency, ...) with the SAME name.
 	See the objectType content of a pytnp instance usign the print function for a
 	pytnp instance. 
@@ -304,7 +304,7 @@ def superImposed( tnpDict, variable, whatPlots, Lumi, **keywords ):
 
 
 
-def sysMCFIT(tnp, **keywords):
+def sysMCFIT(tnp, Lumi, **keywords):
         """
 	sysMCFIT( 'namerootfile' ) 
 
@@ -312,10 +312,9 @@ def sysMCFIT(tnp, **keywords):
 	and Tag and Probe fitted efficiency. Return plots (and 
 	(TODO) root file) containing maps of the absolute differencies
         """
+	import pytnp.libPytnp.rootlogon
+	ROOT.gROOT.SetBatch(1)
 
-	import pytnp.libPytnp.rootlogon 
-        ROOT.gROOT.SetBatch(1)
-	
 	#TODO: Permitir que se puedan entrar dos ficheros
 	#      Ahora mc debe estar en el mismo fichero
 	#tnp = pytnp.pytnp(_file)
@@ -325,11 +324,9 @@ def sysMCFIT(tnp, **keywords):
 	pairFitMC = [ (tnp.getCountMCName(i),i) for i in effList ]
 	##- Checking if there are MC true info
 	for i in filter( lambda (mc,fitEff): not mc, pairFitMC ):
-		message = '\n'
-		message += """\033[1;31mERROR: The %s does not contains MC True information\033[1;m""" % _file
-		message += '\n'
-		print message
-		exit(-1)
+		message = """The '%s' does not contains MC True information""" % tnp.__fileroot__.GetName()
+		printError( sysMCFIT.__module__+'.'+sysMCFIT.__name__, message, AttributeError )
 
 	for tMC, tFit in pairFitMC:
 		getDiff2DPlots( tnp, tnp, Lumi, tMC, tFit )
+
