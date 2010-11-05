@@ -96,8 +96,8 @@ def getDiff2DPlots( tnpRef, tnp2, Lumi, *nameOfdataSet ):
 		thisHisto['histo'].GetZaxis().SetLabelSize(0.02)
 		k += 1
 	
-	tableEff1 = tableEff( dataSet )
-	for teff1 in tableEff1:
+	listTableEff1 = listTableEff( dataSet )
+	for teff1 in listTableEff1:
 		e1,e1lo,e1hi = teff1[effName]
 		pt,ptlo,pthi = teff1[ptName]
 		eta,etalo,etahi = teff1[etaName]

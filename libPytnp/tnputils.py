@@ -8,11 +8,12 @@ TODO: Descriptiona
 	getEff
 	getBinning
 	tableLatex
-	tableEff
+	listTableEff
 """
 import ROOT
+from management import printError, printWarning
 
-def checkbinnedVar( dataset ):
+def checkbinnedVar( dataset, effName='efficiency' ):
 	"""
 	checkbinnedVar( RooDataSet ) -> [ 'binnedvar1',...], 'effName' 
 
@@ -22,21 +23,50 @@ def checkbinnedVar( dataset ):
 	#---- Checking the variables in dataset
 	_swapDict = getVarInfo( dataset )
 	#---  All the binned variables in the dataset
-	datasetVarList = filter( lambda x: x.lower().find('eff') == -1, _swapDict.iterkeys() )
+	datasetVarList = filter( lambda x: x.lower().find(effName) == -1, _swapDict.iterkeys() )
 	#--- Name of the efficiency
-	effList = filter( lambda x: x.lower().find('eff') != -1, _swapDict.iterkeys() )
+	effList = filter( lambda x: x.lower().find(effName) != -1, _swapDict.iterkeys() )
 	#---- Sanity check: should have only one name 
-	if len(effList) != 1:
-		message ="""\033[1;31mpytnp.tnputils.checkbinnedVar ERROR: Unexpected Error!! It seems that in %s there is no
-efficiency variable...\033[1;m""" % dataSet.GetName()
-		print message
-		raise 
+	if len(effList) < 1:
+		message ="""There is no efficiency variable called '%s'in the RooDataSet '%s'""" % (effName, dataset.GetName())
+		printError( checkbinnedVar.__module__+'.'+checkbinnedVar.__name__, message, AttributeError )
+	elif len(effList) > 1:
+		message ="""It cannot be possible to parse the efficiency name, found '%s'in the RooDataSet '%s'\n""" % (str(effList), dataset.GetName())
+		message +="""Check your root file and let only one variable to contain the name '%s'""" % effName
+		printError( checkbinnedVar.__module__+'.'+checkbinnedVar.__name__, message, AttributeError )
 
 	return datasetVarList, effList[0] 
 
+def isEffNoNull( dataset, effName='efficiency' ):
+	"""
+	isEffNoNull( RooDataSet, 'effName' ) --> bool
+
+	Given a dataset, the function evaluates if the variable
+	effName has any value different from zero returning True,
+	otherwise return False.
+	"""
+	#-- Checking efficiency is there
+	_swapDict = getVarInfo( dataset )
+	effList = filter( lambda x: x.lower().find(effName) != -1, _swapDict.iterkeys() )
+	if len(effList) < 1:
+		message ="""There is no efficiency variable called '%s'in the RooDataSet '%s'""" % (effName, dataset.GetName())
+		printError( isEffNoNull.__module__+'.'+isEffNoNull.__name__, message, AttributeError )
+	elif len(effList) > 1:
+		message ="""It cannot be possible to parse the efficiency name, found '%s'in the RooDataSet '%s'\n""" % (str(effList), dataset.GetName())
+		message +="""Check your root file and let only one variable to contain the name '%s'""" % effName
+		printError( isEffNoNull.__module__+'.'+isEffNoNull.__name__, message, AttributeError )
+
+	_table = tableEff( dataset, effName )
+	# FIXME: Comparation between double and 0.0 -- better abs(var) < 1e-10, for exemple
+	zeroList = filter( lambda (var,varLo,varHi): var == 0.0 and varLo == 0.0 and varHi == 0.0,  _table[effName] )
+	
+	if len(zeroList) == len(_table[effName]):
+		return False
+	else:
+		return True
 
 
-def getVarInfo( dataset ):
+def getVarInfo( dataset, __effName='efficiency' ):
 	"""
 	getDataSetVar( RooDataSet ) -> { 'var1': { 'latexName': 'blaba', 'unit': 'unit',
 						    'binN': NumberBins, 'arrayBins' : (val1,...,valN+1)
@@ -54,7 +84,7 @@ def getVarInfo( dataset ):
 	except AttributeError:
 		message = '\033[1;31mgetVarInfo: The object %s is not a RooDataSet\033[1;m' % str(dataset)
 		print message
-		raise KeyError
+		raise AttributeError
 	#-- Get the list with the name of the variables
 	varList = arg.contentsString().split(',')
 	for name in varList:
@@ -67,7 +97,7 @@ def getVarInfo( dataset ):
 				'binN' : binN, 'arrayBins': arrayBin 
 				} #Note: some TString instance--> normalizing to str with Data method
 	try:
-		effName = filter( lambda x: x.lower().find('eff') != -1, [i for i in varinfo.iterkeys()] )[0]
+		effName = filter( lambda x: x.lower().find(__effName) != -1, [i for i in varinfo.iterkeys()] )[0]
 	except IndexError:
 		print """#TODO: CONTROL DE ERRORES!!!"""
 	varinfo[effName]['latexName'] = '#varepsilon'
@@ -132,7 +162,7 @@ efficiency variable...\033[1;m""" % dataSet.GetName()
 		raise
 
 	#-- Get the table of efficiencies
-	tableList = tableEff( dataSet ) 
+	tableList = listTableEff( dataSet ) 
 
 	for valDict in tableList:
 		#--  From the list of the variables we want the efficiencies (varList), put the value inside  
@@ -160,7 +190,7 @@ efficiency variable...\033[1;m""" % dataSet.GetName()
 	print message
 
 	# FIXME: Strange behaviour with version 3_6_1_patch4 (really with the RooFit (3.12 ??) included in this version:
-	#        The values of the tableEff do not fill correctly. All the dictionary is filled of the same value (the last found value)
+	#        The values of the listTableEff do not fill correctly. All the dictionary is filled of the same value (the last found value)
 	return None
 
 def getBinning( var ):
@@ -205,7 +235,7 @@ efficiency variable...\033[1;m""" % dataSet.GetName()
 	effName = _swapeffList[0]
 
 	#Getting table
-	effList = tableEff(dataset)
+	effList = listTableEff(dataset)
 	## Getting bins of variables
 	#---- Dictionary with the bins for each binned variable
 	binsTMP = map( lambda nameVar: { nameVar: set([ (i[nameVar][1],i[nameVar][2]) for i in effList ]) }, datasetVarList )
@@ -273,9 +303,43 @@ efficiency variable...\033[1;m""" % dataSet.GetName()
 	return toLatex
 
 
-def tableEff(dataSet,*badpoints,**effName):
+def tableEff( dataset, effName ):
 	"""
-	tableEff( dataSet ) --> tableList
+	tableEff( RooDataSet, 'effName' ) --> tableDict
+
+	Giving a RooDataSet, the function returns a dictionary where every 
+	key is the 'variables' of the RooDataSet. Each value is a 
+	list of tuples (var, varErrorLo, varErrorHigh)
+	"""
+	#--- Getting variables from dataset, note that if dataset is not a RooDataSet,
+	#--- getVarInfo raise an AttributeError exception
+	_swapDict = getVarInfo( dataset )
+	datasetVarList = [ i for i in _swapDict.iterkeys() ]
+	#--- Is efficiency in dataset?
+	if not effName in datasetVarList:
+		message = 'Do not found \'%s\' as the name of the efficiency in the dataset \'%s\'' % (effName,dataSet.GetName())
+		printError( tableEff.__module__+'.'+tableEff.__name__, message, KeyError )
+	
+	#--- Extract the RooArgSet (container of variables)
+	argset = dataset.get()
+	#--- Output table dictionary
+	_table = dict( [ (var, []) for var in _swapDict.iterkeys() ] )
+	#--- Looping all the 'events'
+	for ev in xrange( dataset.numEntries() ):
+		#--- event
+		dataset.get(ev)
+		for varName, valueList in _table.iteritems():
+			variable = argset[varName]
+			valueList.append( (variable.getVal(), variable.getVal()+variable.getErrorLo(), variable.getVal()+variable.getErrorHi()) )
+	#-- In principle, I don't have tto control errors: getVarInfo is coherent with dataset.get, the same variables must
+	#-- exist
+	return _table
+
+
+
+def listTableEff(dataSet,*badpoints,**effName):
+	"""
+	listTableEff( dataSet ) --> tableList
 
 	Giving a RooDataSet, the function returns a list where every 
 	element is an entry of the RooDataSet stored as a dictionary:
@@ -285,7 +349,6 @@ def tableEff(dataSet,*badpoints,**effName):
 			   ...
 			  'nameEfficiency': (eff, eff low, eff high)
 			}
-
 	"""
 	#---- Checking the variables in dataset
 	_swapDict = getVarInfo( dataSet )
@@ -298,12 +361,12 @@ def tableEff(dataSet,*badpoints,**effName):
 			effName = name
 			#---- Check the efficiency name is in the dataset
 			if not effName in datasetVarList:
-				print '\033[1;31pytnp.tableEff Error: % is not the name of the efficiency in the dataset %s\033[1;m' % (effName,dataSet.GetName())
+				print '\033[1;31pytnp.listTableEff Error: % is not the name of the efficiency in the dataset %s\033[1;m' % (effName,dataSet.GetName())
 				raise KeyError
 	try:
 		argSet = dataSet.get()
 	except AttributeError:
-		print '\033[1;31mpytnp.tableEff Error: '+str(dataSet)+' is not a RooDataSet\n\033[1;m'
+		print '\033[1;31mpytnp.listTableEff Error: '+str(dataSet)+' is not a RooDataSet\n\033[1;m'
 		raise AttributeError
 
 	varDict = dict( [ ( varName, argSet[varName]) for varName in datasetVarList ] )

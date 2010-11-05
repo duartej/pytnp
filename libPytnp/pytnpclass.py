@@ -35,8 +35,8 @@ class pytnp(dict):
 	classNames = ['TCanvas','RooDataSet','RooFitResult']
 	def __init__(self, filerootName, **keywords):
 		"""
-                pytnp(filerootName, resonance=('name','nameLatex'), dataset='type', mcTrue=true, effName='efficiency_name',
-		                                     variables=['varname1','varname2',..]  ) -> pytnp object instance
+                pytnp(filerootName[, resonance=('name','nameLatex'), dataset='type', mcTrue=true, effName='efficiency_name',
+		                                     variables=['varname1','varname2',..] ] ) -> pytnp object instance
 
 		Create a dictionary which are going to be populate
 		with the plots and datasets already contained in the
@@ -63,6 +63,8 @@ class pytnp(dict):
 
 		which again are dictionaries analogous of the 
 		instance itself and can be extracted as datamembers.
+
+		CAVEAT: All the RooDataSets in he file must have the same efficiency name
 
 		TODO: Put dictionary output
 		"""
@@ -197,6 +199,20 @@ class pytnp(dict):
 			if len(self) == 0:
 				message = """There is no RooDataSet that fulfill the binned variables introduced""" 
 				printError( self.__module__, message, ValueError )
+
+		#--- Extracting those RooDataSet which have null values of efficiency
+		_todelete = []
+		for name, _datasetObject in self.RooDataSet.iteritems():
+			if not isEffNoNull( _datasetObject, self.effName ):
+				_todelete.append( name )
+				del _datasetObject
+				message = "The RooDataSet '%s' have all '%s' values null. Skipping the storage..." % (name, self.effName)
+				printWarning( self.__module__, message )
+		# FIXME: Con un for usando la lista de objetos a guardar			
+		map( lambda name: self.pop( name ), _todelete )
+		map( lambda name: self.RooDataSet.pop( name ), _todelete )
+		#map( lambda name: self.RooFitResult.pop( name ), _todelete )
+		#map( lambda name: self.TCanvas.pop( name ), _todelete )
 
 
 	def __check_keywords__(self, keywords ):
@@ -508,7 +524,7 @@ There's no class named '%s'!
                         if self[name]['isMC'] == 1:
 				graphName += 'mcTrue__'
 			#--- Extracting the efficiency values per bin
-			plotList = tableEff( dataset )
+			plotList = listTableEff( dataset )
 			graph = ROOT.TGraphAsymmErrors()
 			graph.SetName( graphName )
 			graph.SetMarkerSize(1)	
@@ -686,9 +702,9 @@ There's no class named '%s'!
 		hhi = h.Clone("eff_hi")
 		hhi.SetName( 'high_'+hTitleOfHist )
 		#-- Getting the efficiencies
-		_tableEffList = tableEff(self.RooDataSet[name])
+		_listTableEffList = listTableEff(self.RooDataSet[name])
 		#skipPoints = False
-		for binDict in _tableEffList:
+		for binDict in _listTableEffList:
 			#-- Extract error values
 			#if abs(binDict[self[name]['eff']][0]-self.badPoint[0]) < 1e-9:
 			#	skipPoints = True
