@@ -33,6 +33,7 @@ class pytnp(dict):
 	effName = 'efficiency'
 	# Classes to store them
 	classNames = ['RooDataSet']#,'RooFitResult','TCanvas']
+	# CONSTRUCTOR ------------------------------------------------------------------------------------------------------
 	def __init__(self, filerootName, **keywords):
 		"""
                 pytnp(filerootName[, resonance=('name','nameLatex'), dataset='type', mcTrue=true, effName='efficiency_name',
@@ -69,11 +70,8 @@ class pytnp(dict):
 		TODO: Put dictionary output
 		"""
 		#--- Checking the keys dictionary passed ----#
-#				self.x = keywords[i][0]
-#				self.y = keywords[i][1]
 		dataset = self.__check_keywords__( keywords ) #FIXMEE
 
-                #--------------------------------------------#
 		#--- Extracting the members
 		print 'Extracting info from '+filerootName+'.',
 		sys.stdout.flush()
@@ -93,7 +91,7 @@ class pytnp(dict):
 
 		self.__fileroot__ = fileroot
 		#-- Get the resonances names
-		#----- If it does not provided by the user
+		#----- If they had not been provided by the user
 		if not self.resonance:
 			self.resonance, self.resLatex = getResName( filerootName )
 		#--- Encapsulate the hierarchy of the directories:
@@ -156,17 +154,19 @@ class pytnp(dict):
 			#--- Check that efficiency is in there
 			if not self.effName in self[name]['variables'].keys():
 				try:
-					message = """The efficiency name introduce '%s' is not in the '%s' RooDataSet.
-  I have these variables located:""" % (keywords['effName'], name )
+					message = """The efficiency name introduce '%s' is not in the '%s' RooDataSet.\n""" % (keywords['effName'], name )
+					message += """I have these variables located:""" 
                                 except KeyError:
-				        message = """The efficiency name per default 'efficiency' is not in the '%s' RooDataSet. 
-  You should introduced the name when instance the class =>   a = pytnp( 'filename.root', effName='whatever' )
-  I have these variables located:"""
+				        message = """The efficiency name per default 'efficiency' is not in the '%s' RooDataSet.\n""" 
+					message +="""You should introduced the name when instance the class =>"""\
+							""" a = pytnp( 'filename.root', effName='whatever' )\n"""\
+							"""I have these variables located:"""
                                 message += ' '
 				for i in self[name]['variables']:
 					message += i+', '
 				message = message[:-2]
-				message += '\n\033[1;33m  CAVEAT: The efficiency name \033[1;m\033[1;39mMUST\033[1;m\033[1;33m have the same name for all the RooDataSets in the rootfile\033[1;m'	
+				message += '\n\033[1;33m  CAVEAT: The efficiency name \033[1;m\033[1;39mMUST\033[1;m\033[1;33m'\
+						'have the same name for all the RooDataSets in the rootfile\033[1;m'	
 				printError( self.__module__, message, KeyError )
 			#--- Check the variables introduced by user are there and
 			#------ Setting the binned Variables: extract efficiencies from last list
@@ -183,7 +183,8 @@ class pytnp(dict):
 						self[name]['binnedVar'][var] = self[name]['variables'][var] 
 			except TypeError:
 				#The user didn't introduce binned variables, I take everyone
-				self[name]['binnedVar'] = dict([ (var, self[name]['variables'][var]) for var in filter( lambda x: x.lower().find(self.effName) == -1, self[name]['variables'] ) ])
+				self[name]['binnedVar'] = dict([ (var, self[name]['variables'][var]) \
+						for var in filter( lambda x: x.lower().find(self.effName) == -1, self[name]['variables'] ) ])
 				if _warningPrint:
 					message += """  ----> I found: """
 					for var in self[name]['variables']:
@@ -211,6 +212,7 @@ class pytnp(dict):
 		map( lambda name: self.pop( name ), _todelete )
 		for __attr in self.classNames:
 			map( lambda name: self.__getattribute__( __attr ).pop( name ) , _todelete )
+	# END CONSTRUCTOR ---------------------------------------------------------------------------------------------------
 
 
 	def __check_keywords__(self, keywords ):
@@ -288,9 +290,9 @@ class pytnp(dict):
 		pathname = name.split('/')
 		if len(pathname) != 3:
 			#-- The storege format is not in T6P standard
-			message = '\033[1;31mThe format of the %s file is not in T&P standard... Exiting\033[1;m' % self.__fileroot__.GetName()
-			print message
-			exit(-1)
+			message = 'The format of the \'%s\' file is not in T&P standard.' % self.__fileroot__.GetName()
+			printError( self.__module__, message, ValueError )
+
 		effType = pathname[0]
 		objectType = pathname[1]
 		methodUsed = pathname[2]
@@ -395,6 +397,7 @@ class pytnp(dict):
 	 	return dictObjects
 	
 	## Getters for attributes ######################################################################
+	# --- FIXME: To delete?
 	def getCategory( self, name ):
 		"""
 		getCategory( name ) -> 'category'
@@ -442,26 +445,39 @@ class pytnp(dict):
 		"""
 		write( fileOut ) 
 
-		Create a root file with all the RooDataSets of 
+		Create a root file with all the RooDataSets and TH2F maps of 
 		the instance.
 		"""
+		import os
+
 		f = ROOT.TFile(fileOut,'RECREATE')
 		if f.IsZombie():
-			message = '\033[1;31mCannot open \'%s\' file. Check your permissions\033[1;m' % fileOut
-			raise IOError, message
-
+			message = 'Cannot open \'%s\' file. Check your permissions' % fileOut
+			printError( self.__module__+'.'+self.__name__, message, IOError )
+		
+		howDatasets = 0
 		for name,dataSet in self.RooDataSet.iteritems():
 			dataSet.Write(name.replace('/','_'))
-		try:
-			for name,histoTuple in self.TH2F.iteritems():
-				for histo in histoTuple:
-					#Watch out: not use the key name because we have 3 histos
-					histo.Write('TH2F_'+histo.GetName().replace('/','_'))
-		except AttributeError:
+			try:
+				for namehisto,histoTuple in self[name]['TH2F'].iteritems():
+					for histo in histoTuple:
+						#Watch out: not use the key name because we have 3 histos
+						histo.Write('TH2F_'+histo.GetName().replace('/','_'))
+						howDatasets += 1
+			except KeyError:
+				pass
+		f.Close()
+		
+		#--- Check you have first the TH2F keys in your RooDataSet dict
+		if howDatasets == 0:
+			try:
+				os.remove( fileOut )
+			except IOError:
+				#Why can't you remove something you have create =
+				pass
 			message = "Do not stored any TH2F map. You must use 'plotEffMap' method first."
 			printWarning( self.__module__, message )
 
-		f.Close()
 
 	def ls(self, className):
 		"""
@@ -475,7 +491,7 @@ class pytnp(dict):
 				message += name+'\n'
 		except AttributeError:
 			message = """
-There's no class named '%s'!
+There's no attribute named '%s'!
                         """ % className
 
 		print message
@@ -491,7 +507,8 @@ There's no class named '%s'!
 		it will store the graph object:
 		                      self[nameRooDataSet]['tgraphs'] = { 'graph_name': TGraphAsymmErrors, ... }
 		"""
-		import pytnp.libPytnp.rootlogon
+		import rootlogon
+
 		dataset = None
 		#-- Checking if the object exists
 		try:

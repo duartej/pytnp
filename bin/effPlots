@@ -13,13 +13,13 @@ Check you have init the CMSSW environment:
 #-----------------------------------------------------------------------------------------
 #--  Some auxiliary functions
 
-def parseOption( Opt, errorCondition, howManyFiles, errorMessage ):
+def parseOption( Opt, errorCondition, howManyCond, errorMessage ):
 	"""
 	parseOption
 	"""
 	optList = Opt.split(',')
 	try:
-		isTrue = eval( 'len(optList) '+errorCondition+str(howManyFiles) )
+		isTrue = eval( 'len(optList) '+errorCondition+str(howManyCond) )
 	except SyntaxError:
 		print ''  
 		print """INTERNAL ERROR! Bad use of the 'parseOption' function\n"""
@@ -51,7 +51,7 @@ if __name__ == '__main__':
 	parser.add_option( '-c', '--comp', action='store', dest='resToComp', metavar='RESONANCE', help='Comparation between efficiencies for different resonances taking RESONANCE as reference, plots of relative and absolute efficiencies' )
         parser.add_option( '--counting', action='store_true', dest='counting', help='If active this flag, do the plots using the MC information (counting events)' )
         parser.add_option( '--sysTnP', action='store_true', dest='sysTnP', help='Do the plots (and a root file maps--Not yet) for the differences between counting MC and Tag and Probe fit efficiencies.' )
-        parser.add_option( '-m', '--maps', action='store', dest='maps', metavar='CATEGORY', help='Create root files with TH2F and RooDataSets, give the name of the muon category' )
+	parser.add_option( '-m', '--maps', action='store', dest='maps', metavar='CATEGORY VAR_X,VAR_Y', nargs=2, help='Create root files with TH2F and RooDataSets, give the name of the muon category and the binned variables to use' )
         parser.add_option( '-t', '--tables', action='store_true', dest='tables', help='Create latex tables from an efficiency map root file' )
         parser.add_option( '-L', '--lumi', action='store', dest='Lumi', nargs=2, help='Integrated Luminosity and unit' )
 	parser.add_option( '-e', '--effName', action='store', dest='effName', help='Efficiency name as will found in the rootfile (CAVEAT: The same name'\
@@ -205,31 +205,48 @@ if __name__ == '__main__':
 		del tnp
 	#### QUITAR: DONE #####################################################################
 
+	#####################################################################################################
 	if opt.dim2Plots or opt.maps:
+		category = None
 		#-- Two variables
 		Message = """I need two binned variables root file. I parsed '%s'""" % opt.dim2Plots
-		varList = parseOption( opt.dim2Plots, '!=', 2, Message )
+		try:
+			varList = parseOption( opt.dim2Plots, '!=', 2, Message )
+		except AttributeError:
+			#-- the user  do not use -2d flag, so we need the two variables from the
+			#-- maps option
+			if opt.maps:
+				category = opt.maps[0]
+				varList = parseOption( opt.maps[1], '!=', 2, Message )
 
 		tnp = pytnp(opt.fileName, dataset=whatPlots)
-		#resonance = tnp.resLatex
-		for name,dataSet in tnp.RooDataSet.iteritems():
-			#if name.find('mcTrue') == -1:
+		#-- Select the datasets we want to use
+		if category:
+			isfulfillCat = lambda dataname : tnp[dataname]['objectType'] == category
+		else:
+			isfulfillCat = lambda dummy: True
+		toUseList = [ dataname for dataname in tnp.RooDataSet.iterkeys() if isfulfillCat( dataname ) ]
+		#-- If it doesn't find any, must be an erroneous input  
+		if len(toUseList) == 0:
+			Message = """\nNo RooDataSet in the root file '%s' has the category name '%s'\n""" % (tnp.__fileroot__.GetName(), category )
+			Message += """Check the root file to see what categories are available.\n"""
+			Message += """You can use: 'effPlots -i rootfile.root --content' and see the 'objectType' key"""
+			print Message
+			exit(-1)
+		#--- Plots 2-dim maps
+		for name in toUseList:
+			#-- Only category, if any
 			tnp.plotEffMap(name, varList[0], varList[1], Lumi )
+			print tnp[name]['TH2F']
+
 		if opt.maps:
-			#FIXME: De momento paso el valor del objecto
-			maps=opt.maps
-			#FIXME: Por el momento
-			if opt.fileName.find('MuFromTk') != -1:
-				effType = 'MuonID'
-			elif opt.fileName.find('TriggerFromGlb') != -1:
-				effType = 'TriggerFromGlb'
-			elif opt.fileName.find('TriggerFromTrk') != -1:
-				effType = 'TriggerFromTk'
-			elif opt.fileName.find('TriggerFrom') != -1:
-				effType = 'Trigger'
-			#FIXME: De momento paso el valor del objecto
-			tnp.write('effMaps_'+tnp.resonance+'_'+effType+'_'+maps+'.root' )
+			#-- Write the root files with TH2F maps and RooDataSet
+			if not category:
+				category = opt.maps[0]
+				varList = parseOption( opt.maps[1], '!=', 2, Message )
+			tnp.write('effMaps_'+tnp.resonance+'_'+category+'.root' )
 		del tnp
+	#####################################################################################################
 
 	if opt.sysTnP:
 		# Ploting mc true-counting vs. fit_eff
