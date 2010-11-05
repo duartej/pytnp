@@ -7,6 +7,7 @@ import sys
 
 from getresname import *  #FIXME: OJO CON ESTO
 from tnputils import *
+from management import printError, printWarning
 
 
 # TODO: clean function to drop those RooDataSet which don't have efficiency values (or all zero)
@@ -77,15 +78,15 @@ class pytnp(dict):
 		fileroot = TFile(filerootName)
 		#--- Checking the extraction was fine
 		if fileroot.IsZombie():
-			message = '\033[1;31mpytnp: Invalid root dataset or root dataset not found, %s \033[1;m' % filerootName
-			raise IOError, message
+			message = 'Invalid root dataset or root dataset not found, \'%s\'' % filerootName
+			printError( self.__module__, message, IOError )
 		
 		#--- Extract all the objects of the rootfile and put them as attributes of the instance
 		self.__dict__ = self.__extract__(fileroot, self.__dict__, dataset) 
 		#--- Checking everything was fine
 		if not 'RooDataSet' in self.__dict__.keys():
-			message = """\033[1;31mpytnp: The root file is not an standard T&P fit file\033[1;m"""
-			raise AttributeError, message
+			message = """The root file is not an standard T&P fit file"""
+			printError( self.__module, message, AttributeError )
 		print ''
 
 		self.__fileroot__ = fileroot
@@ -153,19 +154,18 @@ class pytnp(dict):
 			#--- Check that efficiency is in there
 			if not self.effName in self[name]['variables'].keys():
 				try:
-					message = """\033[1;31mpytnp Error: The efficiency name introduce '%s' is not in the '%s' RooDataSet.
-  I have these variables located:\033[1;m""" % (keywords['effName'], name )
+					message = """The efficiency name introduce '%s' is not in the '%s' RooDataSet.
+  I have these variables located:""" % (keywords['effName'], name )
                                 except KeyError:
-				        message = """\033[1;31mpytnp Error: The efficiency name per default 'efficiency' is not in the '%s' RooDataSet. 
+				        message = """The efficiency name per default 'efficiency' is not in the '%s' RooDataSet. 
   You should introduced the name when instance the class =>   a = pytnp( 'filename.root', effName='whatever' )
-  I have these variables located:\033[1;m"""
+  I have these variables located:"""
                                 message += ' '
 				for i in self[name]['variables']:
 					message += i+', '
 				message = message[:-2]
-				message += '\n\033[1;33mpytnp CAVEAT: The efficiency name \033[1;m\033[1;39mMUST\033[1;m\033[1;33m have the same name for all the RooDataSets in the rootfile\n\033[1;m'	
-				print message
-				raise KeyError
+				message += '\n\033[1;33m  CAVEAT: The efficiency name \033[1;m\033[1;39mMUST\033[1;m\033[1;33m have the same name for all the RooDataSets in the rootfile\033[1;m'	
+				printError( self.__module__, message, KeyError )
 			#--- Check the variables introduced by user are there and
 			#------ Setting the binned Variables: extract efficiencies from last list
 			message = ''
@@ -174,7 +174,7 @@ class pytnp(dict):
 			try:
 				for var in self.userVariables:
 					if not var in self[name]['variables']:
-						message += """\033[1;33mpytnp Warning: Variable '%s' is not in the '%s' RooDataSet. Skipping it... \n\033[1;m""" % ( var,name)
+						message += """Variable '%s' is not in the '%s' RooDataSet. Skipping it... """ % ( var,name)
 						_warningPrint = True
 						deleteDataset.append( name ) 
 					else:
@@ -183,11 +183,11 @@ class pytnp(dict):
 				#The user didn't introduce binned variables, I take everyone
 				self[name]['binnedVar'] = dict([ (var, self[name]['variables'][var]) for var in filter( lambda x: x.lower().find(self.effName) == -1, self[name]['variables'] ) ])
 				if _warningPrint:
-					message += """\033[1;33m  ----> I found: """
+					message += """  ----> I found: """
 					for var in self[name]['variables']:
 						message += var+', '
-						message = message[:-2]+'\033[1;m'
-						raise UserWarning, message
+						message = message[:-2]
+						printError( self.__module__, message, UserWarning )
 			self[name]['eff'] = filter( lambda x: x.lower().find(self.effName) != -1, self[name]['variables'] )[0]
 
 			for _dataout in deleteDataset:
@@ -195,9 +195,8 @@ class pytnp(dict):
 				self.RooDataSet.pop( _dataout )
 			
 			if len(self) == 0:
-				message = """\033[1;31mpytnp Error: There is no RooDataSet that fulfill the binned variables introduced.\033[1;m""" 
-				print message
-				raise ValueError
+				message = """There is no RooDataSet that fulfill the binned variables introduced""" 
+				printError( self.__module__, message, ValueError )
 
 
 	def __check_keywords__(self, keywords ):
@@ -211,25 +210,24 @@ class pytnp(dict):
 		dataset = ''
 		for i in keywords.keys():
 			if not i in valid_keys:
-				message = '\033[1;31mpytnp: invalid instance of pytnp: you can not use %s as key argument, ' % i
-				message += ' key arguments valids are \'resonance\', \'dataset\', \'mcTrue\', \'variables\', \'effName\' \033[1;m' 
+				message = 'Invalid instance of pytnp: you can not use %s as key argument, ' % i
+				message += 'key arguments valids are \'resonance\', \'dataset\', \'mcTrue\', \'variables\', \'effName\'' 
 			#	print help(self.__init__)
-				raise IOError, message
+				printError( self.__module__, message, IOError )
+				#raise IOError, message
 			#---Checking the correct format and storing
 			#---the names provided by the user
 			elif i == 'resonance':
 				#Message to be sended if the value is not a tuple
-				message ='\033[1;31mpytnp: Not valid resonance=%s key; resonance key must be a tuple containing (\'name\',\'nameInLatex\')\033[1;m' \
+				message ='Not valid resonance=%s key; resonance key must be a tuple containing (\'name\',\'nameInLatex\')' \
 						% str(keywords['resonance'])
 				if len(keywords['resonance']) != 2:
-					print message
-					raise KeyError
+					printError( self.__module__, message, KeyError )
 				else:
 					#Checking the tuple format is (name, nameInLatex)
 					if keywords['resonance'][0].find('#') != -1 \
 							or keywords['resonance'][0].find('{') != -1  :
-						print message		
-						raise KeyError
+						printError( self.__module__, message, KeyError )
 					#--- Storing resonance provided by user
 					self.resonance = keywords['resonance'][0]
 					self.resLatex  = keywords['resonance'][1]
@@ -240,9 +238,8 @@ class pytnp(dict):
 			elif i == 'variables':
 				#-- Sanity checks
 				if not isinstance(keywords[i], list):
-                                        message ='\033[1;31mpytnp: Not valid \'variables=%s\' key; must be a tuple containing n variables names\033[1;m' % str(keywords[i])
-					print message
-					raise KeyError
+                                        message ='Not valid \'variables=%s\' key; must be a tuple containing n variables names' % str(keywords[i])
+					printError( self.__module__, message, KeyError )
 				else:
 					self.userVariables = [ var for var in keywords[i] ]
 		return dataset
@@ -290,7 +287,7 @@ class pytnp(dict):
 		elif effType == 'histoMuFromTk':
 			structure[name]['effType'] =  'muonId'
 		else:
-			message = '\033[1;33mWarning: I don\'t understand what efficiency is in the directory %s \033[1;m' % effType
+			message = 'Warning: I don\'t understand what efficiency is in the directory \'%s\' ' % effType
 			#print message
 			#Patch to new version of Tag and probe  (3.8.X)
 			structure[name]['effType'] = 'unknown'
@@ -354,8 +351,8 @@ class pytnp(dict):
 		##   file. IF it is not, then we find
 		##   some not expected TKeys (as TTree, etc.. )
 		except AttributeError:
-			message = """\033[1;31mpytnp: The root file is not an standard T&P fit file\033[1;m""" 
-			raise AttributeError, message
+			message = """The root file is not an standard T&P fit file""" 
+			printError( self.__module__, message, AttributeError )
 	 	for key in Dir.GetListOfKeys():
 	 		className = key.GetClassName()
 	 		if key.IsFolder():
@@ -397,8 +394,8 @@ class pytnp(dict):
 		try:
 			return self.__attrDict__[name]['objectType']
 		except KeyError:
-			message = """\033[1;33mWarning: The %s is not a fit_eff RooDataSet\033[1;m""" % name
-			print message
+			message = """The '%s' is not a fit_eff RooDataSet""" % name
+			printWarning( self.__module__, message )
 			return None
 	
 	def getFitEffList( self ):
@@ -412,8 +409,8 @@ class pytnp(dict):
 			fitEffList.append( name )
 		
 		if len(fitEffList) == 0:
-			message = """\033[1;33mWarning: There is no fit_eff RooDataSet in this file\033[1;m"""
-			print message
+			message = """There is no fit_eff RooDataSet in this file"""
+			printWarning( self.__module, message )
 			return None
 
 		return fitEffList
@@ -427,9 +424,8 @@ class pytnp(dict):
 		try:
 			return self.__attrDict__[name]['refMC']['cnt_eff']
 		except KeyError:
-			message = """\033[1;33mWarning: The is no counting MC True information associated with %s RooDataSet\033[1;m""" % name
-			print message
-			return None
+			message = """The is no counting MC True information associated with '%s' RooDataSet""" % name
+			printWarning( self.__module__, message )
 	## Getters for attributes ######################################################################
 
 	def write(self, fileOut):
@@ -441,7 +437,7 @@ class pytnp(dict):
 		"""
 		f = ROOT.TFile(fileOut,'RECREATE')
 		if f.IsZombie():
-			message = '\033[1;31mCannot open %s file. Check your permissions\033[1;m' % fileOut
+			message = '\033[1;31mCannot open \'%s\' file. Check your permissions\033[1;m' % fileOut
 			raise IOError, message
 
 		for name,dataSet in self.RooDataSet.iteritems():
@@ -452,7 +448,8 @@ class pytnp(dict):
 					#Watch out: not use the key name because we have 3 histos
 					histo.Write('TH2F_'+histo.GetName().replace('/','_'))
 		except AttributeError:
-			print "\033[1;33mWarning: Do not stored any TH2F map. You must use 'plotEff2D' method first.\033[1;m"
+			message = "Do not stored any TH2F map. You must use 'plotEffMap' method first."
+			printWarning( self.__module__, message )
 
 		f.Close()
 
@@ -468,7 +465,7 @@ class pytnp(dict):
 				message += name+'\n'
 		except AttributeError:
 			message = """
-There's no class named %s!
+There's no class named '%s'!
                         """ % className
 
 		print message
@@ -490,18 +487,18 @@ There's no class named %s!
 		try:
 			dataset = self.RooDataSet[name]
 		except KeyError:
-		  	print """\033[1;31mpytnp.plotEff1D Error: you must introduce a valid name, %s is not a RooDataSet in the root file\033[1;m""" % name
-			raise KeyError
+		  	message = """you must introduce a valid name, '%s' is not a RooDataSet in the root file""" % name
+			printError( self.__module__, message, KeyError )
 		#--- Empty dataset
 		if self.RooDataSet[name].numEntries() == 0:
-			message = """\033[1;34mpytnp.plotEff1D: Empty RooDataSet %s. Skipping...\033[1;m""" % name
+			message = """\033[1;34mpytnp.plotEff1D: Empty RooDataSet '%s'. Skipping...\033[1;m""" % name
 			print message
 			return None
 		#--- Checking variable
 		if not inputVarName in self[name]['binnedVar'].keys():
-		  	print """\033[1;31mpytnp.plotEff1D Error: you must introduce a valid binned variable name, '%s' is not in the '%s' RooDataSet\033[1;m""" % (inputVarName,name )
-			print """\033[1;31mpytnp.plotEff1D:  The list of binned variables are %s\033[1;m""" % str(self[name]['binnedVar'].keys())  
-			raise KeyError
+		  	message = """you must introduce a valid binned variable name, '%s' is not in the '%s' RooDataSet\n""" % (inputVarName,name )
+			message += """The list of binned variables are '%s'""" % str(self[name]['binnedVar'].keys())  
+			printError( self.__module__, message, KeyError )
 		
 		self[name]['tgraphs'] = {}		
 		# Special case: we have only one variable
@@ -634,7 +631,7 @@ There's no class named %s!
 
 
 	
-	def plotEff2D( self, name, Lumi, **keywords ):
+	def plotEffMap( self, name, x, y, Lumi, **keywords ):
 		"""
 		plotEff2D( name, x='var1', y='var1' ) 
 
@@ -643,37 +640,30 @@ There's no class named %s!
 		efficiency with pt and eta variables. Also, it
 		will stores in the object instance
 		"""
+		import rootlogon
+
 		#FIXME: Meter los errores en la misma linea (ahora te salta
 		#       de linea (TEXT option)
 		try:
 			dataSet = self.RooDataSet[name]
 		except KeyError:
-			message = """\033[1;33mpytnp.plotEff2D Error: there is no RooDataSet with name %s\033[1;m""" % name
-			print message
-			print plotEff2D.__doc__
-			raise KeyError
-		x = None
-		y = None
-		hasVars = 0
-		for axis, varName in keywords.iteritems():
-			if axis != 'x' or axis != 'y':
-				message = """\033[1;33mpytnp.plotEff2D Error: the keyword %s is not valid. Use 'x' and 'y' as keywords\033[1;m""" % axis
-				print message
-				raise KeyError
-			else:
-				hasVars +=1
-		if hasVars == 2:
-			x = keywords['x']
-			y = keywords['y']
-		else:
-			message = """\033[1;33mpytnp.plotEff2D Error: I need two variables to do a 2-dim plot\033[1;m""" 
-			print message
-			raise KeyError
-
+			message = """There is no RooDataSet with name '%s'""" % name
+			printError( self.__module__, message, AttributeError )
+		#-- Are the variables in the RooDataSet?
+		varNotInDatasetList = filter( lambda var:  not var in self[name]['binnedVar'].keys(), [x, y] )
+		if len(varNotInDatasetList) != 0:
+			message = 'No binned variable: '
+			for var in varNotInDatasetList:
+				message += "'%s' " % var
+			message += "in the RooDataSet '%s'. Skipping plot generation..." % name
+			printWarning( self.__module__, message )
+			# --- Skipping plot generation
+			return 
+		
 		#--- Name for the histo and for the plot file to be saved
 		histoName = 'TH2F_'+name
 		#--- Checking if the histo is already stored and plotted
-		if self.has_key(histoName):
+		if self[name].has_key('TH2'):  #### FIXME: has_key o has_attribute ???
 			#-- Skipping, work it's done!
 			return None
 		#---- Preparing all the stuff
@@ -697,12 +687,12 @@ There's no class named %s!
 		hhi.SetName( 'high_'+hTitleOfHist )
 		#-- Getting the efficiencies
 		_tableEffList = tableEff(self.RooDataSet[name])
-		skipPoints = False
+		#skipPoints = False
 		for binDict in _tableEffList:
 			#-- Extract error values
-			if abs(binDict[self[name]['eff']][0]-self.badPoint[0]) < 1e-9:
-				skipPoints = True
-				continue
+			#if abs(binDict[self[name]['eff']][0]-self.badPoint[0]) < 1e-9:
+			#	skipPoints = True
+			#	continue
 			b = h.FindBin( binDict[x][0] , binDict[y][0] )
 			h.SetBinContent(b, binDict[self[name]['eff']][0])
 			h.SetBinError(b, (binDict[self[name]['eff']][2]-binDict[self[name]['eff']][1])/2.0 ) # WATCH: Error 'Simetrized' 
@@ -731,15 +721,15 @@ There's no class named %s!
 		plotName = self.resonance+'_'+name.replace('/','_')+'.eps'
 		c.SaveAs(plotName)
 
-		if skipPoints:
-			message = '\033[1;33mplotEff2D Warning: Some efficiencies points are failed in the fit, the last plot will skip values with %.4f\033[1;m' % self.badPoint[0]
-			print message
+	#	if skipPoints:
+	#		message = '\033[1;33mplotEff2D Warning: Some efficiencies points are failed in the fit, the last plot will skip values with %.4f\033[1;m' % self.badPoint[0]
+	#		print message
 
-		#FIXME: Ponerlo en el diccionario del RooDataSEt
+		#FIXME: attribute o llave del diccionario del rootdataset??
 		try:
-			self.TH2F[histoName] = (h, hlo, hhi)
-		except AttributeError:
-			self.__setattr__('TH2F',{}) 
-			self.TH2F[histoName] = (h, hlo, hhi)
+			self[name]['TH2'][histoName] = (h, hlo, hhi)
+		except KeyError:
+			self[name]['TH2F']  = {} 
+			self[name]['TH2F'][histoName] = (h, hlo, hhi)
 
 

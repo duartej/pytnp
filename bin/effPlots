@@ -191,25 +191,30 @@ if __name__ == '__main__':
 					#if name.find('mcTrue') == -1:
 					if var in tnp[name]['binnedVar'].keys():
 						tnp.plotEff1D(name,var, Lumi)
+						isNoVar = False
 		except AttributeError:
-			pass 
+			pass
 			#FIXME: PORQUE ESTA ESTO?
 			#for name, tcanvas in tnp.TCanvas.iteritems():
 			##	if name.find('_PLOT_') != -1 and (name.find('pt_eta_') == -1 or name.find('eta_pt') == -1):
 			#		tnp.plotEff1D(name,inputVarName, Lumi )
+		if isNoVar:
+			Message = """\nThe variable '%s' does not exist in any RooDataSet from the rootfile '%s'\n"""\
+					% ( var, tnp.__fileroot__.GetName() )  			
+			print Message
 		del tnp
 	#### QUITAR: DONE #####################################################################
 
 	if opt.dim2Plots or opt.maps:
 		#-- Two variables
-		Message = """I need two binned variables root file. I parsed '%s'""" % opt.fileName
+		Message = """I need two binned variables root file. I parsed '%s'""" % opt.dim2Plots
 		varList = parseOption( opt.dim2Plots, '!=', 2, Message )
 
 		tnp = pytnp(opt.fileName, dataset=whatPlots)
 		#resonance = tnp.resLatex
 		for name,dataSet in tnp.RooDataSet.iteritems():
 			#if name.find('mcTrue') == -1:
-			tnp.plotEff2D(name,Lumi, x=varList[0], y=varList[1])
+			tnp.plotEffMap(name, varList[0], varList[1], Lumi )
 		if opt.maps:
 			#FIXME: De momento paso el valor del objecto
 			maps=opt.maps
