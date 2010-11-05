@@ -32,7 +32,7 @@ class pytnp(dict):
 	userVariables = None
 	effName = 'efficiency'
 	# Classes to store them
-	classNames = ['TCanvas','RooDataSet','RooFitResult']
+	classNames = ['RooDataSet']#,'RooFitResult','TCanvas']
 	def __init__(self, filerootName, **keywords):
 		"""
                 pytnp(filerootName[, resonance=('name','nameLatex'), dataset='type', mcTrue=true, effName='efficiency_name',
@@ -208,11 +208,9 @@ class pytnp(dict):
 				del _datasetObject
 				message = "The RooDataSet '%s' have all '%s' values null. Skipping the storage..." % (name, self.effName)
 				printWarning( self.__module__, message )
-		# FIXME: Con un for usando la lista de objetos a guardar			
 		map( lambda name: self.pop( name ), _todelete )
-		map( lambda name: self.RooDataSet.pop( name ), _todelete )
-		#map( lambda name: self.RooFitResult.pop( name ), _todelete )
-		#map( lambda name: self.TCanvas.pop( name ), _todelete )
+		for __attr in self.classNames:
+			map( lambda name: self.__getattribute__( __attr ).pop( name ) , _todelete )
 
 
 	def __check_keywords__(self, keywords ):
@@ -331,22 +329,18 @@ class pytnp(dict):
 		Recursive function to extract from a 'tag and probe' ROOT file all
 		the relevant information. Returning a dictionary which stores all TCanvas,
 		RooFitResult, RooDataSet and RooPlot with matches with regexp:
-		{ 'TCanvas': 
-		            {'directory/subdirectory/.../nameOfTCanvas' : <ROOT.TCanvas object>,
-			     ...
-			     },
-		  'RooFitResult' : 
-		            { 'directory/subdirectory/.../nameOfRooFitResult': <ROOT.RooFitResult object>,
-			     ...
-			     },
+		{# 'TCanvas': 
+		 #           {'directory/subdirectory/.../nameOfTCanvas' : <ROOT.TCanvas object>,
+		 #	     ...
+		 #	     },
+		 # 'RooFitResult' : 
+		 #           { 'directory/subdirectory/.../nameOfRooFitResult': <ROOT.RooFitResult object>,
+		 #	     ...
+		 #           },
 	 	  'RooDataSet':
 		            { 'directory/subdirectory/.../nameOfRooDataSet': <ROOT.RooDataSet object>,
-			     ...
-			     },
-	 	  'RooPlot':
-		            { 'directory/subdirectory/.../nameOfRooPlot': <ROOT.RooPlot object>,
-			     ...
-			     }
+		            ...
+		            },
 		}
 		            
 	 	"""
