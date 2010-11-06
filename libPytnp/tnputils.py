@@ -1,10 +1,15 @@
 
 """
-Module with utilities
-TODO: Descriptiona
+Module with utilities for pytnp
 
-	checkbinnedVar
-	getVarInfo
+	isVar:       check wheter a variable is in a RooDataSet or not
+	isbinnedVar: check the binned variables and efficiency
+	                of a RooDataSet
+	isEffNoNull:    check that the efficiency values of a RooDataSet are not
+	                null (all zero values)
+	getVarNames:    return a tuple with a list of binned variables names and
+	                the efficiency name
+	getVarDict:     return a dictionary with all variables in a RooDataSet
 	getEff
 	getBinning
 	tableLatex
@@ -13,15 +18,71 @@ TODO: Descriptiona
 import ROOT
 from management import printError, printWarning
 
-def checkbinnedVar( dataset, effName='efficiency' ):
+def isVar( dataset, var ):
 	"""
-	checkbinnedVar( RooDataSet ) -> [ 'binnedvar1',...], 'effName' 
+	isVar( RooDataSet, var ) -> bool
+
+	Checks if 'var' is in the RooDataSet
+	"""
+	#---- Checking the variables in dataset
+	_swapDict = getVarDict( dataset )
+	#---  All the binned variables in the dataset
+	datasetVarList =  _swapDict.iterkeys()
+
+	if var in datasetVarList:
+		return True
+	else:
+		return False
+
+def isbinnedVar( dataset, var, effName='efficiency', **keywords ):
+	"""
+	isbinnedVar( RooDataSet, 'var', effName ) -> bool
+	isbinnedVar( RooDataSet, ['var1', 'var2',...], effName ) -> bool
+
+	From a dataset checks if 'var' is a binned variable.
+	The other signatures checks for each 'var#' in the list
+	You can use 'warning=True' as argument to print a warning 
+	in case do not find the variable.
+	"""
+	#- Want warning?
+	try:
+		wantWarning = keywords['warning']
+	except KeyError:
+		wantWarning = False
+
+	_swapDict = getVarDict( dataset )
+	datasetVarList = filter( lambda x: x.lower().find(effName) == -1, _swapDict.iterkeys() )
+	varList = []
+	if isinstance(var,str):
+		varList.append( var )
+	elif isinstance( var, list ):
+		varList = var
+
+	isMissedAny = False
+	message = ''
+	for _variable in varList:
+		if not _variable in datasetVarList:
+			isMissedAny = True
+			message +="""The RooDataSet '%s' does not contain '%s' as binned variable\n""" % (dataset.GetName(), _variable)
+	message = message[:-1]
+
+	if isMissedAny and wantWarning:
+		printWarning( isbinnedVar.__module__+'.'+isbinnedVar.__name__, message )
+
+	if isMissedAny:
+		return False
+	else:
+		return True
+
+def getVarNames( dataset, effName='efficiency' ):
+	"""
+	getVarNames( RooDataSet ) -> [ 'binnedvar1',...], 'effName' 
 
 	From a dataset extract which binned variables have and returns
 	the list of the variable's names and the efficiency name 
 	"""
 	#---- Checking the variables in dataset
-	_swapDict = getVarInfo( dataset )
+	_swapDict = getVarDict( dataset )
 	#---  All the binned variables in the dataset
 	datasetVarList = filter( lambda x: x.lower().find(effName) == -1, _swapDict.iterkeys() )
 	#--- Name of the efficiency
@@ -29,11 +90,11 @@ def checkbinnedVar( dataset, effName='efficiency' ):
 	#---- Sanity check: should have only one name 
 	if len(effList) < 1:
 		message ="""There is no efficiency variable called '%s'in the RooDataSet '%s'""" % (effName, dataset.GetName())
-		printError( checkbinnedVar.__module__+'.'+checkbinnedVar.__name__, message, AttributeError )
+		printError( isbinnedVar.__module__+'.'+isbinnedVar.__name__, message, AttributeError )
 	elif len(effList) > 1:
 		message ="""It cannot be possible to parse the efficiency name, found '%s'in the RooDataSet '%s'\n""" % (str(effList), dataset.GetName())
 		message +="""Check your root file and let only one variable to contain the name '%s'""" % effName
-		printError( checkbinnedVar.__module__+'.'+checkbinnedVar.__name__, message, AttributeError )
+		printError( isbinnedVar.__module__+'.'+isbinnedVar.__name__, message, AttributeError )
 
 	return datasetVarList, effList[0] 
 
@@ -46,18 +107,22 @@ def isEffNoNull( dataset, effName='efficiency' ):
 	otherwise return False.
 	"""
 	#-- Checking efficiency is there
-	_swapDict = getVarInfo( dataset )
-	effList = filter( lambda x: x.lower().find(effName) != -1, _swapDict.iterkeys() )
-	if len(effList) < 1:
+	isEff = isVar( dataset, effName )
+	if not isEff:
 		message ="""There is no efficiency variable called '%s'in the RooDataSet '%s'""" % (effName, dataset.GetName())
 		printError( isEffNoNull.__module__+'.'+isEffNoNull.__name__, message, AttributeError )
-	elif len(effList) > 1:
-		message ="""It cannot be possible to parse the efficiency name, found '%s'in the RooDataSet '%s'\n""" % (str(effList), dataset.GetName())
-		message +="""Check your root file and let only one variable to contain the name '%s'""" % effName
-		printError( isEffNoNull.__module__+'.'+isEffNoNull.__name__, message, AttributeError )
+	#_swapDict = getVarDict( dataset )
+	#effList = filter( lambda x: x.lower().find(effName) != -1, _swapDict.iterkeys() )
+	#if len(effList) < 1:
+	#	message ="""There is no efficiency variable called '%s'in the RooDataSet '%s'""" % (effName, dataset.GetName())
+	#	printError( isEffNoNull.__module__+'.'+isEffNoNull.__name__, message, AttributeError )
+	#elif len(effList) > 1:
+	#	message ="""It cannot be possible to parse the efficiency name, found '%s'in the RooDataSet '%s'\n""" % (str(effList), dataset.GetName())
+	#	message +="""Check your root file and let only one variable to contain the name '%s'""" % effName
+	#	printError( isEffNoNull.__module__+'.'+isEffNoNull.__name__, message, AttributeError )
 
 	_table = tableEff( dataset, effName )
-	# FIXME: Comparation between double and 0.0 -- better abs(var) < 1e-10, for exemple
+	# FIXME: Comparation between double and 0.0 -- better abs(var) < 1e-10, for example
 	zeroList = filter( lambda (var,varLo,varHi): var == 0.0 and varLo == 0.0 and varHi == 0.0,  _table[effName] )
 	
 	if len(zeroList) == len(_table[effName]):
@@ -66,7 +131,7 @@ def isEffNoNull( dataset, effName='efficiency' ):
 		return True
 
 
-def getVarInfo( dataset, __effName='efficiency' ):
+def getVarDict( dataset, __effName='efficiency' ):
 	"""
 	getDataSetVar( RooDataSet ) -> { 'var1': { 'latexName': 'blaba', 'unit': 'unit',
 						    'binN': NumberBins, 'arrayBins' : (val1,...,valN+1)
@@ -75,16 +140,15 @@ def getVarInfo( dataset, __effName='efficiency' ):
 				       }
 
 	Given a RooDataSet, the function returns a dictionary whose keys are
-	the binned variables and efficiency names and the values another 
+	the binned variables and efficiency names and the values are a 
 	dictionary with some useful info (see above).
 	"""
 	varinfo = {}
 	try:
 		arg = dataset.get()
 	except AttributeError:
-		message = '\033[1;31mgetVarInfo: The object %s is not a RooDataSet\033[1;m' % str(dataset)
-		print message
-		raise AttributeError
+		message = 'The object \'%s\' is not a RooDataSet' % str(dataset)
+		printError( getVarDict.__module__+'.'+getVarDict.__name__, message, AttributeError )
 	#-- Get the list with the name of the variables
 	varList = arg.contentsString().split(',')
 	for name in varList:
@@ -99,10 +163,94 @@ def getVarInfo( dataset, __effName='efficiency' ):
 	try:
 		effName = filter( lambda x: x.lower().find(__effName) != -1, [i for i in varinfo.iterkeys()] )[0]
 	except IndexError:
-		print """#TODO: CONTROL DE ERRORES!!!"""
+		message = 'The RooDataSet \'%s\' does not have the \'%s\' variable as efficiency' % (dataset.GetName(), __effName)
+		printError( getVarDict.__module__+'.'+getVarDict.__name__, message, IndexError )
+
 	varinfo[effName]['latexName'] = '#varepsilon'
 
 	return varinfo
+
+
+def newgetEff( dataset, input_effName, **keywords):
+	"""
+	getEff(RooDataSet, var1=value, ...) --> eff, effErrorLow, effErrorHigh, None
+					    --> eff, effErrorLow, effErrorHigh, dictionary
+
+	Giving a binned variables returns the efficiency which 
+	corresponds to those values. If the introduced variables 
+	are the exhausted set of the RooDataSet, the output
+	will be a tuple of efficiency plus a None object (CASE 1).
+	Otherwise if the input variables don't cover all the 
+	RooDataSet binned variables, the output will be the 
+	efficiency tuple plus a dictionary which the names 
+	of the remaining variables and efficiency as keys and 
+	the tuples of their values as dictionary values (CASE 2).
+	"""
+	#---  All the binned variables in the dataset
+	datasetVarList, effName = getVarNames( dataset, input_effName )
+	#--- Checking if vars are in, and storing them in a list
+	nameVarValueList = []
+	nameVarList = []
+	for var,value in keywords.iteritems():
+		if not isbinnedVar( dataset, var, effName ):
+			message ="""The RooDataSet '%s' does not contain '%s' as binned variable""" % (dataset.GetName(), var)
+			printError( getEff.__module__+'.'+getEff.__name__, message, KeyError )
+		nameVarValueList.append( (var,value) )
+		nameVarList.append( var )
+	
+	#--- Binned variables which are not entered as arguments of this function
+	noAskVar = filter( lambda x: x not in nameVarList, datasetVarList )
+	#--- Has introduce the user all the binned variables?
+	#--- If so, when find the efficiency value just return it
+	#--- otherwise it must store all the efficiency values 
+	#--- which corresponds to the same variable value (the other
+	#--- binned variables will vary).
+	isbinnedComplete = False
+	dictReturn = None
+	noAskStr = ''
+	if len(noAskVar) == 0:
+		isbinnedComplete = True
+	else:
+		dictReturn = { effName: [] }
+		#-- Want to keep the values of the binned values don't ask by the user
+		#-- in order to save them to the dictionary
+		tupleNoAskStr = ''
+		for var in noAskVar:
+			dictReturn[var] = []
+			noAskStr += ',_table[\''+var+'\']'
+			
+	_table = tableEff( dataset, effName )
+	
+	#-- Checking the position where there are matches
+	indexDict = {}
+	for var,value in nameVarValueList:
+		_ind = 0 
+		indexDict[var] = []
+		for central,low,high in  _table[var]:
+			if value < high and value >= low:
+				indexDict[var].append( _ind )
+			_ind += 1
+	#-- Merging all the matches indexes
+	indexList = indexDict.values()
+	indexSet = set( indexList[0] )
+	for i in xrange(len(indexList)-1):
+		indexSet.intersection( indexList[i+1] ) 
+	
+	_tableList = eval('zip(_table[effName]'+noAskStr+')')
+	for i in filter( lambda _ind: _ind in indexSet, xrange(len(_tableList)) ):
+		try:
+			eff,theOthers = _tableList[i]
+			dictReturn[effName].append( eff )
+			for tupleVar in theOthers:
+				map( lambda (name,t): dictReturn[name].append( t ), zip(noAskVar, tupleVar) )
+		except ValueError:
+			#-- Note: due to the zip, the output will be ((eff,effL,effH),)
+			eff,effL,effH = _tableList[i][0]
+			return eff, effL, effH, None
+
+	return dictReturn
+
+
 
 def getEff( dataSet, input_effName, **keywords):
 	"""
@@ -120,7 +268,7 @@ def getEff( dataSet, input_effName, **keywords):
 	and the tuples of their bin values as values (CASE 2).
 	"""
 	#---- Checking the variables in dataset
-	_swapDict = getVarInfo( dataSet )
+	_swapDict = getVarDict( dataSet )
 	#---  All the binned variables in the dataset
 	datasetVarList = filter( lambda x: x.lower().find(input_effName) == -1, _swapDict.iterkeys() )
 	effList = filter( lambda x: x.lower().find(input_effName) != -1, _swapDict.iterkeys() )
@@ -193,6 +341,7 @@ efficiency variable...\033[1;m""" % dataSet.GetName()
 	#        The values of the listTableEff do not fill correctly. All the dictionary is filled of the same value (the last found value)
 	return None
 
+
 def getBinning( var ):
 	"""
 	getBinning( ROOT.RooArgVar ) -> bins, arrayBins
@@ -215,11 +364,13 @@ def getBinning( var ):
 
 	return binsN, arrayBins
 
-def newtableLatex( dataset, effName, **keyword ):
-	"""
-	tableLatex( dataset, effName, [outfile='name.tex', var=['var1','var2',..] ] )
 
-	Giving a RooDataSet, the function returns a table in latex
+def newtableLatex( dataset, effName, varX, varY, **keyword ):
+	#FIXME: FALTA COMPROBAR QUE FUNCIONA BIEN!!
+	"""
+	tableLatex( dataset, effName, 'var_column', 'var_row', [outfile='name.tex', varXname='latex name', varYname='latex name'] )
+
+	Giving a RooDataSet and two variables, the function returns a table in latex
 	format. If enters the keyword 'outfile' also the table will put
 	it into the file.
 	The keyword var is a list with the name of the variables the user want to
@@ -228,18 +379,75 @@ def newtableLatex( dataset, effName, **keyword ):
 	#TODO:	The keyword var is a list with the name of the variables the user want to dump.
 
 	#---- Checking the variables in dataset
-	_swapDict = getVarInfo( dataset )
+	varDict = getVarDict( dataset )
 	#---  All the binned variables in the dataset
-	datasetVarList = filter( lambda x: x.lower().find(inputEffName) == -1, _swapDict.iterkeys() )
-	effList = filter( lambda x: x.lower().find(inputEffName) != -1, _swapDict.iterkeys() )
+	datasetVarList = filter( lambda x: x.lower().find(effName) == -1, varDict.iterkeys() )
+	effList = filter( lambda x: x.lower().find(effName) != -1, varDict.iterkeys() )
 	#---- Sanity check
 	if len(effList) != 1:
-		message ="""ERROR: Unexpected Error!! It seems that in '%s' there is no"""\
-				""" efficiency variable...""" % dataSet.GetName()
+		message ="""The RooDataSet '%s' does not contain a variable called '%s' as efficiency"""\
+				% ( dataset.GetName(), effName )
 		printError( tableLatex.__module__+'.'+tableLatex.__name__, message, AttributeError )
-
+	#---- Variables are there?
+	for var in [ varX, varY ]:
+		if var not in datasetVarList:
+			message ="""The RooDataSet '%s' does not contain a binned variable called '%s'"""\
+					% ( dataset.GetName(), var )
+			printError( tableLatex.__module__+'.'+tableLatex.__name__, message, AttributeError )
+	# The table
 	_tableDict = tableEff( dataset, effName )
-	#### TODO!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+	bins = {}
+	varName = {}
+	varUnit  = {}
+	for var in [varX, varY]:
+		#-- dictionary-List with the min and max values per bin (min,max),...
+		bins[var] = [ ( varDict[var]['arrayBins'][i], varDict[var]['arrayBins'][i+1] ) \
+				for i in xrange( len(varDict[var]['arrayBins'])-1) ]
+		# Latex name of variables, maybe introduced by user otherwise take from construction
+		try:
+			# Remember to parse linux to latex \theta --> \\theta
+			varName[var] = '$'+keywords[var].replace('\\','\\\\')+'$'
+		except NameError:
+			varName[var] = '$'+varDict[var]['latexName'].replace('\\','\\\\')+'$'
+		varUnit[var] = varDict[var]['unit']
+		if len(varUnit[var]) != 0:
+			varUnit[var] = '$({\\rm '+varUnit[var]+'})$'
+
+	#Some usefuls function to deal with latex
+	edges = lambda x,y: '(%0.1f, %0.1f)' % (x,y) 
+	effsetter = lambda eff,lo,hi: '$%.3f\\pm^{%.3f}_{%.3f}$ & ' % (eff,hi-eff,eff-lo) 
+	central = lambda low,high: (high+low)/2.0
+
+	#-- Table latex construction
+	toLatex = '\\begin{tabular}{c'
+	#-- Number of table columns
+	toLatex += 'c'*varDict[varY]['binN']+'}\\hline\n'
+	#-- Header (first line)
+	toLatex += varName[varX]+varUnit[varX]+' {\\boldmath$\\backslash$}'+\
+			varName[varY]+varUnit[varX]+' & '
+	#-- varY bins are put on the first line
+	for low, high in bins[varY]:
+		toLatex += edges(low,high)+' & '
+	toLatex = toLatex[:-2]+'\\\\ \\hline\n'
+	#--- Finally, fill the table, line by line
+	for lowX,highX in bins[varX]:
+		toLatex += edges(lowX,highX)+' & '
+		for lowY,highY in bins[varY]:
+			try:
+				eff,effErrorLow,effErrorHig = eval('getEff(dataset,effName,'+\
+						varX+'=central(lowX,highX), '+varY+'=central(lowY,highY))')
+				toLatex += effsetter(eff,effErrorLow,effErrorHig)
+			#Empty bin
+			except TypeError:
+				toLatex += ' & '
+		toLatex = toLatex[:-2]+'\\\\\n'
+	toLatex += ' \\hline\n'
+    	toLatex += '\\end{tabular}'
+	
+	print toLatex
+	return toLatex
+
 
 
 def tableLatex(dataset, inputEffName):
@@ -249,7 +457,7 @@ def tableLatex(dataset, inputEffName):
 	format 
 	"""
 	#---- Checking the variables in dataset
-	_swapDict = getVarInfo( dataset )
+	_swapDict = getVarDict( dataset )
 	#---  All the binned variables in the dataset
 	datasetVarList = filter( lambda x: x.lower().find(inputEffName) == -1, _swapDict.iterkeys() )
 	_swapeffList = filter( lambda x: x.lower().find(inputEffName) != -1, _swapDict.iterkeys() )
@@ -306,7 +514,7 @@ def tableLatex(dataset, inputEffName):
 	
 	toLatex = '\\begin{tabular}{c'
 	#Number of columns
-	toLatex += 'c'*etaNbins+'}\\hline\hline\n'
+	toLatex += 'c'*etaNbins+'}\\hline\n'
 	#header
 	toLatex += '$p_T^\\mu({\\rm GeV})$ {\\boldmath$\\backslash$}$\\eta^\\mu$  & '
 	for low,high in etaBins:
@@ -324,7 +532,7 @@ def tableLatex(dataset, inputEffName):
 			except TypeError:
 				toLatex += ' & '
 		toLatex = toLatex[:-2]+'\\\\\n'
-	toLatex += ' \\hline\hline\n'
+	toLatex += ' \\hline\n'
     	toLatex += '\\end{tabular}'
 #
 	print toLatex
@@ -340,8 +548,8 @@ def tableEff( dataset, effName ):
 	list of tuples (var, varErrorLo, varErrorHigh)
 	"""
 	#--- Getting variables from dataset, note that if dataset is not a RooDataSet,
-	#--- getVarInfo raise an AttributeError exception
-	_swapDict = getVarInfo( dataset )
+	#--- getVarDict raise an AttributeError exception
+	_swapDict = getVarDict( dataset )
 	datasetVarList = [ i for i in _swapDict.iterkeys() ]
 	#--- Is efficiency in dataset?
 	if not effName in datasetVarList:
@@ -359,13 +567,14 @@ def tableEff( dataset, effName ):
 		for varName, valueList in _table.iteritems():
 			variable = argset[varName]
 			valueList.append( (variable.getVal(), variable.getVal()+variable.getErrorLo(), variable.getVal()+variable.getErrorHi()) )
-	#-- In principle, I don't have tto control errors: getVarInfo is coherent with dataset.get, the same variables must
+	#-- In principle, I don't have to control errors: getVarDict is coherent with dataset.get, the same variables must
 	#-- exist
 	return _table
 
 
 
 def listTableEff(dataSet,*badpoints,**effName):
+	#FIXME: TO BE SET DEPRECATED (waiting for propagation along the code)
 	"""
 	listTableEff( dataSet ) --> tableList
 
@@ -379,7 +588,7 @@ def listTableEff(dataSet,*badpoints,**effName):
 			}
 	"""
 	#---- Checking the variables in dataset
-	_swapDict = getVarInfo( dataSet )
+	_swapDict = getVarDict( dataSet )
 	datasetVarList = [ i for i in _swapDict.iterkeys() ]
 	#--- Bad points
 	checkPoints = False
