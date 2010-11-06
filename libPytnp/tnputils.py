@@ -233,7 +233,6 @@ def newgetEff( dataset, input_effName, **keywords):
 	#-- Merging all the matches indexes
 	indexList = indexDict.values()
 	indexSet = set( indexList[0] )
-	print indexSet
 	for i in xrange(len(indexList)-1):
 		indexSet = indexSet.intersection( indexList[i+1] ) 
 
@@ -241,17 +240,23 @@ def newgetEff( dataset, input_effName, **keywords):
 	for i in filter( lambda _ind: _ind in indexSet, xrange(len(_tableList)) ):
 		try:
 			eff,theOthers = _tableList[i]
+			#-- Note the behaviour of tuple: (a,b,c) != ((a,b,c),)
+			if len(theOthers) == 3:
+				theOthers = (theOthers,)
 			dictReturn[effName].append( eff )
-			for tupleVar in theOthers:
-				map( lambda (name,t): dictReturn[name].append( t ), zip(noAskVar, tupleVar) )
+			_index = 0
+			for name in noAskVar:
+				#-- The order of variables are in noAskVar
+				dictReturn[name].append( theOthers[_index] )
+				_index += 1
 		except ValueError:
 			#-- Note: due to the zip, the output will be ((eff,effL,effH),)
 			eff,effL,effH = _tableList[i][0]
 			return eff, effL, effH, None
-
-	return dictReturn
-
-
+	
+	if (len(dictReturn[effName])) > 0:
+		return dictReturn
+		
 
 def getEff( dataSet, input_effName, **keywords):
 	"""
@@ -410,7 +415,7 @@ def newtableLatex( dataset, effName, varX, varY, **keyword ):
 			# Remember to parse linux to latex \theta --> \\theta
 			varName[var] = '$'+keywords[var].replace('\\','\\\\')+'$'
 		except NameError:
-			varName[var] = '$'+varDict[var]['latexName'].replace('\\','\\\\')+'$'
+			varName[var] = '$'+varDict[var]['latexName'].replace('\\','\\\\').replace('#','\\')+'$'
 		varUnit[var] = varDict[var]['unit']
 		if len(varUnit[var]) != 0:
 			varUnit[var] = '$({\\rm '+varUnit[var]+'})$'
