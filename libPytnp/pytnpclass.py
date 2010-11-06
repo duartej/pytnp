@@ -150,7 +150,7 @@ class pytnp(dict):
 		deleteDataset = []
 		#--- Getting the variables names of the RooDataSet 
 		for name, dataset in self.RooDataSet.iteritems(): 
-			self[name]['variables'] = getvarDict(dataset)
+			self[name]['variables'] = getVarDict(dataset)
 			#--- Check that efficiency is in there
 			if not self.effName in self[name]['variables'].keys():
 				try:
