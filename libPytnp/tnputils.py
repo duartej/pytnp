@@ -227,15 +227,16 @@ def newgetEff( dataset, input_effName, **keywords):
 		_ind = 0 
 		indexDict[var] = []
 		for central,low,high in  _table[var]:
-			if value < high and value >= low:
+			if low <= value and high > value:
 				indexDict[var].append( _ind )
 			_ind += 1
 	#-- Merging all the matches indexes
 	indexList = indexDict.values()
 	indexSet = set( indexList[0] )
+	print indexSet
 	for i in xrange(len(indexList)-1):
-		indexSet.intersection( indexList[i+1] ) 
-	
+		indexSet = indexSet.intersection( indexList[i+1] ) 
+
 	_tableList = eval('zip(_table[effName]'+noAskStr+')')
 	for i in filter( lambda _ind: _ind in indexSet, xrange(len(_tableList)) ):
 		try:
