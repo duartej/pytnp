@@ -1,6 +1,6 @@
 """
 Function utilities which uses the pytnp class to do several plots
-  doDifEff
+  TODO: Description
 """
 
 import ROOT

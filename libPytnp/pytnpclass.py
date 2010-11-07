@@ -548,7 +548,7 @@ class pytnp(dict):
 		                      self[nameRooDataSet]['tgraphs'] = { 'graph_name': TGraphAsymmErrors, ... }
 		"""
 		import rootlogon
-		from tnputils import listTableEff
+		from tnputils import listTableEff,getEff
 
 		dataset = None
 		#-- Checking if the object exists
@@ -559,8 +559,8 @@ class pytnp(dict):
 			printError( self.__module__, message, KeyError )
 		#--- Empty dataset
 		if self.RooDataSet[name].numEntries() == 0:
-			message = """\033[1;34mpytnp.plotEff1D: Empty RooDataSet '%s'. Skipping...\033[1;m""" % name
-			print message
+			message = """Empty RooDataSet '%s'. Skipping...""" % name
+			printWarning( self.__module__+'.'+self.plotEff1D.__name__,message)
 			return None
 		#--- Checking variable
 		if not inputVarName in self[name]['binnedVar'].keys():
@@ -709,7 +709,7 @@ class pytnp(dict):
 		will stores in the object instance
 		"""
 		import rootlogon
-		from tnputils import getBinning,listTableEff
+		from tnputils import getBinning,listTableEff,getEff
 
 		#FIXME: Meter los errores en la misma linea (ahora te salta
 		#       de linea (TEXT option)

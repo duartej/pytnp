@@ -75,7 +75,7 @@ if __name__ == '__main__':
 	
 	from pytnp.libPytnp.pytnpclass import pytnp
 
-	#####################################################################################################
+	#____________________________________________________________________________________________________
 	#Print printContent and exit
 	if opt.printContent:
                 Message = """I need at least 1 input files comma separated without espaces. I parsed '%s'""" % opt.fileName
@@ -84,7 +84,7 @@ if __name__ == '__main__':
                         tnp = pytnp( _f, effName = opt.effName)
                         print tnp
 		exit(0)
-	#####################################################################################################
+	#____________________________________________________________________________________________________
 
 	#Store luminosity if is provided
 	Lumi = ''
@@ -102,7 +102,7 @@ if __name__ == '__main__':
 	import ROOT
 	ROOT.gROOT.SetBatch(1)
 
-	#####################################################################################################
+	#____________________________________________________________________________________________________
 	# Do 1-dimensional plots of severals datasets (with the same effType efficiency) drawn on the
 	# same canvas.
 	if opt.comparationPlots:
@@ -150,9 +150,9 @@ if __name__ == '__main__':
 			tnpDict[resNameTuple[0]] = pytnp( aFile, dataset=whatPlots, resonance = resNameTuple )
 		#--- FIXME: Provisional
 		superImposed( tnpDict, variable, whatPlots, Lumi )
-	#####################################################################################################
+	#____________________________________________________________________________________________________
 
-	#####################################################################################################
+	#____________________________________________________________________________________________________
 	# 1-dimensional plot 
 	if opt.resToComp:
 		from pytnp.steerplots.plotsCreation import diffEff
@@ -179,15 +179,16 @@ if __name__ == '__main__':
 
 		#--- Ready to run the plots
 		diffEffMaps( tnpDict, opt.resToComp, Lumi )
-	#####################################################################################################
+	#____________________________________________________________________________________________________
 	
-	#####################################################################################################
+	#____________________________________________________________________________________________________
 	if opt.dim1Plots and not opt.comparationPlots:
 		#--- Only one file
 		Message = """I need only one root file. I parsed '%s'""" % opt.fileName
 		allFiles = parseOption( opt.fileName, '>', 1, Message )
 		#--- Controling variables
-		variables = opt.dim1Plots.split(',') #FIXME: Control errores
+		Message = """I need only one variable, I parsed '%s'""" % opt.dim1Plots
+		variables = parseOption( opt.dim1Plots, '!=', 1, Message )
 		#Aceptar palabra clave all => Todas las variables binned
 		tnp = pytnp(opt.fileName, dataset=whatPlots, effName = opt.effName )
 		resonance = tnp.resLatex
@@ -207,15 +208,15 @@ if __name__ == '__main__':
 			#for name, tcanvas in tnp.TCanvas.iteritems():
 			##	if name.find('_PLOT_') != -1 and (name.find('pt_eta_') == -1 or name.find('eta_pt') == -1):
 			#		tnp.plotEff1D(name,inputVarName, Lumi )
-		del tnp
-
 		if isNoVar:
 			Message = """The variable '%s' does not exist in any RooDataSet from the rootfile '%s'"""\
 					% ( var, tnp.__fileroot__.GetName() )  			
 			printErrorAndExit( Message, -1 )
-	#### QUITAR: DONE #####################################################################
+		del tnp
 
-	#####################################################################################################
+	#____________________________________________________________________________________________________
+
+	#____________________________________________________________________________________________________
 	if opt.dim2Plots or opt.maps:
 		category = None
 		#-- Two variables
@@ -254,7 +255,7 @@ if __name__ == '__main__':
 				varList = parseOption( opt.maps[1], '!=', 2, Message )
 			tnp.write('effMaps_'+tnp.resonance+'_'+category+'.root' )
 		del tnp
-	#####################################################################################################
+	#____________________________________________________________________________________________________
 
 	if opt.sysTnP:
 		from pytnp.steerplots.plotsCreation import sysMCFIT

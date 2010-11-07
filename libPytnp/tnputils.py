@@ -1,24 +1,26 @@
-
 """
 Module with utilities for pytnp
-
-	isVar:       check wheter a variable is in a RooDataSet or not
-	isbinnedVar: check the binned variables and efficiency
-	                of a RooDataSet
-	isEffNoNull:    check that the efficiency values of a RooDataSet are not
-	                null (all zero values)
-	getVarNames:    return a tuple with a list of binned variables names and
-	                the efficiency name
-	getVarDict:     return a dictionary with all variables in a RooDataSet
-	getEff
-	getBinning
-	tableLatex
-	listTableEff
+  isVar:          check wheter a variable is in a RooDataSet or not
+  isbinnedVar:    check the binned variables and efficiency
+                  of a RooDataSet
+  isEffNoNull:    check that the efficiency values of a RooDataSet are not
+                  null (all zero values)
+  getVarNames:    return a tuple with a list of binned variables names and
+                  the efficiency name
+  getVarDict:     return a dictionary with all variables in a RooDataSet
+  getEffFromDict: return efficiency values to correspond some binned variable
+                  point
+  getEff:         idem
+  getBinning:     return the binning for a RooRealVar
+  tableLatex:     return a efficiency table in latex
+  newtableLatex:  idem
+  listTableEff:   return a list containing all the values in the RooDataSet
+  tableEff:       return a dictionary containing all the values in the RooDataSet
 """
 import ROOT
 from management import printError, printWarning
 
-def isVar( dataset, var ):
+def isVar( dataset, var ): 
 	"""
 	isVar( RooDataSet, var ) -> bool
 
@@ -49,8 +51,9 @@ def isbinnedVar( dataset, var, effName='efficiency', **keywords ):
 		wantWarning = keywords['warning']
 	except KeyError:
 		wantWarning = False
-
+	
 	_swapDict = getVarDict( dataset )
+
 	datasetVarList = filter( lambda x: x.lower().find(effName) == -1, _swapDict.iterkeys() )
 	varList = []
 	if isinstance(var,str):
@@ -171,10 +174,10 @@ def getVarDict( dataset, __effName='efficiency' ):
 	return varinfo
 
 
-def newgetEff( dataset, input_effName, **keywords):
+def getEffFromDict( dataset, input_effName='efficiency', **keywords):
 	"""
-	getEff(RooDataSet, var1=value, ...) --> eff, effErrorLow, effErrorHigh, None
-					    --> eff, effErrorLow, effErrorHigh, dictionary
+	getEffFromDict(RooDataSet, 'effName', var1=value, ...) --> eff, effErrorLow, effErrorHigh, None
+		               			    --> eff, effErrorLow, effErrorHigh, dictionary
 
 	Giving a binned variables returns the efficiency which 
 	corresponds to those values. If the introduced variables 
@@ -197,6 +200,10 @@ def newgetEff( dataset, input_effName, **keywords):
 			printError( getEff.__module__+'.'+getEff.__name__, message, KeyError )
 		nameVarValueList.append( (var,value) )
 		nameVarList.append( var )
+	#---- Sanity check
+	if len(nameVarList) < 1:
+		message ="""You must introduce at least one variable"""
+		printError( getEffFromDict.__module__+'.'+getEffFromDict.__name__, message, ValueError )
 	
 	#--- Binned variables which are not entered as arguments of this function
 	noAskVar = filter( lambda x: x not in nameVarList, datasetVarList )
@@ -258,9 +265,9 @@ def newgetEff( dataset, input_effName, **keywords):
 		return dictReturn
 		
 
-def getEff( dataSet, input_effName, **keywords):
+def getEff( dataSet, input_effName='efficiency', **keywords):
 	"""
-	getEff(RooDataSet, var1=value, ...) --> eff, effErrorLow, effErrorHigh                
+	getEff(RooDataSet, 'effName', var1=value, ...) --> eff, effErrorLow, effErrorHigh                
 	                                    --> eff, effErrorLow, effErrorHigh, dictionary
 
 	Giving a binned variables returns the efficiency which 
@@ -276,31 +283,19 @@ def getEff( dataSet, input_effName, **keywords):
 	#---- Checking the variables in dataset
 	_swapDict = getVarDict( dataSet )
 	#---  All the binned variables in the dataset
-	datasetVarList = filter( lambda x: x.lower().find(input_effName) == -1, _swapDict.iterkeys() )
-	effList = filter( lambda x: x.lower().find(input_effName) != -1, _swapDict.iterkeys() )
-	#---- Sanity check
-	if len(effList) != 1:
-		message ="""\033[1;31mpytnp.tnputils.getEff ERROR: Unexpected Error!! It seems that in %s there is no
-efficiency variable...\033[1;m""" % dataSet.GetName()
-		print message
-		raise 
-	effName = effList[0]
+	datasetVarList, effName = getVarNames( dataSet, input_effName )
 
 	varList = []
 	nameVarList = []
 	for var,value in keywords.iteritems():
-		if not var in datasetVarList:
-			message ="""\033[1;31mpytnp.tnputils.getEff ERROR: %s is not a binned variable of the dataset %s\033[1;m""" % (var,dataSet.GetName())
-			print message
+		if not isbinnedVar( dataSet, var, effName, warning=True ):
 			raise KeyError
 		varList.append( (var,value) )
 		nameVarList.append( var )
 	#---- Sanity check
-	if len(varList) < 1:
-		message ="""\033[1;31mpytnp.tnputils.getEff ERROR: You must introduce at least one variable\033[1;m"""
-		print message
-		print 'Usage:\n',getEff.__doc__
-		raise 
+	if len(nameVarList) < 1:
+		message ="""You must introduce at least one variable"""
+		printError( getEff.__module__+'.'+getEff.__name__, message, ValueError )
 	#--- Variables the user don't ask. This is the case when the user
 	#--- wants a list of efficiency given a fixed value of one variable
 	noAskVar = filter( lambda x: x not in nameVarList, datasetVarList )
@@ -311,9 +306,8 @@ efficiency variable...\033[1;m""" % dataSet.GetName()
 		effVarList = []
 	#---- Sanity check
 	if len( varList ) > len(datasetVarList):#FIXME---> can be more than 2 variables...
-		message ="""\033[1;31mpytnp.tnputils.getEff ERROR: You are using more variables than in dataset %s\033[1;m""" % dataSet.GetName()
-		print message
-		raise
+		message ="""You are using more variables than in dataset '%s'""" % dataSet.GetName()
+		printError(getEff.__module__+'.'+getEff.__name__, message, AttributeError )
 
 	#-- Get the table of efficiencies
 	tableList = listTableEff( dataSet ) 
@@ -345,6 +339,7 @@ efficiency variable...\033[1;m""" % dataSet.GetName()
 
 	# FIXME: Strange behaviour with version 3_6_1_patch4 (really with the RooFit (3.12 ??) included in this version:
 	#        The values of the listTableEff do not fill correctly. All the dictionary is filled of the same value (the last found value)
+	#        Still have this problem with RooFit 3.13, root-v5.27, python 2.6 ... 
 	return None
 
 
@@ -372,7 +367,6 @@ def getBinning( var ):
 
 
 def newtableLatex( dataset, effName, varX, varY, **keyword ):
-	#FIXME: FALTA COMPROBAR QUE FUNCIONA BIEN!!
 	"""
 	tableLatex( dataset, effName, 'var_column', 'var_row', [outfile='name.tex', varXname='latex name', varYname='latex name'] )
 
@@ -383,6 +377,9 @@ def newtableLatex( dataset, effName, varX, varY, **keyword ):
 	dump. (TODO, not yet implemented)
 	"""
 	#TODO:	The keyword var is a list with the name of the variables the user want to dump.
+	#TODO: CHECK IF WORKS CORRECTLY
+	message = "Use this function with caution! Still in development.\n Use instead the tableLatex function"
+	printWarning( newtableLatex, message )
 
 	#---- Checking the variables in dataset
 	varDict = getVarDict( dataset )
@@ -504,13 +501,8 @@ def tableLatex(dataset, inputEffName):
 			ptName = i
 			break
 		KK += 1
-#	Nbins = map( lambda i: len(i), bins )
-#	##Getting how many eta and pt bins we have
-#	etaBins = set([ (i['eta'][1],i['eta'][2]) for i in effList] )
-#	etaBins = sorted(list(etaBins))
+	
 	etaNbins = len(etaBins)
-#	ptBins  = set([ (i['pt'][1],i['pt'][2]) for i in effList] )
-#	ptBins  = sorted(list(ptBins)) 
 	ptNbins = len(ptBins)
 	#Some usefuls function
 	edges = lambda x,y: '(%0.1f, %0.1f)' % (x,y) 
@@ -551,7 +543,15 @@ def tableEff( dataset, effName = 'efficiency' ):
 
 	Giving a RooDataSet, the function returns a dictionary where every 
 	key is the 'variables' of the RooDataSet. Each value is a 
-	list of tuples (var, varErrorLo, varErrorHigh)
+	list of tuples (var, varErrorLo, varErrorHigh):
+	{ 'nameEff' : [ (eff1,effLow1,effHi1), 	(eff2,effLow2,effHi2), ...
+	              ],
+          'namevar1': [ (val1,valLow1,valHi1), ( ...) , ... ],
+	  ....
+	}
+
+	Note: there is another version to extract the table, see the function
+	      'listTableEff', a little more efficient than this one	
 	"""
 	#--- Getting variables from dataset, note that if dataset is not a RooDataSet,
 	#--- getVarDict raise an AttributeError exception
@@ -580,23 +580,22 @@ def tableEff( dataset, effName = 'efficiency' ):
 
 
 def listTableEff(dataSet,*badpoints,**effName):
-	#FIXME: TO BE SET DEPRECATED (waiting for propagation along the code)
 	"""
 	listTableEff( dataSet ) --> tableList
 
 	Giving a RooDataSet, the function returns a list where every 
 	element is an entry of the RooDataSet stored as a dictionary:
-	For every entry we have
-	                { 'var1':  (pt, minimum pt bin, maximum pt bin),
-	                  'var2': (eta, minimum eta bin, maximum eta bin),
-			   ...
-			  'nameEfficiency': (eff, eff low, eff high)
-			}
+	[ { 'var1':  (pt, minimum pt bin, maximum pt bin),
+	    'var2': (eta, minimum eta bin, maximum eta bin),
+	     ...
+	  'nameEfficiency': (eff, eff low, eff high)
+	  }, ...
+	]
 	"""
 	#---- Checking the variables in dataset
 	_swapDict = getVarDict( dataSet )
 	datasetVarList = [ i for i in _swapDict.iterkeys() ]
-	#--- Bad points
+	#--- Bad points: TO BE DEPRECATED
 	checkPoints = False
 	for key,name in effName.itervalues():
 		if len(badpoints) == 2:
@@ -620,7 +619,7 @@ def listTableEff(dataSet,*badpoints,**effName):
 		#        for efficiencies are the upper and lower 
 		valList.append( dict( [ (varName,(argset.getVal(), argset.getVal()+argset.getErrorLo(),\
 				argset.getVal()+argset.getErrorHi()) ) for varName,argset in varDict.iteritems() ] ) )
-		# Remove badpoints
+		# Remove badpoints: TO BE DEPRECATED
 		if checkPoints:
 			isBad = filter( lambda (eff,lo,hi): (eff- badpoints[0]) < 1e-10 and ((eff-lo)-badpoints[1]) < 1e-10 , valList[-1][name] ) 
 			if len(isBad) != 0:
