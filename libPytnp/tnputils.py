@@ -545,7 +545,7 @@ def tableLatex(dataset, inputEffName):
 	return toLatex
 
 
-def tableEff( dataset, effName ):
+def tableEff( dataset, effName = 'efficiency' ):
 	"""
 	tableEff( RooDataSet, 'effName' ) --> tableDict
 

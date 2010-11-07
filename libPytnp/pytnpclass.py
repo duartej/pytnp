@@ -5,8 +5,6 @@ import ROOT  #BORRRRARLO
 from ROOT import TFile
 import sys
 
-from getresname import *  #FIXME: OJO CON ESTO
-from tnputils import *
 from management import printError, printWarning
 
 
@@ -69,6 +67,9 @@ class pytnp(dict):
 
 		TODO: Put dictionary output
 		"""
+		from getresname import getResName
+		from tnputils import getVarDict, isEffNoNull
+
 		#--- Checking the keys dictionary passed ----#
 		dataset = self.__check_keywords__( keywords ) #FIXMEE
 
@@ -490,11 +491,50 @@ class pytnp(dict):
 			for name in self.__getattribute__(className).iterkeys():
 				message += name+'\n'
 		except AttributeError:
-			message = """
-There's no attribute named '%s'!
-                        """ % className
+			message = """There's no attribute named '%s'!""" % className
 
 		print message
+
+
+#	def newplotEff1D( self, name, inputVarName, Lumi ):
+#		"""
+#		plotEff1D( RooDataSet, 'variable_name', 'latex string Luminosity' ) 
+#	
+#		Given a name directory-like for a ROOT.RooDataSet object,
+#	 	the function creates a 1-dim plot of 'variable_name' extracted from the
+#		object and it will save it in a eps file. Also
+#		it will store the graph object:
+#		                      self[nameRooDataSet]['tgraphs'] = { 'graph_name': TGraphAsymmErrors, ... }
+#		"""
+#		import rootlogon
+#		from tnputils import listTableEff, tableEff
+#		dataset = None
+#		#-- Checking if the object exists
+#		try:
+#			dataset = self.RooDataSet[name]
+#		except KeyError:
+#		  	message = """you must introduce a valid name, '%s' is not a RooDataSet in the root file""" % name
+#			printError( self.__module__, message, KeyError )
+#		#--- Empty dataset
+#		if self.RooDataSet[name].numEntries() == 0:
+#			message = """\033[1;34mpytnp.plotEff1D: Empty RooDataSet '%s'. Skipping...\033[1;m""" % name
+#			print message
+#			return None
+#		#--- Checking variable
+#		if not inputVarName in self[name]['binnedVar'].keys():
+#		  	message = """you must introduce a valid binned variable name, '%s' is not in the '%s' RooDataSet\n""" % (inputVarName,name )
+#			message += """The list of binned variables are '%s'""" % str(self[name]['binnedVar'].keys())  
+#			printError( self.__module__, message, KeyError )
+#		
+#		self[name]['tgraphs'] = {}
+#		
+#		_tableEff = tableEff( dataset, self.effName )
+#		i = 0
+#		for valTuple in _tableEff[inputVarName]:
+#			central, low, high = valTuple
+#			eff, effLow, effHi = _tableEff[self.effName][i]
+#			i += 1
+
 
 		
 	def plotEff1D( self, name, inputVarName, Lumi ):
@@ -508,6 +548,7 @@ There's no attribute named '%s'!
 		                      self[nameRooDataSet]['tgraphs'] = { 'graph_name': TGraphAsymmErrors, ... }
 		"""
 		import rootlogon
+		from tnputils import listTableEff
 
 		dataset = None
 		#-- Checking if the object exists
@@ -668,6 +709,7 @@ There's no attribute named '%s'!
 		will stores in the object instance
 		"""
 		import rootlogon
+		from tnputils import getBinning,listTableEff
 
 		#FIXME: Meter los errores en la misma linea (ahora te salta
 		#       de linea (TEXT option)
