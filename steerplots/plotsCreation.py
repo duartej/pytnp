@@ -219,7 +219,7 @@ def superImposed( tnpDict, variable, whatPlots, Lumi, **keywords ):
 		for NAMErds, DICT in __tnp.iteritems():
 			for NAMEgraph in DICT['tgraphs'].iterkeys():
 				# Skipping the resonance name
-				graphName.append( (NAMErds,NAMEgraph.strip(__tnp.resonance+'_')) )
+				graphName.append( (NAMErds,NAMEgraph.replace(__tnp.resonance+'_','')) )
 	#--- Plots for the all resonances
 	#-- Assuming we have the same names for histos in every
 	#   dict, but the first word (resonance dependent).
