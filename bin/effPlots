@@ -25,7 +25,10 @@ def printErrorAndExit( message, exitcode ):
 
 def parseOption( Opt, errorCondition, howManyCond, errorMessage ):
 	"""
-	parseOption
+	parseOption( 'stringToParse', 'operator', condition, 'message' ) --> [ 'opt1', 'opt2',... ]
+
+	Parse the 'Opt' option, if "len(Opt.split(',') errorCondition condition" is
+	fulfill then raise and error message
 	"""
 	optList = Opt.split(',')
 	try:
@@ -86,17 +89,21 @@ if __name__ == '__main__':
 		exit(0)
 	#____________________________________________________________________________________________________
 
+	#____________________________________________________________________________________________________
 	#Store luminosity if is provided
 	Lumi = ''
 	if opt.Lumi:
 		Lumi = ' L_{int}='
 		for val in opt.Lumi:
 			Lumi += str(opt.Lumi)+' '
+	#____________________________________________________________________________________________________
 
+	#____________________________________________________________________________________________________
 	#Using MC info-- counting events instead of fit
 	whatPlots = 'fit_eff'
 	if opt.counting:
 		whatPlots = 'cnt_eff'
+	#____________________________________________________________________________________________________
 	
 	#Do not display graphics
 	import ROOT
@@ -148,7 +155,7 @@ if __name__ == '__main__':
 				printErrorAndExit( message, -1 )
 
 			tnpDict[resNameTuple[0]] = pytnp( aFile, dataset=whatPlots, resonance = resNameTuple )
-		#--- FIXME: Provisional
+
 		superImposed( tnpDict, variable, whatPlots, Lumi )
 	#____________________________________________________________________________________________________
 
@@ -257,6 +264,7 @@ if __name__ == '__main__':
 		del tnp
 	#____________________________________________________________________________________________________
 
+	#____________________________________________________________________________________________________
 	if opt.sysTnP:
 		from pytnp.steerplots.plotsCreation import sysMCFIT
 		# Ploting mc true-counting vs. fit_eff
@@ -265,7 +273,9 @@ if __name__ == '__main__':
 		tnp = pytnp( opt.fileName, effName = opt.effName )
 
 		sysMCFIT( tnp, Lumi )
+	#____________________________________________________________________________________________________
 
+	#____________________________________________________________________________________________________
 	if opt.tables:
 		from pytnp.libPytnp.tnputils import tableLatex
 
@@ -278,7 +288,7 @@ if __name__ == '__main__':
 			print """\033[1;33mWarning: the file %s does not contain a efficiency map\033[1;m""" % opt.fileName 
 		for d in dataList:
 			tableLatex(d, opt.effName)
-		#--------------------------------------------------
+	#____________________________________________________________________________________________________
 
 
 		

@@ -298,7 +298,7 @@ def superImposed( tnpDict, variable, whatPlots, Lumi, **keywords ):
 		print """ """
 		print """\033[1;39mCAVEAT: No graph has been plotted! The correct use of this function implies\n\033"""\
 				"""        that the root files involved contains the same object type efficiency.\n"""\
-				"""        (See the contents of a pytnp instance, for example  effPlots --content -i rootfile.root)"""\
+				"""        (See the contents of a pytnp instance, for example  effPlots -p -i rootfile.root)"""\
 				"""        and look the 'objectType' key from the output\033[1;m"""
 		# Raise a exception ??
 
