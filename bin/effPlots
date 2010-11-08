@@ -42,6 +42,21 @@ def parseOption( Opt, errorCondition, howManyCond, errorMessage ):
 		parser.error( errorMessage )
 
 	return optList
+
+
+def LumiUnit( unit ):
+	"""
+	LumiUnit( unit ) --> 'latex unit'
+	"""
+	VALID_UNITS = [ 'mb', 'nb', 'pb', 'fb' ] 
+	if not unit in VALID_UNITS:
+		mess = "Not recognized '%s' as a valid unit of Luminosity.\n\t\t " \
+				"Use some of this list '%s'" % ( unit, str(VALID_UNITS))
+		parser.error( mess )
+	
+	return unit+'^{-1}'
+
+
 #-----------------------------------------------------------------------------------------
 
 
@@ -94,8 +109,8 @@ if __name__ == '__main__':
 	Lumi = ''
 	if opt.Lumi:
 		Lumi = ' L_{int}='
-		for val in opt.Lumi:
-			Lumi += str(opt.Lumi)+' '
+		#Lumi = ' #int#mathbf{L}dt= '
+		Lumi += str(opt.Lumi[0])+' '+LumiUnit( opt.Lumi[1] )
 	#____________________________________________________________________________________________________
 
 	#____________________________________________________________________________________________________
@@ -138,7 +153,7 @@ if __name__ == '__main__':
 			if not resname:
 				# resonance name and latex format name
 				try:
-					resNameTuple = getResName( aFile )
+					resNameTuple = getResName( aFile, config='effPlots_cfg.py' )
 				except TypeError:
 					#-- The file name must be standard
 					message = """The file name '%s' introduced is not in a standard format:"""\

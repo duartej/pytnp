@@ -1,9 +1,11 @@
 """
 """
+from management import printError, printWarning, parserConfig
 
-def getResName( aFile ):
+
+def getResName( aFile, **keywords ):
 	"""
-	getResName( fileName ) -> str,str (latex)
+	getResName( fileName[, 'config=config_file.py'] ) -> str,str (latex)
 
 	Extract from file name, T&P-like, the resonance
 	and returns it plain and in Latex format.
@@ -29,6 +31,14 @@ def getResName( aFile ):
 			'_MC_' : (' MC', ''),
 			'_Spring10_' : (' MC', ''),
 			}
+	#-- Add and/or updating the keys, entered by the user
+	for key, _file in keywords.iteritems():
+		if key != 'config':
+			message = "Invalid argument key '%s', only accepted 'config" % key
+			printError( getResName.__module__+'.'+getResName.__name__, message, KeyError )
+		for name, value in parserConfig( keywords['config'], 'DataNames' ).iteritems():
+			nameDict[name] = value
+
 	try:
 		num = regexp.search( aFile ).group( 'NUMBER' )
 		resonanceLatex = '#Upsilon('+num+')'
@@ -41,21 +51,17 @@ def getResName( aFile ):
 				resonanceLatex = resLatex
 				resonance = res
 		if resonance == '':
-			message ="""\033[1;33mgetResName: 
-		WARNING: This function is highly dependent of the 
-		name of the file, you need an standard format like:
-		NameOFResonance_X_blabla.root
-
-		Unrecognized name: \033[1;m\033[1;31m  %s\033[1;m""" % aFile
-			print message
+			message ="""This function is highly dependent of the \n"""\
+					"""name of the file, you need an standard format like:\n"""\
+					"""    NameOFResonance_X_blabla.root"""\
+					"""Unrecognized name: \033[1;m\033[1;39m  '%s'\033[1;m""" % aFile
+			printWarning( getResName.__module__+'.'+getResName.__name__, message )
 			return None
 		
 	except:
-		message ="""\033[1;31mgetResName: 
-		ERROR: Something wrong!! Check the code pytnp.utils.getResName
-		because this is an unexpected error\033[1;m"""
-		print message
-		exit(-1)
+		message ="""UNEXPECTED ERROR!! Send a e-mail to the developer(s) with all information\n"""\
+				"""needed to reproduce this error"""
+		printError( getresname.__module__+'.'+getresname.__name__, message, RuntimeError )
 	
 	#Including others..
 	for name, (resLatex,res) in sorted(adjectDict.iteritems(),reverse=True):
