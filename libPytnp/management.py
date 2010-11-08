@@ -33,9 +33,12 @@ def parserConfig( config_file, key ):
 		printError( parserConfig.__module__+'.'+parserConfig.__name__, message, IOError )
 
 	# FIXME: Potential errors with some python modules names
-	#        maybe the file name must be a unique hardcoded name
-	config_mod = config_file.replace('.py','')
-	sys.path.append( '.' )
+	#        maybe the file name must be a unique hardcoded name?
+	abspath = os.path.abspath( config_file )
+	directory = os.path.dirname( abspath )
+	config_name = os.path.basename( abspath )
+	config_mod = config_name.replace('.py','')
+	sys.path.append( directory )
 	try:
 		config = __import__(config_mod)
 	except ImportError:

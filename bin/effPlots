@@ -68,7 +68,7 @@ if __name__ == '__main__':
         parser = OptionParser()
 	parser.set_defaults(counting=False,effName='efficiency')
         parser.add_option( '-i', '--input', action='store', dest='fileName', metavar='FILENAME1[,FILENAME2,...]', help='Input root file name, comma separated, no espaces' )
-        parser.add_option(  '--resName', action='store', dest='resName', help='Resonance name for the files introduced with -i option (same order)' )
+        parser.add_option( '-c', '--config',  action='store', dest='config_file', help='Python configuration file' )
 	parser.add_option( '-p', '--printContent', action='store_true', dest='printContent', help='Print the Tag and Probe'\
 			' content of the root file(s) showing their encapsulate structure and the exit ' )
         parser.add_option( '--compPlots', action='store', dest='comparationPlots', metavar='VAR',\
@@ -76,7 +76,7 @@ if __name__ == '__main__':
         parser.add_option( '--1d', action='store', dest='dim1Plots', metavar='VAR1[,VAR2,...]', help='1-dimensional plots of binned VAR1[, VAR2, ...]' )
         parser.add_option( '--2d', action='store', dest='dim2Plots', metavar='VAR_X,VAR_Y', help='2-dim maps usign in the x-axis '\
 			'\'VAR_X\' and \'VAR_Y\' in the y-axis' )
-	parser.add_option( '-c', '--comp', action='store', dest='resToComp', metavar='RESONANCE', help='Comparation between efficiencies for different resonances taking RESONANCE as reference, plots of relative and absolute efficiencies' )
+	parser.add_option( '-d', '--diff', action='store', dest='resToComp', metavar='RESONANCE', help='Comparation between efficiencies for different resonances taking RESONANCE as reference, plots of relative and absolute efficiencies' )
         parser.add_option( '--counting', action='store_true', dest='counting', help='If active this flag, do the plots using the MC information (counting events)' )
         parser.add_option( '--sysTnP', action='store_true', dest='sysTnP', help='Do the plots (and a root file maps--Not yet) for the differences between counting MC and Tag and Probe fit efficiencies.' )
 	parser.add_option( '-m', '--maps', action='store', dest='maps', metavar='CATEGORY VAR_X,VAR_Y', nargs=2, help='Create root files with TH2F and RooDataSets, give the name of the muon category and the binned variables to use' )
@@ -120,12 +120,21 @@ if __name__ == '__main__':
 		whatPlots = 'cnt_eff'
 	#____________________________________________________________________________________________________
 	
-	#Do not display graphics
+	#____________________________________________________________________________________________________
+	#Config file-- counting events instead of fit
+	config_file = None
+	if opt.config_file:
+		Message = """This option needs a file. I parsed '%s'""" % opt.config_file
+		config_file = parseOption( opt.config_file, "!=", 1, Message )[0]
+	#____________________________________________________________________________________________________
+	
+	
+	#Do not display graphics --> FIXME: Posa-ho a un altre lloc!
 	import ROOT
 	ROOT.gROOT.SetBatch(1)
 
 	#____________________________________________________________________________________________________
-	# Do 1-dimensional plots of severals datasets (with the same effType efficiency) drawn on the
+	# Doing 1-dimensional plots of several datasets (with the same effType efficiency) drawn on the
 	# same canvas.
 	if opt.comparationPlots:
 		from pytnp.libPytnp.getresname import getResName
@@ -153,7 +162,7 @@ if __name__ == '__main__':
 			if not resname:
 				# resonance name and latex format name
 				try:
-					resNameTuple = getResName( aFile, config='effPlots_cfg.py' )
+					resNameTuple = getResName( aFile, config=config_file )
 				except TypeError:
 					#-- The file name must be standard
 					message = """The file name '%s' introduced is not in a standard format:"""\
@@ -307,10 +316,6 @@ if __name__ == '__main__':
 		for d in dataList:
 			tableLatex(d, opt.effName)
 	#____________________________________________________________________________________________________
-
-
-		
-	
 
 	
 

@@ -36,8 +36,10 @@ def getResName( aFile, **keywords ):
 		if key != 'config':
 			message = "Invalid argument key '%s', only accepted 'config" % key
 			printError( getResName.__module__+'.'+getResName.__name__, message, KeyError )
-		for name, value in parserConfig( keywords['config'], 'DataNames' ).iteritems():
-			nameDict[name] = value
+		#-- Controlling the None case
+		if _file:
+			for name, value in parserConfig( keywords['config'], 'DataNames' ).iteritems():
+				nameDict[name] = value
 
 	try:
 		num = regexp.search( aFile ).group( 'NUMBER' )
