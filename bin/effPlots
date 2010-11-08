@@ -251,8 +251,11 @@ if __name__ == '__main__':
 			if opt.maps:
 				category = opt.maps[0]
 				varList = parseOption( opt.maps[1], '!=', 2, Message )
+		#--- Only one file
+		Message = """I need only one root file. I parsed '%s'""" % opt.fileName
+		_file = parseOption( opt.fileName, '>', 1, Message )
 
-		tnp = pytnp(opt.fileName, dataset=whatPlots)
+		tnp = pytnp(_file[0], dataset=whatPlots)
 		#-- Select the datasets we want to use
 		if category:
 			isfulfillCat = lambda dataname : tnp[dataname]['objectType'] == category

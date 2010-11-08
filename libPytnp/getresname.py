@@ -64,6 +64,7 @@ def getResName( aFile, **keywords ):
 		printError( getresname.__module__+'.'+getresname.__name__, message, RuntimeError )
 	
 	#Including others..
+	# FIXME: To be DEPRECATED
 	for name, (resLatex,res) in sorted(adjectDict.iteritems(),reverse=True):
 		if aFile.find( name ) != -1:
 			resonanceLatex += resLatex

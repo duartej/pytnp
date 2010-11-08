@@ -20,7 +20,7 @@ def getDiff2DPlots( tnpRef, tnp2, Lumi, *nameOfdataSet ):
 	The comparation will be done until the minimum of both
 	"""
 	from math import sqrt
-	import pytnp.libPytnp.rootlogon 
+	import rootlogon 
 	#from pytnp.libPytnp.tnputils import checkbinnedVar
 	#from pytnp.libPytnp.tnputils import getBinning
 	#---- Initialiting -------------------------------
@@ -189,7 +189,8 @@ def superImposed( tnpDict, variable, whatPlots, Lumi, **keywords ):
 	pytnp instance. 
 	"""
 	#FIXME: Esta acabada?? Codigo enrevesado...
-	import pytnp.libPytnp.rootlogon
+	#from pytnp.steerplots.plotfunctions import plotAsymGraphXY,legend
+	import rootlogon
 	#-- Checking we have the same efficiency object for each instance
 
 	#-- Set to store the names of the histos, no
@@ -234,6 +235,7 @@ def superImposed( tnpDict, variable, whatPlots, Lumi, **keywords ):
 		text.SetTextSize(0.04);
 		#------------------ END CLARA PATCH -----------------#
 		leg = ROOT.TLegend(0.6,0.25,0.8,0.4)
+		#leg = legend( 'DR')
 		inSame = '' 
 		#-- How much resonances? To save the plot..
 		howMuchRes = ''
@@ -298,7 +300,7 @@ def superImposed( tnpDict, variable, whatPlots, Lumi, **keywords ):
 		print """ """
 		print """\033[1;39mCAVEAT: No graph has been plotted! The correct use of this function implies\n\033"""\
 				"""        that the root files involved contains the same object type efficiency.\n"""\
-				"""        (See the contents of a pytnp instance, for example  effPlots -p -i rootfile.root)"""\
+				"""        (See the contents of a pytnp instance, for example  effPlots -p -i rootfile.root)\n"""\
 				"""        and look the 'objectType' key from the output\033[1;m"""
 		# Raise a exception ??
 
@@ -312,7 +314,7 @@ def sysMCFIT(tnp, Lumi, **keywords):
 	and Tag and Probe fitted efficiency. Return plots (and 
 	(TODO) root file) containing maps of the absolute differencies
         """
-	import pytnp.libPytnp.rootlogon
+	import rootlogon
 	ROOT.gROOT.SetBatch(1)
 
 	#TODO: Permitir que se puedan entrar dos ficheros

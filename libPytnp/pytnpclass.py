@@ -547,8 +547,9 @@ class pytnp(dict):
 		it will store the graph object:
 		                      self[nameRooDataSet]['tgraphs'] = { 'graph_name': TGraphAsymmErrors, ... }
 		"""
-		import rootlogon
+		#import rootlogon
 		from tnputils import listTableEff,getEff
+		from pytnp.steerplots.plotfunctions import plotAsymGraphXY
 
 		dataset = None
 		#-- Checking if the object exists
@@ -577,43 +578,28 @@ class pytnp(dict):
 				graphName += 'mcTrue__'
 			#--- Extracting the efficiency values per bin
 			plotList = listTableEff( dataset )
-			graph = ROOT.TGraphAsymmErrors()
-			graph.SetName( graphName )
-			graph.SetMarkerSize(1)	
 			_min = 0
 			_max = 0
-			entry = 0
 			#--- Setting the points and extracting the min and max value
 			#--- in order to build the frame to plot
+			XPoints = []
+			YPoints = []
 			for varDict in plotList:  
 				(eff,effLo,effHi) = varDict[self.effName]
 				(var,varLo,varHi) = varDict[inputVarName]
-				graph.SetPoint(entry, var, eff )
-				graph.SetPointEXlow( entry, var-varLo )
-				graph.SetPointEXhigh( entry, varHi-var )
-				graph.SetPointEYlow( entry, eff-effLo )
-				graph.SetPointEYhigh( entry, effHi-eff )
+				XPoints.append( (var, varLo, varHi) )
+				YPoints.append( (eff, effLo, effHi) )
 
 				_min = min( _min, varLo )
 				_max = max( _max, varHi )
-				entry += 1
-			#--- Cosmethics and storing the plot
-			title = self[name]['objectType']+' category'
-			c = ROOT.TCanvas()
-			frame = c.DrawFrame(_min,0,_max,1.05)
-			frame.SetName( 'frame_'+graphName )
-			frame.SetTitle( '  CMS Preliminary,'+Lumi+' #sqrt{s}=7 TeV  ' )
-			graph.SetTitle( '' )
-			frame.GetXaxis().SetTitle(self[name]['variables'][inputVarName]['latexName']+' '+self[name]['variables'][inputVarName]['unit'])
-			graph.GetXaxis().SetTitle(self[name]['variables'][inputVarName]['latexName']+' '+self[name]['variables'][inputVarName]['unit'])
-			frame.GetYaxis().SetTitle( '#varepsilon' )
-			graph.GetYaxis().SetTitle( '#varepsilon' )
-			frame.Draw()
-			graph.Draw('P')
-			c.SaveAs( graph.GetName()+'.eps' )
-			c.Close()
+			#--- Cosmethics to storing the plot
+			#title = self[name]['objectType']+' category'
+			xtitle = self[name]['variables'][inputVarName]['latexName']+' '+self[name]['variables'][inputVarName]['unit']
+			ytitle = 'efficiency'
+			title = '  CMS Preliminary,'+Lumi+' #sqrt{s}=7 TeV  '
 
-			self[name]['tgraphs'][ graph.GetName() ] = graph 
+			self[name]['tgraphs'][ graphName ] = plotAsymGraphXY( XPoints, YPoints, xtitle, ytitle,\
+					returnGraph=True, rangeFrame = (_min,0,_max,1.05), title=title, graphName=graphName )
 
 			return 
 
@@ -647,55 +633,37 @@ class pytnp(dict):
                                 (eff,effErrorLo,effErrorHi),otherVarDict = _plotList[0]
 
                                 if len(filter( lambda (eff,__dic): eff[0] == 0.0, _plotList )) == len(_plotList):
-					print '\033[1;33mpytnp.plotEff1D: Warning: skipping, efficiencies in the dataset not calculated\033[1;m'
+					printWarning( plotEff1D.__module__+'.'+plotEff1D.__name__,"Skipping... Efficiencies in the dataset not calculated")
                                         continue
-                                graph = {}
                                 _max = {}
                                 _min = {}
+				varPoints = {}
+				effPoints = {}
                                 for otherVarName, val in otherVarDict.iteritems():
-                                        graphName = graphName+otherVarName
-                                        if self[name]['isMC'] == 1:
-                                                graphName += '__mcTrue'
-                                        graph[otherVarName] = ROOT.TGraphAsymmErrors()
-                                        graph[otherVarName].SetName( graphName )
-                                        graph[otherVarName].SetMarkerSize(1)
+					varPoints[otherVarName] = []
+					effPoints[otherVarName] = []					
                                         _max[otherVarName] = 0.0
                                         _min[otherVarName] = 0.0
-                                entry = 0
                                 for (eff,effLo,effHi),otherVarDict in _plotList:
                                         for otherVarName, (central, low, high) in otherVarDict.iteritems():
                                                 _min[otherVarName] = min( _min[otherVarName], low )
                                                 _max[otherVarName] = max( _max[otherVarName], high )
-                                                graph[otherVarName].SetPoint(entry, central, eff )
-                                                graph[otherVarName].SetPointEXlow( entry, central-low )
-                                                graph[otherVarName].SetPointEXhigh( entry, high-central)
-                                                graph[otherVarName].SetPointEYlow( entry, eff-effLo )
-                                                graph[otherVarName].SetPointEYhigh( entry, effHi-eff )
-                                        entry += 1
+						varPoints[otherVarName].append( (central,low,high) ) 
+						effPoints[otherVarName].append( (eff, effLo, effHi) )
 
-                                #-- Nota que ya tienes definido otherVar unas lineas mas arriba
                                 title = self.resLatex+', ('+str(Lo)+','+str(Hi)+') '+self[name]['variables'][varName]['latexName']+' range, '
                                 title += self[name]['objectType']+' category'
                                 for otherVarName, (central, low, high) in otherVarDict.iteritems():
-                                        c = ROOT.TCanvas()
-                                        frame = c.DrawFrame(_min[otherVarName],0,_max[otherVarName],1.05)
-                                        frame.SetName( 'frame_'+graphName )
-                                        #frame.SetTitle( title ) ---> Out titless
-                                        frame.SetTitle( '  CMS Preliminary,'+Lumi+' #sqrt{s}=7 TeV  ' )
-                                        #frame.SetTitle( '' )
-                                        #graph[otherVarName].SetTitle( title ) --> Out titles
-                                        graph[otherVarName].SetTitle( '' )
-                                        frame.GetXaxis().SetTitle(self[name]['variables'][otherVarName]['latexName']+\
-							' '+self[name]['variables'][otherVarName]['unit'])
-                                        graph[otherVarName].GetXaxis().SetTitle(self[name]['variables'][otherVarName]['latexName']+\
-							' '+self[name]['variables'][otherVarName]['unit'])
-                                        frame.GetYaxis().SetTitle( '#varepsilon' )
-                                        graph[otherVarName].GetYaxis().SetTitle( '#varepsilon' )
-                                        frame.Draw()
-                                        graph[otherVarName].Draw('P')
-                                        c.SaveAs( graph[otherVarName].GetName()+'.eps' )
-                                        c.Close()
-                                        self[name]['tgraphs'][graph[otherVarName].GetName()] = graph[otherVarName]
+					graphname = graphName+otherVarName
+					if self[name]['isMC'] == 1:
+						graphname += '__mcTrue'
+					xtitle = self[name]['variables'][otherVarName]['latexName']+\
+							' '+self[name]['variables'][otherVarName]['unit']
+					ytitle = 'efficiency'
+					title = 'CMS Preliminary,'+Lumi+' #sqrt{s}=7 TeV'
+					ranges = (_min[otherVarName],0,_max[otherVarName],1.05)
+					self[name]['tgraphs'][graphname] = plotAsymGraphXY( varPoints[otherVarName], effPoints[otherVarName], xtitle, ytitle, \
+							returnGraph=True, rangeFrame=ranges, title=title, graphName=graphname)
 
 
 	
@@ -708,7 +676,7 @@ class pytnp(dict):
 		efficiency with pt and eta variables. Also, it
 		will stores in the object instance
 		"""
-		import rootlogon
+		import pytnp.steerplots.rootlogon
 		from tnputils import getBinning,listTableEff,getEff
 
 		#FIXME: Meter los errores en la misma linea (ahora te salta
