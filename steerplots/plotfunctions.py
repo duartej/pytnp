@@ -4,20 +4,33 @@
 import ROOT
 from pytnp.libPytnp.management import printError,printWarning
 
-#def PrintEstadisticos( fileOut, hist ):
-#
-#	print """
-#:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
-# %s
-#	Entries :	%s
-#	MEAN :		%s
-#	MEAN error :	%s
-#	RMS : 		%s
-#	RMS error :	%s
-#:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
-#	""" % ( fileOut, str(hist.GetEntries()), str(hist.GetMean()), str(hist.GetMeanError()), str(hist.GetRMS(1)), str(hist.GetRMSError(1)) )
-#
-#	return
+
+#-- Auxiliary class to store attributes and useful info for the
+#   plots
+class auxK():
+	returnGraph = False
+	graphname = 'graph_'
+	rangeFrame = []
+	title = ''
+	markercolor = 1
+	markerstyle = 20
+	logX = False
+	logY = False
+	canvas = None
+
+def setkeywords( keywords, keyw ):
+	"""
+	"""
+	#-- Sanity check
+	VALID_KEYWORDS = [ _name for _name in dir( keyw ) if _name.find('__') == -1 ]
+	for name, value in keywords.iteritems():
+		if not name in VALID_KEYWORDS:
+			message = "Invalid keyword argument '%s'\nValid keywords are '%s'" % (name, str(VALID_KEYWORDS))
+			printError( plotGraphXY.__module__,'.'+plotGraphXY.__name__, message, KeyError )
+		setattr( keyw, name, value )
+
+	return keyw
+
 
 def legend( posLeg ):
 	"""
@@ -85,32 +98,15 @@ def plotAsymGraphXY( X, Y, tx, ty, outputformat='eps', **keywords ):
 #logX='False', logY='False', valLine=[]):
 	"""
 	"""
-	#-- Auxiliar class to deal with the keywords
-	import time
-	class auxK():
-		returnGraph = False
-		graphName = 'graph'+("%0.10f" % time.time()).replace('.','_')
-		rangeFrame = []
-		title = ''
-		markercolor = 1
-		markerstyle = 20
-		logX = False
-		logY = False
-		canvas = None
-
 	import rootlogon
 	ROOT.gROOT.SetBatch( 1 )
 	
-	#-- Sanity check
+	#-- Sanity check and get attributes keywords
 	keyw = auxK()
-	VALID_KEYWORDS = [ _name for _name in dir( keyw ) if _name.find('__') == -1 ]
-	for name, value in keywords.iteritems():
-		if not name in VALID_KEYWORDS:
-			message = "Invalid keyword argument '%s'\nValid keywords are '%s'" % (name, str(VALID_KEYWORDS))
-			printError( plotGraphXY.__module__,'.'+plotGraphXY.__name__, message, KeyError )
-		setattr( keyw, name, value )
+	keyw = setkeywords( keywords, keyw )
 
         grafica = ROOT.TGraphAsymmErrors()
+	#grafica.SetName( keyw.graphname )
 
         i = 0
 	#-- Filling the graph
@@ -133,8 +129,8 @@ def plotAsymGraphXY( X, Y, tx, ty, outputformat='eps', **keywords ):
 		if len(keyw.rangeFrame) > 1:
 			frame = c.DrawFrame( keyw.rangeFrame[0], keyw.rangeFrame[1], keyw.rangeFrame[2], keyw.rangeFrame[3] )
 		else:
-			Xval = map( lambda x,xlo,xhi: x, X )
-			Yval = map( lambda x,xlo,xhi: x, Y )
+			Xval = map( lambda (x,xlo,xhi): x, X )
+			Yval = map( lambda (x,xlo,xhi): x, Y )
 			hX = ( max(Xval)-min(Xval) )*0.1
 			hY = ( max(Yval)-min(Yval) )*0.1
 			frame = c.DrawFrame( min(Xval)*(1.-hX), min(Yval)*(1.-hY), max(Xval)*(1.+hX), max(Yval)*(1+hY) )
@@ -159,15 +155,72 @@ def plotAsymGraphXY( X, Y, tx, ty, outputformat='eps', **keywords ):
 
 	if keyw.returnGraph:
 		if not keyw.canvas:
-			c.SaveAs( keyw.graphName+'.'+outputformat )
+			c.SaveAs( keyw.graphname+'.'+outputformat )
 			c.Close()
 		return grafica#, c  ---> Lo quiero o no, CUIDADO hay que propagarlo!!
 	
 	if not keyw.canvas:
-		c.SaveAs( keyw.graphName+'.'+outputformat )
+		c.SaveAs( keyw.graphname+'.'+outputformat )
 		c.Close()
 
 	#return None, None
+
+def plotMapTH2F( X,Y,Z, tx, ty, tz,  NbinsX, arrayX, NbinsY, arrayY, outputformat='eps', **keywords ):
+	"""
+	"""
+	import ROOT
+	import rootlogon
+	ROOT.gROOT.SetBatch( 1 )
+	#ROOT.gStyle.SetPadRightMargin(0.17)
+	
+	#-- Sanity check and get attributes keywords
+	keyw = auxK()
+	keyw = setkeywords( keywords, keyw )
+
+	hist = ROOT.TH2F( keyw.graphname, keyw.graphname, NbinsX, arrayX, NbinsY, arrayY )
+
+	if( len(keyw.rangeFrame) ) > 1:
+		hist.GetZaxis().SetLimits( keyw.rangeFrame[0], keyw.rangeFrame[1] )
+	else:
+		Zval = map( lambda (x,xlo,xhi): x, Z )
+		hZ = ( max(Zval)-min(Zval) )*0.1
+		hist.GetZaxis().SetLimits( min(Zval)*(1.-hZ), max(Zval)*(1+hz) )
+
+	for x, y, (z,zerror) in zip( X, Y, Z ):
+		b = hist.FindBin( x, y )
+		hist.SetBinContent( b, z )
+		hist.SetBinError( b, zerror )
+
+	c = ROOT.TCanvas()
+
+	hist.SetMarkerSize( 1.0 )
+	hist.SetMarkerStyle( keyw.markerstyle )
+	hist.SetMarkerColor( kewy.markercolor )
+	hist.GetXaxis().SetTitle( tx )
+	#hist.GetXaxis().CenterTitle()
+	hist.GetYaxis().SetTitle( ty )
+	#hist.GetYaxis().CenterTitle()
+	hist.SetZTitle( tz )
+	
+	hist.Draw( 'COLZ' )
+	#-- Overimpress values and errors
+	htext = hist.Clone('htext')
+	htext.SetMarkerSize(1.0)
+	htext.SetMarkerColor(1.0)
+	ROOT.gStyle.SetPaintTextFormat("1.3f")
+	if NbinsX+NbinsY < 7 :
+		Tmarkersize =2.2
+	else:
+		Tmarkersize = 0.7
+	htext.SetMarkerSize(Tmarkersize)
+	htext.Draw("SAMETEXTE0")
+	hist.SetTitle('')
+	textTitle = paveText( keyw.title )
+	textTitle.Draw()#'SAME'
+
+        c.SaveAs( keyw.graphname+'.'+outputformat )
+        c.Close()
+
 
 #def plotGraphXY( X, Y, tx, ty, outputformat='eps', **keywords ):
 ##logX='False', logY='False', valLine=[]):
@@ -176,7 +229,7 @@ def plotAsymGraphXY( X, Y, tx, ty, outputformat='eps', **keywords ):
 #	#-- Auxiliar class to deal with the keywords
 #	class auxK():
 #		returnGraph = False
-#		graphName = 'graph'
+#		graphname = 'graph'
 #		rangeFrame = []
 #		title = ''
 #		markercolor = 1
@@ -245,43 +298,10 @@ def plotAsymGraphXY( X, Y, tx, ty, outputformat='eps', **keywords ):
 #		c.Close()
 #		return grafica
 #
-#        c.SaveAs( keyw.graphName+'.'+outputformat )
+#        c.SaveAs( keyw.graphname+'.'+outputformat )
 #        c.Close()
 
 
-#def plotXYWeight( X, Y, W, tx, ty, tw, fileOut, rangeLimits=[] ):
-#
-#	import ROOT
-#	import rootlogon
-#	ROOT.gROOT.SetBatch( 1 )
-#	ROOT.gStyle.SetPadRightMargin(0.17)
-#	
-#	if len(rangeLimits) > 1:
-#		hist = ROOT.TH2F('','', len(X), rangeLimits[0], rangeLimits[1], len(Y), rangeLimits[2], rangeLimits[3] )
-#	else:
-#		hist = ROOT.TH2F('','', len(X), min(X), max(X), len(Y), min(Y), max(Y) )
-#	
-#	for valX, valY, valW in zip( X, Y, W ):
-#		hist.Fill( valX, valY, valW )
-#
-#	c = ROOT.TCanvas()
-#
-#	hist.SetMarkerSize( 1.0 )
-#	hist.GetXaxis().SetTitle( tx )
-#	hist.GetXaxis().CenterTitle()
-#	hist.GetYaxis().SetTitle( ty )
-#	hist.GetYaxis().CenterTitle()
-#	hist.SetZTitle( tw )
-#	
-#	hist.SetMinimum( min(W) )
-#	hist.SetMaximum( max(W) )
-#
-#	hist.Draw( 'PCOLZ' )
-#
-#        c.SaveAs( fileOut )
-#        c.Close()
-#
-#        return
 
 	
 #def plotXY2D( X, Y, X2, Y2, tx, ty, tl1, tl2, fileOut, rangeFrame=[], typeGraph='line', logX='False', logY='False', dreta='True'):
