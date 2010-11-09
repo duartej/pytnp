@@ -6,6 +6,7 @@ Function utilities which uses the pytnp class to do several plots
 import ROOT
 
 from pytnp.libPytnp.tnputils import  *
+from pytnp.libPytnp.management import printError,printWarning
 
 def superImposed( tnpDict, variable, whatPlots, Lumi, **keywords ):
 	"""
@@ -32,18 +33,7 @@ def superImposed( tnpDict, variable, whatPlots, Lumi, **keywords ):
 			histoSet.add( name )
 			#-- Storing and plotting
 			tnp.plotEff1D( name, variable, Lumi )
-	#--- In order doing comparations between datasets that have
-	#    different binnings we must select the data with LESS
-	#    number of binnings. 
-	#----WARNING: the user must check that he/she is using the
-	#    same binnings FIXME: Check this automatically
-	#FIXME: NOT WORKS--> I don't know
-#	print len(histoSet)
-#	minRooDataSetTuple = [ (len(x.RooDataSet, x.RooDataSet) for x in tnpDict.itervalues() ] # pairing lenght with names of RooPlots
-#	minValue = min( map( lambda x: x[0], minRooDataSetTuple ) )                        # getting the smallest RooPlot
-#	minRooDataSet = filter( lambda x: minValue == x[0], minRooDataSetTuple )[0][1]        # extracting the RooPlot
-#	minNamesList = set( [ i for i in minRooDataSet.iterkeys() ]) 
-#	histoSet = histoSet.intersection( minNamesList )
+	#--- 
 	graphName = []
 	for __tnp in tnpDict.itervalues():
 		for NAMErds, DICT in __tnp.iteritems():
@@ -148,7 +138,7 @@ def getDiff2DPlots( tnpRef, tnp2, Lumi, *nameOfdataSet ):
 	"""
 	from math import sqrt
 	import rootlogon 
-	#from pytnp.libPytnp.tnputils import checkbinnedVar
+	#from pytnp.libPytnp.tnputils import isbinnedVar
 	#from pytnp.libPytnp.tnputils import getBinning
 	#---- Initialiting -------------------------------
 	nameOfdataSet2 = None
@@ -192,7 +182,7 @@ def getDiff2DPlots( tnpRef, tnp2, Lumi, *nameOfdataSet ):
 			{ 'histo': None,  'plotName': plotName2, 'title': title2 } 
 			]
 	#--- Getting the binning and some checks: ##################################a
-	datasetVarList, effName = checkbinnedVar( dataSet )
+	datasetVarList, effName = getVarNames( dataSet )
 	#--- Harcoded for 2 variables
 	if len(datasetVarList) != 2:
 		message = """\033[1;31mPROVISONAL ERROR: must be 2 binned variables in dataset %s""" % dataSet.GetName()

@@ -57,8 +57,7 @@ def getResName( aFile, **keywords ):
 					"""name of the file, you need an standard format like:\n"""\
 					"""    NameOFResonance_X_blabla.root"""\
 					"""Unrecognized name: \033[1;m\033[1;39m  '%s'\033[1;m""" % aFile
-			printWarning( getResName.__module__+'.'+getResName.__name__, message )
-			return None
+			printError( getResName.__module__+'.'+getResName.__name__, message, AttributeError )
 		
 	except:
 		message ="""UNEXPECTED ERROR!! Send a e-mail to the developer(s) with all information\n"""\

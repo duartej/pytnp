@@ -186,27 +186,24 @@ if __name__ == '__main__':
 	#____________________________________________________________________________________________________
 	# 1-dimensional plot 
 	if opt.resToComp:
-		from pytnp.steerplots.plotsCreation import diffEff
+		from pytnp.steerplots.plotsCreation import diffEffMaps
 		from pytnp.libPytnp.getresname import getResName
 		#--- 
 		Message = """I need at least 2 input files comma separated without espaces. I parsed '%s'""" % opt.fileName
 		allFiles = parseOption( opt.fileName, '<', 2, Message )
-		#--- Has the user introduced the resonance name?
-		try:
-			resNameList = opt.resName.split(',')
-		except AttributeError:
-			resNameList = []
 		#-- Dictionary of pytnp instance for every resonance
 		tnpDict = {}
 			
-		for aFile, resname in map( lambda _file,_resName: (_file,_resName), allFiles,resNameList ):
+		for aFile in allFiles:
 			#--- Extract from the standard name file the resonance ---
-			if not resname:
-				# resonance name and latex format name
-				resNameTuple = getResName( aFile )
-			else:
-				resNameTuple = ( resname, resname)
+			# resonance name and latex format name
+			resNameTuple = getResName( aFile, config=config_file )
 			tnpDict[resNameTuple[0]] = pytnp( aFile, dataset=whatPlots, effName=opt.effName, resonance=resNameTuple )
+		#--- Check we have 2 pytnp (no keys overwritten)
+		if len(tnpDict) != 2:
+			message = "You have the same resonance name for the two files introduced: '%s'\n"\
+					"Edit a configuration file changing that behaviour and then use '-c' option" % str(tnpDict.keys())
+			printErrorAndExit( message, -1 )
 
 		#--- Ready to run the plots
 		diffEffMaps( tnpDict, opt.resToComp, Lumi )
