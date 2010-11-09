@@ -124,9 +124,9 @@ def superImposed( tnpDict, variable, whatPlots, Lumi, **keywords ):
 		# Raise a exception ??
 
 
-def getDiff2DPlots( tnpRef, tnp2, Lumi, *nameOfdataSet ):
+def diff2DMaps( tnpRef, tnp2, varX, varY, Lumi, *nameOfdataSet ):
 	"""
-	getDiff2DPlots( pytnpRef, pytnpOther, nameOfdataSet, nameOfdataSet2 ) --> 
+	diff2DMaps( pytnpRef, pytnpOther, nameOfdataSet, nameOfdataSet2 ) --> 
 
 	Given 2 pytnp instances, it will do 2-dimensional maps:
 
@@ -137,6 +137,7 @@ def getDiff2DPlots( tnpRef, tnp2, Lumi, *nameOfdataSet ):
 	The comparation will be done until the minimum of both
 	"""
 	from math import sqrt
+	from plotfunctions import plotMapTH2F
 	import rootlogon 
 	#from pytnp.libPytnp.tnputils import isbinnedVar
 	#from pytnp.libPytnp.tnputils import getBinning
@@ -160,11 +161,19 @@ def getDiff2DPlots( tnpRef, tnp2, Lumi, *nameOfdataSet ):
 		exit(-1)
         try:
 		dataSet = tnpRef.RooDataSet[nameOfdataSet]
+		for i in [varX, varY]:
+			if not isbinnedVar( dataSet, i ):
+				message = "Variable '%s' is not a binned variable in the '%s' RooDataSet" % (i, nameOfdataSet)
+				printError( diff2DMaps.__module__+'.'+diff2DMaps.__name__, message, UserWarning )
 	except KeyError:
 		print """\033[1;31mError: you must introduce a valid name\033[1;m"""
 		raise KeyError
         try:
 		dataSet2 = tnp2.RooDataSet[nameOfdataSet2]
+		for i in [varX, varY]:
+			if not isbinnedVar( dataSet2, i ):
+				message = "Variable '%s' is not a binned variable in the '%s' RooDataSet" % (i, nameOfdataSet2)
+				printError( diff2DMaps.__module__+'.'+diff2DMaps.__name__, message, UserWarning )
 	except KeyError:
 		print """\033[1;31mError: you must introduce a valid name\033[1;m"""
 		raise KeyError
@@ -181,45 +190,20 @@ def getDiff2DPlots( tnpRef, tnp2, Lumi, *nameOfdataSet ):
 	histoList = [ { 'histo': None, 'plotName': plotName, 'title': title},
 			{ 'histo': None,  'plotName': plotName2, 'title': title2 } 
 			]
-	#--- Getting the binning and some checks: ##################################a
+	#--- Checking binned variables  ##################################a
 	datasetVarList, effName = getVarNames( dataSet )
-	#--- Harcoded for 2 variables
-	if len(datasetVarList) != 2:
-		message = """\033[1;31mPROVISONAL ERROR: must be 2 binned variables in dataset %s""" % dataSet.GetName()
-		print message
-		raise KeyError
-	#---- The pt in the x-axis
-	try:
-		ptIndex = datasetVarList.index('pt')
-	except ValueError:
-		ptIndex = 0
-	ptName = datasetVarList[ptIndex]
-	etaName = datasetVarList[1-ptIndex] # -- datsetVarList have 2 elements
-
-	argSet = dataSet.get()
-	PT = argSet[ptName];
-	ETA = argSet[etaName];
-	ptNbins, arrayBinsPt = getBinning( PT )
-	etaNbins, arrayBinsEta = getBinning( ETA )
-	k = 0
-	for thisHisto in histoList:
-		hTitleOfHist = 'h'+nameOfdataSet.replace('/','_')+str(k)
-		thisHisto['histo'] = ROOT.TH2F( hTitleOfHist, '', etaNbins, arrayBinsEta, ptNbins, arrayBinsPt )
-		#thisHisto['histo'].SetTitle( thisHisto['title'] ) --> Out titles
-		thisHisto['histo'].SetTitle( '  CMS Preliminary,'+Lumi+' #sqrt{s}=7 TeV  ' )
-		#thisHisto['histo'].SetTitle( '' ) 
-		thisHisto['histo'].GetZaxis().SetLimits(0,1.0) # (6.5 Por que??)
-		thisHisto['histo'].SetContour(50) # Aumenta el granulado de los colores
-		thisHisto['histo'].GetZaxis().SetLabelSize(0.02)
-		k += 1
 	
 	listTableEff1 = listTableEff( dataSet )
+
+	xList = []
+	yList = []
+	effList = []
 	for teff1 in listTableEff1:
 		e1,e1lo,e1hi = teff1[effName]
-		pt,ptlo,pthi = teff1[ptName]
-		eta,etalo,etahi = teff1[etaName]
+		x,xlo,xhi = teff1[varX]
+		y,ylo,yhi = teff1[varY]
 		try:		
-			e2,e2lo,e2hi = eval('getEff( dataSet2,'+ptName+'='+str(pt)+','+etaName+'='+str(eta)+')')
+			e2,e2lo,e2hi = eval('getEff( dataSet2,'+varX+'='+str(x)+','+varY+'='+str(y)+')')
 		except TypeError:
 			#Not found efficiency in ptName-etaName  bin. Ignore that bin
 			continue
@@ -227,47 +211,27 @@ def getDiff2DPlots( tnpRef, tnp2, Lumi, *nameOfdataSet ):
 		finalEffError = sqrt( ((e1hi-e1lo)/2.0)**2.0 + ((e2hi-e2lo)/2.0)**2.0 )   #Simetrizing errors
 		#finalEff = abs(e1-e2)
 		finalEff = e1-e2
-		k = 0
-		for hist in histoList:
-			b = hist['histo'].FindBin( eta, pt )
-			if k == 0:
-				hist['histo'].SetBinContent( b, finalEff )    
-				hist['histo'].SetBinError(b, finalEffError )
-			elif k == 1:
-				try:
-					hist['histo'].SetBinContent( b, finalEff/e1 )    #WARNING
-				except ZeroDivisionError:
-					hist['histo'].SetBinContent( b, 0.0 )    
-
-			k += 1
-	k = 0
+		effList.append( (finalEff, finalEffError) )
+		xList.append( x )
+		yList.append( y )
+	titles = {}
+	for i in [varX,varY]:
+		titles[i] = tnpRef[nameOfdataSet]['binnedVar'][i]['latexName']
+		unit = tnpRef[nameOfdataSet]['binnedVar'][i]['unit'] 
+		if unit != '':
+			titles[i] += ' ('+unit+') '
+	#k = 0
+	XbinsN, arrayX = getBinning( dataSet.get()[varX] )
+	YbinsN, arrayY = getBinning( dataSet.get()[varY] )
 	for hist in histoList:
-		c = ROOT.TCanvas()
-		hist['histo'].GetYaxis().SetTitle('p_{t} (GeV/c)')
-		hist['histo'].GetXaxis().SetTitle('#eta')
-		hist['histo'].GetZaxis().SetTitle('eff')
-		#hist['histo'].SetTitle( hist['title'] ) --> Out titlee
-		#hist['histo'].SetTitle( '' )
-		hist['histo'].SetTitle( '  CMS Preliminary,'+Lumi+' #sqrt{s}=7 TeV  ' )
-		hist['histo'].Draw('COLZ')
-		#--- Only if is sigma plot
-		if k >= 0: ###--- FIXME: De momento dejo que esten los valores
-			htext = hist['histo'].Clone('htext')
-			htext.SetMarkerSize(1.0)
-			htext.SetMarkerColor(1)
-			ROOT.gStyle.SetPaintTextFormat("1.3f")
-			if ptNbins+etaNbins < 7:
-				htext.SetMarkerSize(2.2)
-			elif ptNbins+etaNbins > 14:
-				htext.SetMarkerSize(0.7)
-			htext.Draw('SAMETEXTE0')
-		toPlotName = hist['plotName']+'.eps'
-		c.SaveAs(toPlotName)
-		c.Close()
-		k += 1
+		ztitle = 'eff'
+		title =' CMS Preliminary,'+Lumi+' #sqrt{s}=7 TeV ' 
+		histoname = hist['plotName']
+		hist['histo'] = plotMapTH2F( xList, yList, effList, titles[varX], titles[varY], ztitle, XbinsN, arrayX, YbinsN, arrayY, \
+				title=title, graphname=histoname, rangeFrame = (0.0, 1.0) )
 
 
-def diffEffMaps( tnpDict, refRes, Lumi, **keywords ):
+def diffEffMaps( tnpDict, refRes, varX, varY, Lumi, **keywords ):
 	"""
 	diffEffMaps( pytnp1, pytnp2, 'reference_resonance', 'Luminosity' )
 
@@ -292,9 +256,8 @@ def diffEffMaps( tnpDict, refRes, Lumi, **keywords ):
 	#resonanceRef = resonance.pop( refRes )
 	for resName,resLatex in sorted(resonance):
 		for name in tnpDict[resName].RooDataSet.iterkeys():
-			getDiff2DPlots( tnpResRef, tnpDict[resName], Lumi, name )
-
-
+			#FIXME ---_> No funcionara, signatura cambiado (necsita variables de entrada
+			diff2DMaps( tnpResRef, tnpDict[resName], varX, varY, Lumi, name )
 
 
 
@@ -322,5 +285,5 @@ def sysMCFIT(tnp, Lumi, **keywords):
 		printError( sysMCFIT.__module__+'.'+sysMCFIT.__name__, message, AttributeError )
 
 	for tMC, tFit in pairFitMC:
-		getDiff2DPlots( tnp, tnp, Lumi, tMC, tFit )
+		diff2DMaps( tnp, tnp, Lumi, tMC, tFit )
 

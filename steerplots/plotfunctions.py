@@ -70,6 +70,7 @@ def paveText( title, posText='CR' ):
 	  DR: Down-Right corner
 	  CL: Center-Left
 	  CR: Center-Right 
+	  OG: Over the graphic
 	"""
 
 	if posText == 'UL':
@@ -84,6 +85,8 @@ def paveText( title, posText='CR' ):
 		text = ROOT.TPaveText(0.25,0.4,0.45,0.6,"NDC")
 	elif posText == 'CR':
 		text = ROOT.TPaveText(0.55,0.4,0.75,0.6,"NDC")
+	elif posText == 'OG':
+		text = ROOT.TPaveText(0.45,0.93,0.65,0.98,"NDC")
 	else:
 		mess = "Position '%s' not defined" % posLeg
 		printError( legend.__module__+'.'+legeng.__name__, message, AttributeError )
@@ -92,6 +95,8 @@ def paveText( title, posText='CR' ):
 	text.SetBorderSize(0)
 	text.SetFillColor(0)
 	text.SetTextSize(0.04)
+	text.SetFillStyle(4000)
+
 	return text
 
 def plotAsymGraphXY( X, Y, tx, ty, outputformat='eps', **keywords ):
@@ -195,18 +200,20 @@ def plotMapTH2F( X,Y,Z, tx, ty, tz,  NbinsX, arrayX, NbinsY, arrayY, outputforma
 
 	hist.SetMarkerSize( 1.0 )
 	hist.SetMarkerStyle( keyw.markerstyle )
-	hist.SetMarkerColor( kewy.markercolor )
+	hist.SetMarkerColor( keyw.markercolor )
 	hist.GetXaxis().SetTitle( tx )
 	#hist.GetXaxis().CenterTitle()
 	hist.GetYaxis().SetTitle( ty )
 	#hist.GetYaxis().CenterTitle()
 	hist.SetZTitle( tz )
+	hist.SetContour(50)
+	hist.GetZaxis().SetLabelSize(0.02)
 	
 	hist.Draw( 'COLZ' )
 	#-- Overimpress values and errors
 	htext = hist.Clone('htext')
 	htext.SetMarkerSize(1.0)
-	htext.SetMarkerColor(1.0)
+	htext.SetMarkerColor(1)
 	ROOT.gStyle.SetPaintTextFormat("1.3f")
 	if NbinsX+NbinsY < 7 :
 		Tmarkersize =2.2
@@ -215,11 +222,13 @@ def plotMapTH2F( X,Y,Z, tx, ty, tz,  NbinsX, arrayX, NbinsY, arrayY, outputforma
 	htext.SetMarkerSize(Tmarkersize)
 	htext.Draw("SAMETEXTE0")
 	hist.SetTitle('')
-	textTitle = paveText( keyw.title )
+	textTitle = paveText( keyw.title,'OG' )
 	textTitle.Draw()#'SAME'
 
         c.SaveAs( keyw.graphname+'.'+outputformat )
         c.Close()
+
+	return hist
 
 
 #def plotGraphXY( X, Y, tx, ty, outputformat='eps', **keywords ):

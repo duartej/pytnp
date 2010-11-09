@@ -74,9 +74,10 @@ if __name__ == '__main__':
         parser.add_option( '--compPlots', action='store', dest='comparationPlots', metavar='VAR',\
 			help='1-dim plots of variable \'VAR\' comparing different efficiencies from different root files' )
         parser.add_option( '--1d', action='store', dest='dim1Plots', metavar='VAR1[,VAR2,...]', help='1-dimensional plots of binned VAR1[, VAR2, ...]' )
-        parser.add_option( '--2d', action='store', dest='dim2Plots', metavar='VAR_X,VAR_Y', help='2-dim maps usign in the x-axis '\
-			'\'VAR_X\' and \'VAR_Y\' in the y-axis' )
-	parser.add_option( '-d', '--diff', action='store', dest='resToComp', metavar='RESONANCE', help='Comparation between efficiencies for different resonances taking RESONANCE as reference, plots of relative and absolute efficiencies' )
+        parser.add_option( '--2d', action='store', dest='dim2Plots', metavar='VARX,VARY', help='2-dim maps usign in the x-axis '\
+			'\'VARX\' and \'VARY\' in the y-axis' )
+	parser.add_option( '-d', '--diff', action='store', dest='resToComp', metavar='VARX,VARY', help='Difference efficiencies maps. \
+			Taking the efficiency from first file, e_1, and from the second, e_2, compute the e_1-e_2 maps in VARX-VARY space' )
         parser.add_option( '--counting', action='store_true', dest='counting', help='If active this flag, do the plots using the MC information (counting events)' )
         parser.add_option( '--sysTnP', action='store_true', dest='sysTnP', help='Do the plots (and a root file maps--Not yet) for the differences between counting MC and Tag and Probe fit efficiencies.' )
 	parser.add_option( '-m', '--maps', action='store', dest='maps', metavar='CATEGORY VAR_X,VAR_Y', nargs=2, help='Create root files with TH2F and RooDataSets, give the name of the muon category and the binned variables to use' )
@@ -191,22 +192,29 @@ if __name__ == '__main__':
 		#--- 
 		Message = """I need at least 2 input files comma separated without espaces. I parsed '%s'""" % opt.fileName
 		allFiles = parseOption( opt.fileName, '<', 2, Message )
-		#-- Dictionary of pytnp instance for every resonance
-		tnpDict = {}
-			
+		#--- Only two variables
+		Message = """I need 2 binned variables. I parsed '%s'""" % opt.resToComp
+		binnedVar = parseOption( opt.resToComp, '!=', 2, Message )
+		#-- Dictionar of pytnp instance for every resonance
+		tnpDict = {} 
+	
+		resonanceList = []
 		for aFile in allFiles:
 			#--- Extract from the standard name file the resonance ---
 			# resonance name and latex format name
 			resNameTuple = getResName( aFile, config=config_file )
 			tnpDict[resNameTuple[0]] = pytnp( aFile, dataset=whatPlots, effName=opt.effName, resonance=resNameTuple )
+			resonanceList.append( resNameTuple[0] )
 		#--- Check we have 2 pytnp (no keys overwritten)
 		if len(tnpDict) != 2:
 			message = "You have the same resonance name for the two files introduced: '%s'\n"\
 					"Edit a configuration file changing that behaviour and then use '-c' option" % str(tnpDict.keys())
 			printErrorAndExit( message, -1 )
 
+		#-- Taking the first input file as reference resonance 
+		refRes = resonanceList[0]
 		#--- Ready to run the plots
-		diffEffMaps( tnpDict, opt.resToComp, Lumi )
+		diffEffMaps( tnpDict, refRes, binnedVar[0], binnedVar[1] , Lumi )
 	#____________________________________________________________________________________________________
 	
 	#____________________________________________________________________________________________________
