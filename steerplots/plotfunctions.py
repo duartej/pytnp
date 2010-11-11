@@ -26,13 +26,13 @@ def setkeywords( keywords, keyw ):
 	for name, value in keywords.iteritems():
 		if not name in VALID_KEYWORDS:
 			message = "Invalid keyword argument '%s'\nValid keywords are '%s'" % (name, str(VALID_KEYWORDS))
-			printError( plotGraphXY.__module__,'.'+plotGraphXY.__name__, message, KeyError )
+			printError( setkeywords.__module__+'.'+setkeywords.__name__, message, KeyError )
 		setattr( keyw, name, value )
 
 	return keyw
 
 
-def legend( posLeg ):
+def legend( posLeg ='CR' ):
 	"""
 	legend( 'pos' ) --> TLegend
 
@@ -43,18 +43,21 @@ def legend( posLeg ):
 	  UR: Up-Right corner
 	  DL: Down-Left corner
 	  DR: Down-Right corner
+	  CR: Center-Right 
 
 	"""
 	import ROOT
 
 	if posLeg == 'UL':
-		leg = ROOT.TLegend(0.2,0.8,0.4,0.9)
+		leg = ROOT.TLegend(0.2,0.69,0.4,0.79)
 	elif posLeg == 'UR':
-		leg = ROOT.TLegend(0.5,0.8,0.9,0.9)
+		leg = ROOT.TLegend(0.5,0.69,0.7,0.79)
 	elif posLeg == 'DL':
-		leg = ROOT.TLegend(0.2,0.2,0.4,0.4)
+		leg = ROOT.TLegend(0.2,0.41,0.4,0.51)
 	elif posLeg == 'DR':
-		leg = ROOT.TLegend(0.7,0.2,0.9,0.4)
+		leg = ROOT.TLegend(0.5,0.41,0.7,0.51)
+	elif posLeg == 'CR':
+		leg = ROOT.TLegend(0.5,0.29,0.70,0.39)
 	else:
 		mess = "Position '%s' not defined" % posLeg
 		printError( legend.__module__+'.'+legeng.__name__, message, AttributeError )

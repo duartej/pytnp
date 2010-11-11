@@ -31,6 +31,9 @@ def parseOption( Opt, errorCondition, howManyCond, errorMessage ):
 	fulfill then raise and error message
 	"""
 	optList = Opt.split(',')
+	#-- Ignore all the empty string
+	optList = filter( lambda i: i != '', optList )
+
 	try:
 		isTrue = eval( 'len(optList) '+errorCondition+str(howManyCond) )
 	except SyntaxError:
@@ -67,22 +70,27 @@ if __name__ == '__main__':
 
         parser = OptionParser()
 	parser.set_defaults(counting=False,effName='efficiency')
-        parser.add_option( '-i', '--input', action='store', dest='fileName', metavar='FILENAME1[,FILENAME2,...]', help='Input root file name, comma separated, no espaces' )
-        parser.add_option( '-c', '--config',  action='store', dest='config_file', help='Python configuration file' )
+        parser.add_option( '-i', '--input', action='store', dest='fileName', metavar='FILENAME1[,FILENAME2,...]', \
+			help='Input root file name, comma separated, no espaces' )
+        parser.add_option( '-c', '--config',  action='store', dest='config_file', metavar='FILE', help='Python configuration file' )
 	parser.add_option( '-p', '--printContent', action='store_true', dest='printContent', help='Print the Tag and Probe'\
 			' content of the root file(s) showing their encapsulate structure and then exit ' )
-        parser.add_option( '--compPlots', action='store', dest='comparationPlots', metavar='VAR',\
-			help='1-dim plots of variable \'VAR\' comparing different efficiencies from different root files' )
-        parser.add_option( '--1d', action='store', dest='dim1Plots', metavar='VAR1[,VAR2,...]', help='1-dimensional plots of binned VAR1[, VAR2, ...]' )
+        #parser.add_option( '-s', '--same', action='store', dest='comparationPlots', metavar='VAR',\
+	#		help='' )
+        parser.add_option( '--1d', action='store', dest='dim1Plots', metavar='VAR', help='1-dimensional plots of binned VAR.'\
+			'If enter more than one input file then the 1-dim plots of variable \'VAR\' from different root files will be plotted'\
+			' in the same canvas' )
         parser.add_option( '--2d', action='store', dest='dim2Plots', metavar='VARX,VARY', help='2-dim maps usign in the x-axis '\
 			'\'VARX\' and \'VARY\' in the y-axis' )
-	parser.add_option( '-d', '--diff', action='store', dest='resToComp', metavar='VARX,VARY', help='Difference efficiencies maps. \
-			Taking the efficiency from first file, e_1, and from the second, e_2, compute the e_1-e_2 maps in VARX-VARY space' )
-        parser.add_option( '--counting', action='store_true', dest='counting', help='If active this flag, do the plots using the MC information (counting events)' )
+	parser.add_option( '-d', '--diff', action='store', dest='resToComp', metavar='VARX,VARY', help='Difference efficiencies maps.' \
+			'Taking the efficiency from first file, e_1, and from the second, e_2, compute the e_1-e_2 maps in VARX-VARY space' )
+        #TO BE DEPRECATED
+	#parser.add_option( '--counting', action='store_true', dest='counting', help='If active this flag, do the plots using the MC information (counting events)' )
+	#
         parser.add_option( '--sysTnP', action='store_true', dest='sysTnP', help='Do the plots (and a root file maps--Not yet) for the differences between counting MC and Tag and Probe fit efficiencies.' )
 	parser.add_option( '-m', '--maps', action='store', dest='maps', metavar='CATEGORY VAR_X,VAR_Y', nargs=2, help='Create root files with TH2F and RooDataSets, give the name of the muon category and the binned variables to use' )
         parser.add_option( '-t', '--tables', action='store_true', dest='tables', help='Create latex tables from an efficiency map root file' )
-        parser.add_option( '-L', '--lumi', action='store', dest='Lumi', nargs=2, help='Integrated Luminosity and unit' )
+        parser.add_option( '-L', action='store', dest='Lumi', metavar='LUMI unit', nargs=2, help='Integrated Luminosity and unit' )
 	parser.add_option( '-e', '--effName', action='store', dest='effName', help='Efficiency name as will found in the rootfile (CAVEAT: The same name'\
                 ' for all RooDataSet in the rootfile is mandatory)' )
 
@@ -92,12 +100,13 @@ if __name__ == '__main__':
 		Message="""Missed mandatory argument -i FILENAME"""
 		parser.error( Message )
 	
-	from pytnp.libPytnp.pytnpclass import pytnp
-
+	donesomething = False
 	#____________________________________________________________________________________________________
 	#Print printContent and exit
 	if opt.printContent:
-                Message = """I need at least 1 input files comma separated without espaces. I parsed '%s'""" % opt.fileName
+		from pytnp.libPytnp.pytnpclass import pytnp
+		
+		Message = """I need at least 1 input files comma separated without espaces. I parsed '%s'""" % opt.fileName
 		allFiles = parseOption( opt.fileName, '<',1, Message )
                 for _f in allFiles:
                         tnp = pytnp( _f, effName = opt.effName)
@@ -116,9 +125,10 @@ if __name__ == '__main__':
 
 	#____________________________________________________________________________________________________
 	#Using MC info-- counting events instead of fit
-	whatPlots = 'fit_eff'
-	if opt.counting:
-		whatPlots = 'cnt_eff'
+	#TO BE DEPRECATED
+	#whatPlots = 'fit_eff'
+	#if opt.counting:
+	#	whatPlots = 'cnt_eff'
 	#____________________________________________________________________________________________________
 	
 	#____________________________________________________________________________________________________
@@ -131,24 +141,28 @@ if __name__ == '__main__':
 	
 	
 	#Do not display graphics --> FIXME: Posa-ho a un altre lloc!
-	import ROOT
-	ROOT.gROOT.SetBatch(1)
+	#import ROOT
+	#ROOT.gROOT.SetBatch(1)
 
 	#____________________________________________________________________________________________________
-	# Doing 1-dimensional plots of several datasets (with the same effType efficiency) drawn on the
+	# Doing 1-dimensional plots, if there are more than one input file, do the plots plotted on the 
 	# same canvas.
-	if opt.comparationPlots:
+	if opt.dim1Plots:
+		from pytnp.libPytnp.pytnpclass import pytnp
 		from pytnp.libPytnp.getresname import getResName
 		from pytnp.steerplots.plotsCreation import superImposed
+
+		donesomething = True
 		
 		#-- Only I want one variable
-		Message = """I need only one variable. I parsed '%s'""" % opt.comparationPlots
-		variableList = parseOption( opt.comparationPlots, '>', 1, Message )
+		Message = """I need only one variable. I parsed '%s'""" % opt.dim1Plots
+		variableList = parseOption( opt.dim1Plots, '>', 1, Message )
 		
 		variable = variableList[0]
-
-		Message = """I need at least 2 input files comma separated without espaces. I parsed '%s'""" % opt.fileName
-		allFiles = parseOption( opt.fileName, '<', 2, Message )
+		
+		#-- Cheking how many inputs files have
+		Message = """I need at least 1 input files comma separated without espaces. I parsed '%s'""" % opt.fileName
+		allFiles = parseOption( opt.fileName, '<', 1, Message )
 
 		try:
 			resNameList = opt.resName.replace(' ','_').split(',')
@@ -156,8 +170,8 @@ if __name__ == '__main__':
 			resNameList = []
 		#-- Dictionary of pytnp instance for every resonance
 		tnpDict = {}
-		#-- Filling the dict, note if we have the same resonance name we're gone
-		#-- loose a file
+		#-- Filling the dict, note if we have the same resonance name we're going tp
+		#-- lose a file
 		for aFile, resname in map( lambda _file,_resName: (_file,_resName), allFiles,resNameList ):
 			#--- Extract from the standard name file the resonance ---
 			if not resname:
@@ -165,9 +179,11 @@ if __name__ == '__main__':
 				try:
 					resNameTuple = getResName( aFile, config=config_file )
 				except TypeError:
-					#-- The file name must be standard
+					#-- The file name must be standard (if there aren't config file)
 					message = """The file name '%s' introduced is not in a standard format:"""\
-							""" Resonance_histo[MuFromTrk|Trigger]_....root""" % aFile
+							""" Resonance_histo[MuFromTrk|Trigger]_....root\n"""\
+							""" You can use the -c option to include your own resonance name"""\
+							""" in order to avoid the above file name notation""" % aFile
 					printErrorAndExit( message, -1 )
 			else:
 				resNameTuple = ( resname, resname)
@@ -179,16 +195,73 @@ if __name__ == '__main__':
 				message += """Impose the resonance name usign the '--resName' option (see --help for usage)""" 
 				printErrorAndExit( message, -1 )
 
-			tnpDict[resNameTuple[0]] = pytnp( aFile, dataset=whatPlots, resonance = resNameTuple )
+			tnpDict[resNameTuple[0]] = pytnp( aFile, resonance = resNameTuple ) #dataset=whatPlots )
 
-		superImposed( tnpDict, variable, whatPlots, Lumi )
+		_title =' CMS Preliminary,'+Lumi+' #sqrt{s}=7 TeV '
+
+		superImposed( tnpDict, variable, Lumi, title=_title )
+	#____________________________________________________________________________________________________
+
+	#____________________________________________________________________________________________________
+	# TO BE REMOVE: DEPRECATED
+	# Doing 1-dimensional plots of several datasets (with the same effType efficiency) drawn on the
+	# same canvas.
+	#if opt.comparationPlots:
+	#	from pytnp.libPytnp.pytnpclass import pytnp
+	#	from pytnp.libPytnp.getresname import getResName
+	#	from pytnp.steerplots.plotsCreation import superImposed
+	#	donesomething = True
+	#	
+	#	#-- Only I want one variable
+	#	Message = """I need only one variable. I parsed '%s'""" % opt.comparationPlots
+	#	variableList = parseOption( opt.comparationPlots, '>', 1, Message )
+	#	
+	#	variable = variableList[0]
+
+	#	Message = """I need at least 2 input files comma separated without espaces. I parsed '%s'""" % opt.fileName
+	#	allFiles = parseOption( opt.fileName, '<', 2, Message )
+
+	#	try:
+	#		resNameList = opt.resName.replace(' ','_').split(',')
+	#	except AttributeError:
+	#		resNameList = []
+	#	#-- Dictionary of pytnp instance for every resonance
+	#	tnpDict = {}
+	#	#-- Filling the dict, note if we have the same resonance name we're gone
+	#	#-- loose a file
+	#	for aFile, resname in map( lambda _file,_resName: (_file,_resName), allFiles,resNameList ):
+	#		#--- Extract from the standard name file the resonance ---
+	#		if not resname:
+	#			# resonance name and latex format name
+	#			try:
+	#				resNameTuple = getResName( aFile, config=config_file )
+	#			except TypeError:
+	#				#-- The file name must be standard
+	#				message = """The file name '%s' introduced is not in a standard format:"""\
+	#						""" Resonance_histo[MuFromTrk|Trigger]_....root""" % aFile
+	#				printErrorAndExit( message, -1 )
+	#		else:
+	#			resNameTuple = ( resname, resname)
+	#		#-- Raise an error if the user don't define diferent resonances names
+	#		if tnpDict.has_key(resNameTuple[0]):
+	#			message = """There are root input files names which have the same resonance names:\n"""
+	#			message += """\033[1;39m  '%s': '%s'\n\033[1;m"""  % ( tnpDict[resNameTuple[0]].__fileroot__.GetName(), resNameTuple[0] ) 
+	#			message += """\033[1;39m  '%s': '%s'\n\033[1;m"""  % ( aFile, resNameTuple[0] ) 
+	#			message += """Impose the resonance name usign the '--resName' option (see --help for usage)""" 
+	#			printErrorAndExit( message, -1 )
+
+	#		tnpDict[resNameTuple[0]] = pytnp( aFile, resonance = resNameTuple ) #dataset=whatPlots )
+
+	#	superImposed( tnpDict, variable, Lumi )
 	#____________________________________________________________________________________________________
 
 	#____________________________________________________________________________________________________
 	# 1-dimensional plot 
 	if opt.resToComp:
+		from pytnp.libPytnp.pytnpclass import pytnp
 		from pytnp.steerplots.plotsCreation import diffEffMaps
 		from pytnp.libPytnp.getresname import getResName
+		donesomething = True
 		#--- 
 		Message = """I need at least 2 input files comma separated without espaces. I parsed '%s'""" % opt.fileName
 		allFiles = parseOption( opt.fileName, '<', 2, Message )
@@ -203,7 +276,7 @@ if __name__ == '__main__':
 			#--- Extract from the standard name file the resonance ---
 			# resonance name and latex format name
 			resNameTuple = getResName( aFile, config=config_file )
-			tnpDict[resNameTuple[0]] = pytnp( aFile, dataset=whatPlots, effName=opt.effName, resonance=resNameTuple )
+			tnpDict[resNameTuple[0]] = pytnp( aFile,  effName=opt.effName, resonance=resNameTuple ) #,dataset=whatPlots )
 			resonanceList.append( resNameTuple[0] )
 		#--- Check we have 2 pytnp (no keys overwritten)
 		if len(tnpDict) != 2:
@@ -218,42 +291,48 @@ if __name__ == '__main__':
 	#____________________________________________________________________________________________________
 	
 	#____________________________________________________________________________________________________
-	if opt.dim1Plots and not opt.comparationPlots:
-		#--- Only one file
-		Message = """I need only one root file. I parsed '%s'""" % opt.fileName
-		allFiles = parseOption( opt.fileName, '>', 1, Message )
-		#--- Controling variables
-		Message = """I need only one variable, I parsed '%s'""" % opt.dim1Plots
-		variables = parseOption( opt.dim1Plots, '!=', 1, Message )
-		#Aceptar palabra clave all => Todas las variables binned
-		tnp = pytnp(opt.fileName, dataset=whatPlots, effName = opt.effName )
-		resonance = tnp.resLatex
-		isNoVar = True
-		try:
-			# Ploting all variables in dataset
-			for var in variables:
-				for name,dataset in tnp.RooDataSet.iteritems():
-					#Counting case:
-					#if name.find('mcTrue') == -1:
-					if var in tnp[name]['binnedVar'].keys():
-						tnp.plotEff1D(name,var, Lumi)
-						isNoVar = False
-		except AttributeError:
-			pass
-			#FIXME: PORQUE ESTA ESTO?
-			#for name, tcanvas in tnp.TCanvas.iteritems():
-			##	if name.find('_PLOT_') != -1 and (name.find('pt_eta_') == -1 or name.find('eta_pt') == -1):
-			#		tnp.plotEff1D(name,inputVarName, Lumi )
-		if isNoVar:
-			Message = """The variable '%s' does not exist in any RooDataSet from the rootfile '%s'"""\
-					% ( var, tnp.__fileroot__.GetName() )  			
-			printErrorAndExit( Message, -1 )
-		del tnp
+	# TO BE REMOVE: DEPRECATED
+	#if opt.dim1Plots and not opt.comparationPlots:
+	#	from pytnp.libPytnp.pytnpclass import pytnp
+	#	donesomething = True
+	#	#--- Only one file
+	#	Message = """I need only one root file. I parsed '%s'""" % opt.fileName
+	#	allFiles = parseOption( opt.fileName, '>', 1, Message )
+	#	#--- Controling variables
+	#	Message = """I need only one variable, I parsed '%s'""" % opt.dim1Plots
+	#	variables = parseOption( opt.dim1Plots, '!=', 1, Message )
+	#	#Aceptar palabra clave all => Todas las variables binned
+	#	tnp = pytnp(opt.fileName, effName=opt.effName )#dataset=whatPlots, effName = opt.effName )
+	#	resonance = tnp.resLatex
+	#	isNoVar = True
+	#	try:
+	#		# Ploting all variables in dataset
+	#		for var in variables:
+	#			for name,dataset in tnp.RooDataSet.iteritems():
+	#				#Counting case:
+	#				#if name.find('mcTrue') == -1:
+	#				if var in tnp[name]['binnedVar'].keys():
+	#					tnp.plotEff1D(name,var, Lumi)
+	#					isNoVar = False
+	#	except AttributeError:
+	#		pass
+	#		#FIXME: PORQUE ESTA ESTO?
+	#		#for name, tcanvas in tnp.TCanvas.iteritems():
+	#		##	if name.find('_PLOT_') != -1 and (name.find('pt_eta_') == -1 or name.find('eta_pt') == -1):
+	#		#		tnp.plotEff1D(name,inputVarName, Lumi )
+	#	if isNoVar:
+	#		Message = """The variable '%s' does not exist in any RooDataSet from the rootfile '%s'"""\
+	#				% ( var, tnp.__fileroot__.GetName() )  			
+	#		printErrorAndExit( Message, -1 )
+	#	del tnp
 
 	#____________________________________________________________________________________________________
 
 	#____________________________________________________________________________________________________
 	if opt.dim2Plots or opt.maps:
+		from pytnp.libPytnp.pytnpclass import pytnp
+		donesomething = True
+		
 		category = None
 		#-- Two variables
 		Message = """I need two binned variables root file. I parsed '%s'""" % opt.dim2Plots
@@ -269,7 +348,7 @@ if __name__ == '__main__':
 		Message = """I need only one root file. I parsed '%s'""" % opt.fileName
 		_file = parseOption( opt.fileName, '>', 1, Message )
 
-		tnp = pytnp(_file[0], dataset=whatPlots)
+		tnp = pytnp(_file[0] )#, dataset=whatPlots)
 		#-- Select the datasets we want to use
 		if category:
 			isfulfillCat = lambda dataname : tnp[dataname]['objectType'] == category
@@ -298,7 +377,9 @@ if __name__ == '__main__':
 
 	#____________________________________________________________________________________________________
 	if opt.sysTnP:
+		from pytnp.libPytnp.pytnpclass import pytnp
 		from pytnp.steerplots.plotsCreation import sysMCFIT
+		donesomething = True
 		# Ploting mc true-counting vs. fit_eff
 		allFiles = opt.fileName.split(',')
 		# The mc true can be in other file, then we need
@@ -309,18 +390,25 @@ if __name__ == '__main__':
 
 	#____________________________________________________________________________________________________
 	if opt.tables:
+		from ROOT import TFile
 		from pytnp.libPytnp.tnputils import tableLatex
+		donesomething = True
 
 		Message = """I need only 1 input files. I parsed '%s'""" % opt.fileName
 		allFiles = parseOption( opt.fileName, '>', 1, Message )
 		
-		f = ROOT.TFile( opt.fileName )
+		f = TFile( opt.fileName )
 		dataList = [ f.Get(i.GetName()) for i in f.GetListOfKeys() if i.GetClassName() == 'RooDataSet' ]
 		if len(dataList) == 0:
 			print """\033[1;33mWarning: the file %s does not contain a efficiency map\033[1;m""" % opt.fileName 
 		for d in dataList:
 			tableLatex(d, opt.effName)
 	#____________________________________________________________________________________________________
+
+	if not donesomething:
+		Message = """\033[1;34mI didn't do anything. See usage:\033[1;m"""
+		print Message
+		parser.print_help()
 
 	
 

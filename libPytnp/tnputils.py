@@ -411,6 +411,31 @@ def getBinning( var ):
 
 	return binsN, arrayBins
 
+def graphclassname( tnp, dataname ):
+	"""
+	graphclassname( tnp, dataname ) -> 'name1'
+
+	Giving a instance of tnp and a RooDataSet name contained in it, the
+	function returns a string which defines the graph class that RooDataSet
+	belongs. A graph class is defined by the keys ``effType``, ``objectType``
+	and ``methodUsed``
+	
+	:param tnp: object instance of pytnp class
+	:type dataset: pytnp
+	:param dataname: name of the RooDataSet
+	:type str: string
+	:return name: name of the graph class
+	:rtype: string
+
+	:raise: UserWarning: ``The RooDataSet '%s' do not belong to the pyntp instance introduced``
+	"""
+	#-- Check dataset
+	try:
+		return tnp[dataname]['effType']+'_'+tnp[dataname]['objectType']+'_'+tnp[dataname]['methodUsed']
+	except KeyError:
+		message = "The RooDataSet '%s' do not belong to the pyntp instance introduced" % dataname
+		printError( graphclassname.__module__+'.'+graphclassname.__name__, message, UserWarning )
+
 
 def newtableLatex( dataset, effName, varX, varY, **keyword ):
 	"""

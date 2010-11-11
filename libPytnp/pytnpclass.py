@@ -502,47 +502,6 @@ class pytnp(dict):
 		print message
 
 
-#	def newplotEff1D( self, name, inputVarName, Lumi ):
-#		"""
-#		plotEff1D( RooDataSet, 'variable_name', 'latex string Luminosity' ) 
-#	
-#		Given a name directory-like for a ROOT.RooDataSet object,
-#	 	the function creates a 1-dim plot of 'variable_name' extracted from the
-#		object and it will save it in a eps file. Also
-#		it will store the graph object:
-#		                      self[nameRooDataSet]['tgraphs'] = { 'graph_name': TGraphAsymmErrors, ... }
-#		"""
-#		import rootlogon
-#		from tnputils import listTableEff, tableEff
-#		dataset = None
-#		#-- Checking if the object exists
-#		try:
-#			dataset = self.RooDataSet[name]
-#		except KeyError:
-#		  	message = """you must introduce a valid name, '%s' is not a RooDataSet in the root file""" % name
-#			printError( self.__module__, message, KeyError )
-#		#--- Empty dataset
-#		if self.RooDataSet[name].numEntries() == 0:
-#			message = """\033[1;34mpytnp.plotEff1D: Empty RooDataSet '%s'. Skipping...\033[1;m""" % name
-#			print message
-#			return None
-#		#--- Checking variable
-#		if not inputVarName in self[name]['binnedVar'].keys():
-#		  	message = """you must introduce a valid binned variable name, '%s' is not in the '%s' RooDataSet\n""" % (inputVarName,name )
-#			message += """The list of binned variables are '%s'""" % str(self[name]['binnedVar'].keys())  
-#			printError( self.__module__, message, KeyError )
-#		
-#		self[name]['tgraphs'] = {}
-#		
-#		_tableEff = tableEff( dataset, self.effName )
-#		i = 0
-#		for valTuple in _tableEff[inputVarName]:
-#			central, low, high = valTuple
-#			eff, effLow, effHi = _tableEff[self.effName][i]
-#			i += 1
-
-
-		
 	def plotEff1D( self, name, inputVarName, Lumi ):
 		"""
 		plotEff1D( RooDataSet, 'variable_name', 'latex string Luminosity' ) 
@@ -552,14 +511,16 @@ class pytnp(dict):
 		object and it will save it in a eps file. Also
 		it will store the graph object::
 
-		   self[nameRooDataSet]['tgraphs'] = { 'graph_name': TGraphAsymmErrors, ... }
+		   self[nameRooDataSet]['tgraphs'] = { 'class_graph_name': TGraphAsymmErrors, ... }
 
 		"""
 		#import rootlogon
-		from tnputils import listTableEff,getEff
+		from tnputils import listTableEff,getEff, graphclassname
 		from pytnp.steerplots.plotfunctions import plotAsymGraphXY
 
 		dataset = None
+		#-- Getting the class graph name
+		_graphclassname = graphclassname( self, name )
 		#-- Checking if the object exists
 		try:
 			dataset = self.RooDataSet[name]
@@ -577,11 +538,11 @@ class pytnp(dict):
 			message += """The list of binned variables are '%s'""" % str(self[name]['binnedVar'].keys())  
 			printError( self.__module__, message, KeyError )
 		
-		self[name]['tgraphs'] = {}		
+		self[name]['tgraphs'] = { _graphclassname: {} }		
 		# Special case: we have only one variable
 		if len(self[name]['binnedVar']) == 1:
-			graphName = self.resonance+'_'+self[name]['methodUsed']+'_'+self[name]['effType']+'_'+\
-					self[name]['objectType']+'__'
+			graphName = self.resonance+'_'+self[name]['effType']+'_'+self[name]['objectType']+'_'+\
+					self[name]['methodUsed']+'__'
                         if self[name]['isMC'] == 1:
 				graphName += 'mcTrue__'
 			#--- Extracting the efficiency values per bin
@@ -606,8 +567,8 @@ class pytnp(dict):
 			ytitle = 'efficiency'
 			title = '  CMS Preliminary,'+Lumi+' #sqrt{s}=7 TeV  '
 
-			self[name]['tgraphs'][ graphName ] = plotAsymGraphXY( XPoints, YPoints, xtitle, ytitle,\
-					returnGraph=True, rangeFrame = (_min,0,_max,1.05), title=title, graphName=graphName )
+			self[name]['tgraphs'][_graphclassname][graphName] = [ plotAsymGraphXY( XPoints, YPoints, xtitle, ytitle,\
+						returnGraph=True, rangeFrame = (_min,0,_max,1.05), title=title, graphname=graphName ) ]
 
 			return 
 
@@ -620,8 +581,8 @@ class pytnp(dict):
                                 _otherVar_ += i+', '
                         _otherVar_ = _otherVar_[:-2]
                         if len(_otherVar_ ) != 0:
-                                _otherVar_ = ' in all the range of ' +_otherVar_
-                        print '\033[1;34m   \''+varName+'\' bins'+_otherVar_+'\033[1;m'
+                                _otherVar_ = ' in all the range of \'' +_otherVar_+'\''
+			print '\033[1;34m'+name+': \''+varName+'\' bins'+_otherVar_+'\033[1;m'
 
                         #--- Extracting bins and array of bins
                         binsN = self[name]['variables'][varName]['binN']
@@ -631,8 +592,10 @@ class pytnp(dict):
                                 Lo = arrayBins[bin]
                                 Hi = arrayBins[bin+1]
                                 Central = (Hi+Lo)/2.0
-                                graphName = self.resonance+'_'+self[name]['methodUsed']+'_'+self[name]['effType']+'_'+\
-                                                self[name]['objectType']+'__'+varName+'_bin'+str(bin)+'_'
+				graphName = self.resonance+'_'+self[name]['effType']+'_'+self[name]['objectType']+'_'+\
+						self[name]['methodUsed']+'__'+varName+'_bin'+str(bin)+'_'
+                                #graphName = self.resonance+'_'+self[name]['methodUsed']+'_'+self[name]['effType']+'_'+\
+                                #                self[name]['objectType']+'__'+varName+'_bin'+str(bin)+'_'
                                 #Getting list of efficiency values plus variables
                                 _plotList = eval('getEff(dataset,self.effName,'+varName+'='+str(Central)+')')
                                 #print _plotList
@@ -670,8 +633,8 @@ class pytnp(dict):
 					ytitle = 'efficiency'
 					title = 'CMS Preliminary,'+Lumi+' #sqrt{s}=7 TeV'
 					ranges = (_min[otherVarName],0,_max[otherVarName],1.05)
-					self[name]['tgraphs'][graphname] = plotAsymGraphXY( varPoints[otherVarName], effPoints[otherVarName], xtitle, ytitle, \
-							returnGraph=True, rangeFrame=ranges, title=title, graphName=graphname)
+					self[name]['tgraphs'][_graphclassname][graphname] = plotAsymGraphXY( varPoints[otherVarName], effPoints[otherVarName],\
+							xtitle, ytitle, returnGraph=True, rangeFrame=ranges, title=title, graphname=graphname)
 
 
 	
