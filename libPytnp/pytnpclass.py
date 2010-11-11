@@ -271,7 +271,7 @@ class pytnp(dict):
 		"""
 		used by print built-in function
 		"""
-		message = ''
+		message = '\033[1;39m'+self.resonance+'::\033[1;m\n'
 		for name, Dict in self.iteritems():
 			message += '-- \033[1;29m'+name+'\033[1;m\n'
 			for key,value in sorted(Dict.iteritems()):
