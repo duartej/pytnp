@@ -31,7 +31,7 @@ setup(name='pytnp',
 		author_email='Jordi.Duarte.Campderros@cern.ch',
 		url='http://devel.ifca.es/~duarte/tnp/dist',
 		#py_modules=['pytnpclass','__init__'],
-		packages = ['pytnp','pytnp.libPytnp', 'pytnp.steerplots'],
+		packages = ['pytnp','pytnp.libPytnp', 'pytnp.steerplots' ],
 		package_dir={'pytnp':''},
 		scripts=['bin/effPlots','bin/prepsubJobs.sh','bin/weightCreator.py'], # 'procsfile/.build/copyFile', 'procsfile/.build/CowboysNTuple'],
 		)

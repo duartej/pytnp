@@ -1,8 +1,6 @@
-"""pytnp
-
-pytnp package for using the CMSSW Tag and Probe package.
-See documentation in $WEB$
-
+"""
+Package for using the CMSSW Tag and Probe CMSSW software. 
+See documentation in http://devel.ifca.es/~duarte/pytnp_doc
 """
 __revision__ = "$Id: __init__.py 36560 2004-07-18 06:16:08Z tim_one $"
 #       python 2.6

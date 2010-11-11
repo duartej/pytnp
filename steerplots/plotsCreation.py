@@ -1,9 +1,6 @@
 """
 Function utilities which uses the pytnp class to do several plots
-  TODO: Description
 """
-
-import ROOT
 
 from pytnp.libPytnp.tnputils import  *
 from pytnp.libPytnp.management import printError,printWarning
@@ -18,6 +15,7 @@ def superImposed( tnpDict, variable, whatPlots, Lumi, **keywords ):
 	See the objectType content of a pytnp instance usign the print function for a
 	pytnp instance. 
 	"""
+	import ROOT
 	#FIXME: Esta acabada?? Codigo enrevesado...
 	#from pytnp.steerplots.plotfunctions import plotAsymGraphXY,legend
 	import rootlogon
@@ -126,12 +124,12 @@ def superImposed( tnpDict, variable, whatPlots, Lumi, **keywords ):
 
 def diff2DMaps( tnpRef, tnp2, varX, varY, Lumi, *nameOfdataSet ):
 	"""
-	diff2DMaps( pytnpRef, pytnpOther, nameOfdataSet, nameOfdataSet2 ) --> 
+	diff2DMaps( pytnpRef, pytnpOther, nameOfdataSet, nameOfdataSet2 ) 
 
-	Given 2 pytnp instances, it will do 2-dimensional maps:
-
-	|eff_ref-eff_other|sqrt(sigma_ref^2+sigma_other^2      Comparing_ResNameRef_ResNameOther_nameOfdataSet.eps     
-        |eff_ref-eff_other|eff_ref                             ComparingRelative_ResNameRef_ResNameOther_nameOfdataSet.eps
+	Given 2 pytnp instances, it will do 2-dimensional maps::
+	
+	  |eff_ref-eff_other|sqrt(sigma_ref^2+sigma_other^2      Comparing_ResNameRef_ResNameOther_nameOfdataSet.eps     
+          |eff_ref-eff_other|eff_ref                             ComparingRelative_ResNameRef_ResNameOther_nameOfdataSet.eps
 
 	The two files must be have the same binning but one of them can have more bins. 
 	The comparation will be done until the minimum of both
@@ -269,6 +267,7 @@ def sysMCFIT(tnp, Lumi, **keywords):
 	and Tag and Probe fitted efficiency. Return plots (and 
 	(TODO) root file) containing maps of the absolute differencies
         """
+	import ROOT
 	import rootlogon
 	ROOT.gROOT.SetBatch(1)
 

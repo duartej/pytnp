@@ -1,7 +1,7 @@
 """
+Wrapper to ROOT objects (THwF, Graph, ...)
 """
 
-import ROOT
 from pytnp.libPytnp.management import printError,printWarning
 
 
@@ -37,13 +37,16 @@ def legend( posLeg ):
 	legend( 'pos' ) --> TLegend
 
 	Return a TLegend object positioned at 'pos'. The values
-	admitted for 'pos' are:
+	admitted for 'pos' are::
+	  
 	  UL: Up-Left corner
 	  UR: Up-Right corner
 	  DL: Down-Left corner
 	  DR: Down-Right corner
 
 	"""
+	import ROOT
+
 	if posLeg == 'UL':
 		leg = ROOT.TLegend(0.2,0.8,0.4,0.9)
 	elif posLeg == 'UR':
@@ -63,7 +66,8 @@ def paveText( title, posText='CR' ):
 	paveText( 'pos' ) --> TPaveText
 
 	Return a TLegend object positioned at 'pos'. The values
-	admitted for 'pos' are:
+	admitted for 'pos' are::
+
 	  UL: Up-Left corner
 	  UR: Up-Right corner
 	  DL: Down-Left corner
@@ -72,6 +76,7 @@ def paveText( title, posText='CR' ):
 	  CR: Center-Right 
 	  OG: Over the graphic
 	"""
+	import ROOT
 
 	if posText == 'UL':
 		text = ROOT.TPaveText(0.25,0.8,0.45,0.9,"NDC")
@@ -103,6 +108,7 @@ def plotAsymGraphXY( X, Y, tx, ty, outputformat='eps', **keywords ):
 #logX='False', logY='False', valLine=[]):
 	"""
 	"""
+	import ROOT
 	import rootlogon
 	ROOT.gROOT.SetBatch( 1 )
 	

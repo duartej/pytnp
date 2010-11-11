@@ -70,7 +70,7 @@ if __name__ == '__main__':
         parser.add_option( '-i', '--input', action='store', dest='fileName', metavar='FILENAME1[,FILENAME2,...]', help='Input root file name, comma separated, no espaces' )
         parser.add_option( '-c', '--config',  action='store', dest='config_file', help='Python configuration file' )
 	parser.add_option( '-p', '--printContent', action='store_true', dest='printContent', help='Print the Tag and Probe'\
-			' content of the root file(s) showing their encapsulate structure and the exit ' )
+			' content of the root file(s) showing their encapsulate structure and then exit ' )
         parser.add_option( '--compPlots', action='store', dest='comparationPlots', metavar='VAR',\
 			help='1-dim plots of variable \'VAR\' comparing different efficiencies from different root files' )
         parser.add_option( '--1d', action='store', dest='dim1Plots', metavar='VAR1[,VAR2,...]', help='1-dimensional plots of binned VAR1[, VAR2, ...]' )

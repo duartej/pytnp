@@ -1,30 +1,20 @@
 """
-Module with utilities for pytnp
-  isVar:          check wheter a variable is in a RooDataSet or not
-  isbinnedVar:    check the binned variables and efficiency
-                  of a RooDataSet
-  isEffNoNull:    check that the efficiency values of a RooDataSet are not
-                  null (all zero values)
-  getVarNames:    return a tuple with a list of binned variables names and
-                  the efficiency name
-  getVarDict:     return a dictionary with all variables in a RooDataSet
-  getEffFromDict: return efficiency values to correspond some binned variable
-                  point
-  getEff:         idem
-  getBinning:     return the binning for a RooRealVar
-  tableLatex:     return a efficiency table in latex
-  newtableLatex:  idem
-  listTableEff:   return a list containing all the values in the RooDataSet
-  tableEff:       return a dictionary containing all the values in the RooDataSet
+Module with utilities for the pytnp class
 """
-import ROOT
 from management import printError, printWarning
 
 def isVar( dataset, var ): 
 	"""
-	isVar( RooDataSet, var ) -> bool
+	isVar( dataset, var ) -> bool
 
-	Checks if 'var' is in the RooDataSet
+	Checks whether the variable 'var' is in the RooDataSet or not
+	
+	:param dataset: dataset
+	:type dataset: ROOT.RooDataSet
+	:param var: name of the variable to check
+	:type var: string
+	:return: True if the variable is within dataset
+	:rtype: boolean
 	"""
 	#---- Checking the variables in dataset
 	_swapDict = getVarDict( dataset )
@@ -38,13 +28,23 @@ def isVar( dataset, var ):
 
 def isbinnedVar( dataset, var, effName='efficiency', **keywords ):
 	"""
-	isbinnedVar( RooDataSet, 'var', effName ) -> bool
-	isbinnedVar( RooDataSet, ['var1', 'var2',...], effName ) -> bool
+	isbinnedVar( dataset, 'var', effName ) -> bool
 
 	From a dataset checks if 'var' is a binned variable.
-	The other signatures checks for each 'var#' in the list
+	You can enter a list of 'var', in this case checks for each 'var#' in the list
 	You can use 'warning=True' as argument to print a warning 
 	in case do not find the variable.
+	
+	:param dataset: dataset
+	:type dataset: ROOT.RooDataSet
+	:param var: variable to be checked
+	:type var: string
+	:param effName: name of the efficiency as found within the dataset
+	:type effName: string
+	:keyword warning: whether or not shows a warning message when no found var
+	:type warning: bool
+	:return: True is variable(s) are binned variables of the dataset
+	:rtype: boolean
 	"""
 	#- Want warning?
 	try:
@@ -79,10 +79,17 @@ def isbinnedVar( dataset, var, effName='efficiency', **keywords ):
 
 def getVarNames( dataset, effName='efficiency' ):
 	"""
-	getVarNames( RooDataSet ) -> [ 'binnedvar1',...], 'effName' 
+	getVarNames( RooDataSet, effName='efficiency' ) -> [ 'binnedvar1',...], 'effName' 
 
 	From a dataset extract which binned variables have and returns
 	the list of the variable's names and the efficiency name 
+	
+	:param dataset: dataset
+	:type dataset: ROOT.RooDataSet
+	:param effName: efficiency name
+	:type effName: string
+	:return: True is variable(s) are binned variables of the dataset
+	:rtype: boolean
 	"""
 	#---- Checking the variables in dataset
 	_swapDict = getVarDict( dataset )
@@ -108,6 +115,13 @@ def isEffNoNull( dataset, effName='efficiency' ):
 	Given a dataset, the function evaluates if the variable
 	effName has any value different from zero returning True,
 	otherwise return False.
+	
+	:param dataset: dataset
+	:type dataset: ROOT.RooDataSet
+	:param effName: efficiency name
+	:type effName: string
+	:return: True if the dataset contains at least a efficiency value not zero
+	:rtype: boolean
 	"""
 	#-- Checking efficiency is there
 	isEff = isVar( dataset, effName )
@@ -136,16 +150,27 @@ def isEffNoNull( dataset, effName='efficiency' ):
 
 def getVarDict( dataset, __effName='efficiency' ):
 	"""
-	getDataSetVar( RooDataSet ) -> { 'var1': { 'latexName': 'blaba', 'unit': 'unit',
-						    'binN': NumberBins, 'arrayBins' : (val1,...,valN+1)
-						    },
-					 ... 
-				       }
+	getVarDict( RooDataSet, __effName='efficiency' ) -> dict
 
 	Given a RooDataSet, the function returns a dictionary whose keys are
 	the binned variables and efficiency names and the values are a 
-	dictionary with some useful info (see above).
+	dictionary with some useful info::
+
+		{ 'var1': { 'latexName': 'blaba', 'unit': 'unit',
+		  'binN': NumberBins, 'arrayBins' : (val1,...,valN+1)
+	        },
+		... 
+		}
+	
+	:param dataset: dataset
+	:type dataset: ROOT.RooDataSet
+	:param __effName: efficiency name
+	:type effName: string
+	:return: see above
+	:rtype: dict
 	"""
+	import ROOT 
+
 	varinfo = {}
 	try:
 		arg = dataset.get()
@@ -176,8 +201,7 @@ def getVarDict( dataset, __effName='efficiency' ):
 
 def getEffFromDict( dataset, input_effName='efficiency', **keywords):
 	"""
-	getEffFromDict(RooDataSet, 'effName', var1=value, ...) --> eff, effErrorLow, effErrorHigh, None
-		               			    --> eff, effErrorLow, effErrorHigh, dictionary
+	getEffFromDict(RooDataSet, 'effName', var1=value, ...) --> eff, effErrorLow, effErrorHigh, dict
 
 	Giving a binned variables returns the efficiency which 
 	corresponds to those values. If the introduced variables 
@@ -188,6 +212,15 @@ def getEffFromDict( dataset, input_effName='efficiency', **keywords):
 	efficiency tuple plus a dictionary which the names 
 	of the remaining variables and efficiency as keys and 
 	the tuples of their values as dictionary values (CASE 2).
+	
+	:param dataset: dataset
+	:type dataset: ROOT.RooDataSet
+	:param input_effName: efficiency name
+	:type input_effName: string
+	:keyword var: var=value
+	:rtype var: object
+	:return: tuple with efficiency values and a dictionary (None)
+	:rtype: float,float,float,dict
 	"""
 	#---  All the binned variables in the dataset
 	datasetVarList, effName = getVarNames( dataset, input_effName )
@@ -267,8 +300,7 @@ def getEffFromDict( dataset, input_effName='efficiency', **keywords):
 
 def getEff( dataSet, input_effName='efficiency', **keywords):
 	"""
-	getEff(RooDataSet, 'effName', var1=value, ...) --> eff, effErrorLow, effErrorHigh                
-	                                    --> eff, effErrorLow, effErrorHigh, dictionary
+	getEff(RooDataSet, 'effName', var1=value, ...) --> eff, effErrorLow, effErrorHigh (,dict)
 
 	Giving a binned variables returns the efficiency which 
 	corresponds to those values. There is 2 output signatures 
@@ -279,6 +311,15 @@ def getEff( dataSet, input_effName='efficiency', **keywords):
 	variables, the output will be the efficiency tuple plus
 	a dictionary which the names of the resting variables as keys
 	and the tuples of their bin values as values (CASE 2).
+	
+	:param dataset: dataset
+	:type dataset: ROOT.RooDataSet
+	:param input_effName: efficiency name
+	:type input_effName: string
+	:keyword var: var=value
+	:rtype var: object
+	:return: tuple with efficiency values (and a dictionary)
+	:rtype: float,float,float(,dict)
 	"""
 	#---- Checking the variables in dataset
 	_swapDict = getVarDict( dataSet )
@@ -345,14 +386,19 @@ def getEff( dataSet, input_effName='efficiency', **keywords):
 
 def getBinning( var ):
 	"""
-	getBinning( ROOT.RooArgVar ) -> bins, arrayBins
+	getBinning( var ) -> bins, arrayBins
 
 	Giving a RooArgVar, the function returns 
 	how many bins the variable has and an array (of doubles)
 	with with his values.
+	
+	:param var: variable object
+	:type dataset: ROOT.RooArgVar
+	:return: number of bins and array with bin edges
+	:rtype: int,double*
 
-	WARNING: Use with caution. The doubles array are
-	         potentially dangerous.
+	.. warning::
+	   Use with caution. The double arrays are potentially dangerous.
 	"""
 
 	binsN = var.numBins()
@@ -368,13 +414,23 @@ def getBinning( var ):
 
 def newtableLatex( dataset, effName, varX, varY, **keyword ):
 	"""
-	tableLatex( dataset, effName, 'var_column', 'var_row', [outfile='name.tex', varXname='latex name', varYname='latex name'] )
+	tableLatex( dataset, effName, 'var_column', 'var_row', [outfile='name.tex', varXname='latex name', varYname='latex name'] ) -> dict
 
 	Giving a RooDataSet and two variables, the function returns a table in latex
 	format. If enters the keyword 'outfile' also the table will put
 	it into the file.
-	The keyword var is a list with the name of the variables the user want to
-	dump. (TODO, not yet implemented)
+	(The keyword var is a list with the name of the variables the user want to
+	dump. TODO, not yet implemented)
+	
+	:param dataset: dataset
+	:type dataset: ROOT.RooDataSet
+	:param effName: efficiency name
+	:type effName: string
+	:param varX: the name of the variable you want to be as column
+	:rtype varX: string
+	:param varY: the name of the variable you want to be as row
+
+	.. seealso:: :func:`tableLatex`
 	"""
 	#TODO:	The keyword var is a list with the name of the variables the user want to dump.
 	#TODO: CHECK IF WORKS CORRECTLY
@@ -453,11 +509,18 @@ def newtableLatex( dataset, effName, varX, varY, **keyword ):
 
 
 
-def tableLatex(dataset, inputEffName):
+def tableLatex(dataset, inputEffName = 'efficiency'):
 	"""
+	tableLatex( dataset, inputEffName ) -> list
 
-	Giving a RooDataSet, the function returns a table in latex
-	format 
+	Giving a RooDataSet, the function returns a table in latex format 
+	
+	:param dataset: dataset
+	:type dataset: ROOT.RooDataSet
+	:param inputEffName: efficiency name
+	:type inputEffName: string
+	:return: string in latex format
+	:rtype: string
 	"""
 	#---- Checking the variables in dataset
 	_swapDict = getVarDict( dataset )
@@ -539,19 +602,29 @@ def tableLatex(dataset, inputEffName):
 
 def tableEff( dataset, effName = 'efficiency' ):
 	"""
-	tableEff( RooDataSet, 'effName' ) --> tableDict
+	tableEff( dataset, 'effName' ) --> tableDict
 
 	Giving a RooDataSet, the function returns a dictionary where every 
 	key is the 'variables' of the RooDataSet. Each value is a 
 	list of tuples (var, varErrorLo, varErrorHigh):
-	{ 'nameEff' : [ (eff1,effLow1,effHi1), 	(eff2,effLow2,effHi2), ...
-	              ],
-          'namevar1': [ (val1,valLow1,valHi1), ( ...) , ... ],
-	  ....
-	}
+	
+	:param dataset: dataset
+	:type dataset: ROOT.RooDataSet
+	:param effName: efficiency name
+	:type effName: string
+	:return: dict with efficiency values and binned variables
+	:rtype: dict
+	
+	The output dictionary looks like::
+		
+		{ 
+		  'efficiency': [ (eff1,effLo1,effHi1), (eff2,effLo2,effHi2), ... ],
+		  'var_x'      : [ (varX1,xLo1,xHi1), (varX2,xLo2,xHi2), .... ],
+		  'var_y'      : [ (varY1,yLo1,yHi1), (varY2,yLo2,yHi2), .... ],
+		  ...
+		}
 
-	Note: there is another version to extract the table, see the function
-	      'listTableEff', a little more efficient than this one	
+	.. note:: There is another version to extract the table, see the function :func:`listTableEff`, a little more efficient than this one	
 	"""
 	#--- Getting variables from dataset, note that if dataset is not a RooDataSet,
 	#--- getVarDict raise an AttributeError exception
@@ -581,16 +654,34 @@ def tableEff( dataset, effName = 'efficiency' ):
 
 def listTableEff(dataSet,*badpoints,**effName):
 	"""
-	listTableEff( dataSet ) --> tableList
+	listTableEff( dataset ) --> tableList
 
 	Giving a RooDataSet, the function returns a list where every 
 	element is an entry of the RooDataSet stored as a dictionary:
-	[ { 'var1':  (pt, minimum pt bin, maximum pt bin),
-	    'var2': (eta, minimum eta bin, maximum eta bin),
-	     ...
-	  'nameEfficiency': (eff, eff low, eff high)
-	  }, ...
-	]
+	
+	:param dataset: dataset
+	:type dataset: ROOT.RooDataSet
+	:param input_effName: efficiency name
+	:type input_effName: string
+	:return: list with efficiency values and binned variables
+	:rtype: list
+
+	The output list will be::
+		
+		[ 
+		  { 'efficiency': (eff1,effLo1,effHi1),
+		    'var_a'      : (a1,aLo1,aHi1), 
+		    'var_b'      : (b1,b1,b1)
+		  },
+		  { 'efficiency': (eff2,effLo2,effHi2),
+		    'var_a'      : (a2,aLo2,aHi2), 
+		    'var_b'      : (b2,b2,b2)
+		  },
+		  ...
+		]
+
+	.. warning:: 
+	   The description of this function must be revisited...
 	"""
 	#---- Checking the variables in dataset
 	_swapDict = getVarDict( dataSet )

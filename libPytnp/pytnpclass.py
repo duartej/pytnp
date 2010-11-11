@@ -1,8 +1,6 @@
 """
+Module for the encapsulation of the Tag and Probe CMSSW N-tuple
 """
-#TODO: Portar las funciones a utils. Crear una 
-import ROOT  #BORRRRARLO
-from ROOT import TFile
 import sys
 
 from management import printError, printWarning
@@ -34,31 +32,31 @@ class pytnp(dict):
 	# CONSTRUCTOR ------------------------------------------------------------------------------------------------------
 	def __init__(self, filerootName, **keywords):
 		"""
-                pytnp(filerootName[, resonance=('name','nameLatex'), dataset='type', mcTrue=true, effName='efficiency_name',
-		                                     variables=['varname1','varname2',..] ] ) -> pytnp object instance
+                pytnp(filerootName [, resonance=('name','nameLatex'), dataset='type', mcTrue=true, effName='efficiency_name', variables=['varname1','varname2',..] ] )
 
 		Create a dictionary which are going to be populate
 		with the plots and datasets already contained in the
-		file.
-		KEYWORDS:
-			If 'dataset' is included, it will only  map 
-			the object matching with 'dataset'.
-			
-			If 'resonance'=(name,latexName) is included the filename is not necessary
-			to be an standard tag and probe NAME (i.e. Resonance_blabla.root).
-			
-			If 'mcTrue' is set to True it will store the mcTrue info
-			and will associate each dataset with their mcTrue dataset.
+		file::
+		
+		  KEYWORDS:
+		   If 'dataset' is included, it will only  map
+		   the object matching with 'dataset'.
+		   
+		   If 'resonance'=(name,latexName) is included the filename is not necessary
+		   to be an standard tag and probe NAME (i.e. Resonance_blabla.root).
+		   
+		   If 'mcTrue' is set to True it will store the mcTrue info
+		   and will associate each dataset with their mcTrue dataset.
 
-			If effName is set, the user are providing the efficiency name which it will
-			find inside the RooDataSets. Otherwise, we assume the name 'eff'.
+		   If effName is set, the user are providing the efficiency name which it will
+		   find inside the RooDataSets. Otherwise, we assume the name 'eff'.
+		   
+		   If 'variables' is included, only it will be considered the binned variables
+		   within the list
 
-			If 'variables' is included, only it will be considered the binned variables
-			within the list
-
-		The instance will contain the follow datamembers:
+		The instance will contain the follow datamembers::
 		    
-		    TCanvas, RooDataSet, RooFitResults
+		   RooDataSet
 
 		which again are dictionaries analogous of the 
 		instance itself and can be extracted as datamembers.
@@ -66,7 +64,13 @@ class pytnp(dict):
 		CAVEAT: All the RooDataSets in he file must have the same efficiency name
 
 		TODO: Put dictionary output
+
+		.. warning::
+
+		   Generating documentation, could be some errors..
+
 		"""
+		import ROOT
 		from getresname import getResName
 		from tnputils import getVarDict, isEffNoNull
 
@@ -76,7 +80,7 @@ class pytnp(dict):
 		#--- Extracting the members
 		print 'Extracting info from '+filerootName+'.',
 		sys.stdout.flush()
-		fileroot = TFile(filerootName)
+		fileroot = ROOT.TFile(filerootName)
 		#--- Checking the extraction was fine
 		if fileroot.IsZombie():
 			message = 'Invalid root dataset or root dataset not found, \'%s\'' % filerootName
@@ -331,7 +335,8 @@ class pytnp(dict):
 	 	
 		Recursive function to extract from a 'tag and probe' ROOT file all
 		the relevant information. Returning a dictionary which stores all TCanvas,
-		RooFitResult, RooDataSet and RooPlot with matches with regexp:
+		RooFitResult, RooDataSet and RooPlot with matches with regexp::
+
 		{# 'TCanvas': 
 		 #           {'directory/subdirectory/.../nameOfTCanvas' : <ROOT.TCanvas object>,
 		 #	     ...
@@ -450,6 +455,7 @@ class pytnp(dict):
 		the instance.
 		"""
 		import os
+		import ROOT
 
 		f = ROOT.TFile(fileOut,'RECREATE')
 		if f.IsZombie():
@@ -544,8 +550,10 @@ class pytnp(dict):
 		Given a name directory-like for a ROOT.RooDataSet object,
 	 	the function creates a 1-dim plot of 'variable_name' extracted from the
 		object and it will save it in a eps file. Also
-		it will store the graph object:
-		                      self[nameRooDataSet]['tgraphs'] = { 'graph_name': TGraphAsymmErrors, ... }
+		it will store the graph object::
+
+		   self[nameRooDataSet]['tgraphs'] = { 'graph_name': TGraphAsymmErrors, ... }
+
 		"""
 		#import rootlogon
 		from tnputils import listTableEff,getEff
@@ -676,6 +684,7 @@ class pytnp(dict):
 		efficiency with pt and eta variables. Also, it
 		will stores in the object instance
 		"""
+		import ROOT
 		import pytnp.steerplots.rootlogon
 		from tnputils import getBinning,listTableEff,getEff
 

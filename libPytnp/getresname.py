@@ -10,9 +10,10 @@ def getResName( aFile, **keywords ):
 	Extract from file name, T&P-like, the resonance
 	and returns it plain and in Latex format.
 	
-	Warning: This function is highly dependent
-	of the name of the file-- 
-	Standard Format:  NameOFResonance_X_blabla.root
+	.. warning::
+	   This function is highly dependent
+	   of the name of the file-- 
+	   Standard Format:  NameOFResonance_X_blabla.root
 	"""
 	import re
 
