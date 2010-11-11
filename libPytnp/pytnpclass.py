@@ -61,6 +61,8 @@ class pytnp(dict):
 		which again are dictionaries analogous of the 
 		instance itself and can be extracted as datamembers.
 
+		:raise: IOError
+
 		CAVEAT: All the RooDataSets in he file must have the same efficiency name
 
 		TODO: Put dictionary output

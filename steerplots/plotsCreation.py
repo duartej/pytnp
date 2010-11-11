@@ -84,7 +84,7 @@ def superImposed( tnpDict, variable, Lumi, **keywords ):
 						#-- FIXME: Necesito algo para evitar que RooDataSets con el mismo patron
 						#---       y en el mismo fichero se solapen. O quizas marcarlo
 						#---       como construccion erronea de la instancia (effType, object...)
-						#---       ¿¿ Seguro ??
+						#---       Seguro ??
 						graph = dataDict['tgraphs'][className][resName+'_'+className+pseudoname]
 					except KeyError:
 						continue
