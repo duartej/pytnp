@@ -544,9 +544,9 @@ class pytnp(dict):
 		# Special case: we have only one variable
 		if len(self[name]['binnedVar']) == 1:
 			graphName = self.resonance+'_'+self[name]['effType']+'_'+self[name]['objectType']+'_'+\
-					self[name]['methodUsed']+'__'
+					self[name]['methodUsed']+'__'+varName
                         if self[name]['isMC'] == 1:
-				graphName += 'mcTrue__'
+				graphName += '__mcTrue'
 			#--- Extracting the efficiency values per bin
 			plotList = listTableEff( dataset )
 			_min = 0
