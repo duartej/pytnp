@@ -93,6 +93,7 @@ if __name__ == '__main__':
         parser.add_option( '-L', action='store', dest='Lumi', metavar='LUMI unit', nargs=2, help='Integrated Luminosity and unit' )
 	parser.add_option( '-e', '--effName', action='store', dest='effName', help='Efficiency name as will found in the rootfile (CAVEAT: The same name'\
                 ' for all RooDataSet in the rootfile is mandatory)' )
+        parser.add_option( '-f', '--force', action='store', dest='onlythisvar', metavar='VAR1[,VAR2,...]', help='Force to store as binned variables only VAR1[,VAR2,...]' )
 
         ( opt, args ) = parser.parse_args()
 

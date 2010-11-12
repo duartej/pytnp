@@ -261,7 +261,7 @@ class pytnp(dict):
 			elif i == 'variables':
 				#-- Sanity checks
 				if not isinstance(keywords[i], list):
-                                        message ='Not valid \'variables=%s\' key; must be a tuple containing n variables names' % str(keywords[i])
+                                        message ='Not valid \'variables=%s\' key; must be a list containing n variables names' % str(keywords[i])
 					printError( self.__module__, message, KeyError )
 				else:
 					self.userVariables = [ var for var in keywords[i] ]
