@@ -27,6 +27,8 @@ class pytnp(dict):
 	#-- Binned variables introduced by user
 	userVariables = []
 	effName = 'efficiency'
+	#-- User enters the effType, objectType and isMC attributes
+	configfile = None
 	# Classes to store them
 	classNames = ['RooDataSet']#,'RooFitResult','TCanvas']
 	# CONSTRUCTOR ------------------------------------------------------------------------------------------------------
@@ -62,7 +64,8 @@ class pytnp(dict):
 		which again are dictionaries analogous of the 
 		instance itself and can be extracted as datamembers.
 
-		:raise: IOError
+		:raise IOError: Invalid root file name
+		:raise TypeError: Invalid format of the root file (do not have the proper directory structure)
 		"""
 		import ROOT
 		from getresname import getResName
@@ -85,7 +88,7 @@ class pytnp(dict):
 		#--- Checking everything was fine
 		if not 'RooDataSet' in self.__dict__.keys():
 			message = """The root file is not an standard T&P fit file"""
-			printError( self.__module, message, AttributeError )
+			printError( self.__module, message, TypeError )
 		print ''
 
 		self.__fileroot__ = fileroot
@@ -225,12 +228,15 @@ class pytnp(dict):
 
 
 	def __check_keywords__(self, keywords ):
-		"""
-		Internal use: to check the keywords passed to the constructor
+		""".. function:: __check_keywords__( keywords ) 
+
+		Checks the keywords passed to the constructor
+
+		:raise KeyError: 
 		"""
 		#FIXME : ojo, dataset ha quedado huerfana...
 		#--- Keys valid
-		valid_keys = ['resonance', 'dataset', 'mcTrue','variables', 'effName' ]
+		valid_keys = ['resonance', 'dataset', 'mcTrue','variables', 'effName', 'configfile' ]
 		#---- Some initializations using user inputs ---#
 		dataset = ''
 		for i in keywords.keys():
@@ -238,8 +244,7 @@ class pytnp(dict):
 				message = 'Invalid instance of pytnp: you can not use %s as key argument, ' % i
 				message += 'key arguments valids are \'resonance\', \'dataset\', \'mcTrue\', \'variables\', \'effName\'' 
 			#	print help(self.__init__)
-				printError( self.__module__, message, IOError )
-				#raise IOError, message
+				printError( self.__check_keywords__.__module__+'.'+self.__check_keywords__.__name__, message, KeyError )
 			#---Checking the correct format and storing
 			#---the names provided by the user
 			elif i == 'resonance':
@@ -267,6 +272,10 @@ class pytnp(dict):
 					printError( self.__module__, message, KeyError )
 				else:
 					self.userVariables = [ var for var in keywords[i] ]
+			elif i == 'configfile':
+				self.configfile = keywords[i]
+			#elif i == 'mcTrue' --> TO BE DEPRECATED OR ACTIVATED?
+
 		return dataset
 
 	def __str__(self):
@@ -286,6 +295,14 @@ class pytnp(dict):
 
 		return message
 
+	
+	def __repr__(self):
+		"""
+		representation of the object
+		"""
+		return "WARNING: TO BE IMPLEMENTED"
+
+
 	def __getType__(self, name, structure):
 		"""
 		__getType__( 'RooDataSet name', dictionary ) --> dictionary
@@ -294,12 +311,13 @@ class pytnp(dict):
 		and the values are also dictionaries storing relevant info of the dataset.
 		"""
 		import re
+		from management import parserConfig
 		#-- Dictionary to store 
 		structure[name] = { 'effType': {}, 'objectType': {}, 'methodUsed': {}, 'isMC' : {} }
 		#-- Extracting
 		pathname = name.split('/')
 		if len(pathname) != 3:
-			#-- The storege format is not in T6P standard
+			#-- The storage format is not in T6P standard
 			message = 'The format of the \'%s\' file is not in T&P standard.' % self.__fileroot__.GetName()
 			printError( self.__module__, message, ValueError )
 
@@ -307,29 +325,34 @@ class pytnp(dict):
 		objectType = pathname[1]
 		methodUsed = pathname[2]
 		#-- Mapping
-		#---- Type of efficiency
-		if effType == 'histoTrigger':
-			structure[name]['effType'] = 'trigger'
-		elif effType == 'histoMuFromTk':
-			structure[name]['effType'] =  'muonId'
-		else:
-			message = 'Warning: I don\'t understand what efficiency is in the directory \'%s\' ' % effType
-			#print message
-			#Patch to new version of Tag and probe  (3.8.X)
-			structure[name]['effType'] = 'unknown'
-		#setattr(self.RooDataSet, structure[name]['effType'], {})
-		#---- Type of efficiency
-		structure[name]['objectType'] = objectType.split('_')[0]
+		#--- Check and put values provided by the user
+		try:
+			#--- If not enter config, self.configfile is None
+			tupleAttr = parserConfig( self.configfile, self.resonance+'::'+name )
+			#--- If nothing the tupleAttr is None so NameError exception too
+			structure[name]['effType'] = tupleAttr[0]
+			structure[name]['objectType'] = tupleAttr[1]
+			structure[name]['isMC'] = tupleAttr[2]
+		except NameError:
+			#---- Type of efficiency
+			if effType == 'histoTrigger':
+				structure[name]['effType'] = 'trigger'
+			elif effType == 'histoMuFromTk':
+				structure[name]['effType'] =  'muonId'
+			else:
+				structure[name]['effType'] = 'unknown'
+			#---- Type of efficiency
+			structure[name]['objectType'] = objectType.split('_')[0]
+			#---- Is mcTrue
+			regexp = re.compile( '\S*_(?P<mc>mcTrue)' )
+			try:
+				# Check if it mcTrue
+				regexp.search( objectType ).group( 'mc' )
+				structure[name]['isMC'] = 1
+			except AttributeError:
+				structure[name]['isMC'] = 0
 		#---- Method Used
 		structure[name]['methodUsed'] = methodUsed
-		#---- Is mcTrue
-		regexp = re.compile( '\S*_(?P<mc>mcTrue)' ) #PRovisional o no...
-		try:
-			# Check if it mcTrue
-			regexp.search( objectType ).group( 'mc' )
-			structure[name]['isMC'] = 1
-		except AttributeError:
-			structure[name]['isMC'] = 0
 
 		return structure
 

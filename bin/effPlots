@@ -110,16 +110,35 @@ if __name__ == '__main__':
 		onlythesevars = parseOption( opt.onlythisvar, '<', 1, Message )
 	else:
 		onlythesevars = []
+	#____________________________________________________________________________________________________
+	#Config file-- 
+	config_file = None
+	if opt.config_file:
+		Message = """This option needs a file. I parsed '%s'""" % opt.config_file
+		config_file = parseOption( opt.config_file, "!=", 1, Message )[0]
+	#____________________________________________________________________________________________________
 
 	#____________________________________________________________________________________________________
 	#Print printContent and exit
 	if opt.printContent:
 		from pytnp.libPytnp.pytnpclass import pytnp
+		from pytnp.libPytnp.getresname import getResName
 		
 		Message = """I need at least 1 input files comma separated without espaces. I parsed '%s'""" % opt.fileName
 		allFiles = parseOption( opt.fileName, '<',1, Message )
                 for _f in allFiles:
-                        tnp = pytnp( _f, effName = opt.effName, variables=onlythesevars )
+			# resonance name and latex format name
+			try:
+				resNameTuple = getResName( _f, config=config_file )
+			except TypeError:
+				#-- The file name must be standard (if there aren't config file)
+				message = """The file name '%s' introduced is not in a standard format:"""\
+						""" Resonance_histo[MuFromTrk|Trigger]_....root\n"""\
+						""" You can use the -c option to include your own resonance name"""\
+						""" in order to avoid the above file name notation""" % aFile
+				printErrorAndExit( message, -1 )
+
+                        tnp = pytnp( _f, effName = opt.effName, variables=onlythesevars, resonance=resNameTuple, configfile=opt.config_file )
                         print tnp
 		exit(0)
 	#____________________________________________________________________________________________________
@@ -139,14 +158,6 @@ if __name__ == '__main__':
 	#whatPlots = 'fit_eff'
 	#if opt.counting:
 	#	whatPlots = 'cnt_eff'
-	#____________________________________________________________________________________________________
-	
-	#____________________________________________________________________________________________________
-	#Config file-- counting events instead of fit
-	config_file = None
-	if opt.config_file:
-		Message = """This option needs a file. I parsed '%s'""" % opt.config_file
-		config_file = parseOption( opt.config_file, "!=", 1, Message )[0]
 	#____________________________________________________________________________________________________
 	
 	
@@ -205,7 +216,7 @@ if __name__ == '__main__':
 				message += """Impose the resonance name usign the '--resName' option (see --help for usage)""" 
 				printErrorAndExit( message, -1 )
 
-			tnpDict[resNameTuple[0]] = pytnp( aFile, resonance=resNameTuple, variables=onlythesevars ) #dataset=whatPlots )
+			tnpDict[resNameTuple[0]] = pytnp( aFile, resonance=resNameTuple, variables=onlythesevars, configfile=opt.config_file ) #dataset=whatPlots )
 
 		_title =' CMS Preliminary,'+Lumi+' #sqrt{s}=7 TeV '
 
@@ -286,7 +297,7 @@ if __name__ == '__main__':
 			#--- Extract from the standard name file the resonance ---
 			# resonance name and latex format name
 			resNameTuple = getResName( aFile, config=config_file )
-			tnpDict[resNameTuple[0]] = pytnp( aFile,  effName=opt.effName, resonance=resNameTuple, variables=onlythesevars ) #,dataset=whatPlots )
+			tnpDict[resNameTuple[0]] = pytnp( aFile,  effName=opt.effName, resonance=resNameTuple, variables=onlythesevars, configfile=opt.config_file ) #,dataset=whatPlots )
 			resonanceList.append( resNameTuple[0] )
 		#--- Check we have 2 pytnp (no keys overwritten)
 		if len(tnpDict) != 2:
@@ -358,7 +369,7 @@ if __name__ == '__main__':
 		Message = """I need only one root file. I parsed '%s'""" % opt.fileName
 		_file = parseOption( opt.fileName, '>', 1, Message )
 
-		tnp = pytnp(_file[0], effName=opt.effName, variables=onlythesevars )#, dataset=whatPlots)
+		tnp = pytnp(_file[0], effName=opt.effName, variables=onlythesevars, configfile=config_file )#, dataset=whatPlots)
 		#-- Select the datasets we want to use
 		if category:
 			isfulfillCat = lambda dataname : tnp[dataname]['objectType'] == category
@@ -393,7 +404,7 @@ if __name__ == '__main__':
 		# Ploting mc true-counting vs. fit_eff
 		allFiles = opt.fileName.split(',')
 		# The mc true can be in other file, then we need
-		tnp = pytnp( opt.fileName, effName = opt.effName, variables=onlythesevars )
+		tnp = pytnp( opt.fileName, effName = opt.effName, variables=onlythesevars, configfile=opt.config_file )
 
 		sysMCFIT( tnp, Lumi )
 	#____________________________________________________________________________________________________
