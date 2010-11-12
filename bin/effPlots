@@ -102,6 +102,15 @@ if __name__ == '__main__':
 		parser.error( Message )
 	
 	donesomething = False
+
+	#____________________________________________________________________________________________________
+	#Variables to be considered
+	if opt.onlythisvar:
+		Message = """Error parsing the --force option. I parsed '%s'""" % opt.onlythisvar
+		onlythesevars = parseOption( opt.onlythisvar, '<', 1, Message )
+	else:
+		onlythesevars = []
+
 	#____________________________________________________________________________________________________
 	#Print printContent and exit
 	if opt.printContent:
@@ -110,7 +119,7 @@ if __name__ == '__main__':
 		Message = """I need at least 1 input files comma separated without espaces. I parsed '%s'""" % opt.fileName
 		allFiles = parseOption( opt.fileName, '<',1, Message )
                 for _f in allFiles:
-                        tnp = pytnp( _f, effName = opt.effName)
+                        tnp = pytnp( _f, effName = opt.effName, variables=onlythesevars )
                         print tnp
 		exit(0)
 	#____________________________________________________________________________________________________

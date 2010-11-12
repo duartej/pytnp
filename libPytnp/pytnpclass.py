@@ -154,7 +154,7 @@ class pytnp(dict):
 		#----- Variables, binned, efficiency, user introduced, ...
 		#--- The list will contain those dataset which don't have anyone of the variables entered  
 		#--- by the user (in case the user enter someone)
-		deleteDataset = []
+		deleteDataset = set([])
 		#--- Getting the variables names of the RooDataSet 
 		for name, dataset in self.RooDataSet.iteritems(): 
 			self[name]['variables'] = getVarDict(dataset)
@@ -178,21 +178,32 @@ class pytnp(dict):
 			#--- Check the variables introduced by user are there and
 			#------ Setting the binned Variables: extract efficiencies from last list
 			message = ''
+			_errorPrint = False
 			_warningPrint = False
-			self[name]['binnedVar'] = []
+			lostVar = ''
+			self[name]['binnedVar'] = {}
 			try:
 				for var in self.userVariables:
+					# FIXME:::: Falla en el caso de una variable compruebalo
 					if not var in self[name]['variables']:
-						message += """Variable '%s' is not in the '%s' RooDataSet. Skipping it... """ % ( var,name)
+						lostVar += var+', '
 						_warningPrint = True
-						deleteDataset.append( name ) 
+						deleteDataset.add( name ) 
 					else:
+						print var
+						print self[name]['binnedVar']
+						print self[name]['variables']
 						self[name]['binnedVar'][var] = self[name]['variables'][var] 
-			except TypeError:
+				if _warningPrint:
+					lostVar = lostVar[:-2]
+					message += """Variable '%s' is not in the '%s' RooDataSet. Skipping it... """ % ( lostVar,name)
+					printWarning( self.__module__+'.pytnp', message )
+			except AttributeError:
 				#The user didn't introduce binned variables, I take everyone
 				self[name]['binnedVar'] = dict([ (var, self[name]['variables'][var]) \
 						for var in filter( lambda x: x.lower().find(self.effName) == -1, self[name]['variables'] ) ])
-				if _warningPrint:
+				# FIXME: I don't see the logic of this print... Check it out
+				if _errorPrint:
 					message += """  ----> I found: """
 					for var in self[name]['variables']:
 						message += var+', '
@@ -200,13 +211,15 @@ class pytnp(dict):
 						printError( self.__module__, message, UserWarning )
 			self[name]['eff'] = filter( lambda x: x.lower().find(self.effName) != -1, self[name]['variables'] )[0]
 
-			for _dataout in deleteDataset:
-				self.pop( _dataout )
-				self.RooDataSet.pop( _dataout )
-			
-			if len(self) == 0:
-				message = """There is no RooDataSet that fulfill the binned variables introduced""" 
-				printError( self.__module__, message, ValueError )
+		for _dataout in deleteDataset:
+			self.pop( _dataout )
+			self.RooDataSet.pop( _dataout )
+		
+		#-- Something wrong if we pop out all the datasets we had
+		if len(self) == 0:
+			message = """There is no RooDataSet that fulfill the binned variables introduced""" 
+			printError( self.__module__, message, ValueError )
+
 
 		#--- Extracting those RooDataSet which have null values of efficiency
 		_todelete = []
