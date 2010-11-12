@@ -1,18 +1,27 @@
 """
+Simple module with only a function to extract the identifier (pytnpname) and the 
+latex description of a root file
 """
 from management import printError, printWarning, parserConfig
 
 
 def getResName( aFile, **keywords ):
-	"""
-	getResName( fileName[, 'config=config_file.py'] ) -> str,str (latex)
+	""".. function:: getResName( fileName[, 'config=config_file.py'] ) -> str,str (latex)
 
 	Extract from file name, T&P-like, the resonance
 	and returns it plain and in Latex format.
+
+	:param fileName: the root file name
+	:type fileName: string
+	:keyword config: configuration file to impose the results of this function. 
+	                 Makes use of the ``DataNames`` dictionary placed
+	:type config: string
+
+	:return: unique identifier (pytnpname) and latex description of this root file
+	:rtype: tuple of strings
 	
 	.. warning::
-	   This function is highly dependent
-	   of the name of the file-- 
+	   This function is highly dependent of the name of the file (if you don't use a config file).
 	   Standard Format:  NameOFResonance_X_blabla.root
 	"""
 	import re

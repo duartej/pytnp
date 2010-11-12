@@ -4,17 +4,16 @@ Module with utilities for the pytnp class
 from management import printError, printWarning
 
 def isVar( dataset, var ): 
-	"""
-	isVar( dataset, var ) -> bool
+	""".. function:: isVar( dataset, var ) -> bool
 
-	Checks whether the variable 'var' is in the RooDataSet or not
+	Checks whether the variable ``var`` is in the RooDataSet or not
 	
 	:param dataset: dataset
 	:type dataset: ROOT.RooDataSet
 	:param var: name of the variable to check
 	:type var: string
 	:return: True if the variable is within dataset
-	:rtype: boolean
+	:rtype: bool
 	"""
 	#---- Checking the variables in dataset
 	_swapDict = getVarDict( dataset )
@@ -27,24 +26,23 @@ def isVar( dataset, var ):
 		return False
 
 def isbinnedVar( dataset, var, effName='efficiency', **keywords ):
-	"""
-	isbinnedVar( dataset, 'var', effName ) -> bool
+	""".. function:: isbinnedVar( dataset, var, effName='efficiency'[, warning=bool] ) -> bool
 
-	From a dataset checks if 'var' is a binned variable.
-	You can enter a list of 'var', in this case checks for each 'var#' in the list
+	From a dataset checks if ``var`` is a binned variable.
+	You can enter ``var`` as a list of variables, in this case checks for each 'var#' in the list.
 	You can use 'warning=True' as argument to print a warning 
 	in case do not find the variable.
 	
 	:param dataset: dataset
 	:type dataset: ROOT.RooDataSet
-	:param var: variable to be checked
-	:type var: string
-	:param effName: name of the efficiency as found within the dataset
+	:param var: variable(s) to be checked
+	:type var: string or list of strings
+	:param effName: name of the efficiency as found within the dataset. Default value: 'efficiency'
 	:type effName: string
-	:keyword warning: whether or not shows a warning message when no found var
+	:keyword warning: whether or not shows a warning message when a var is not found 
 	:type warning: bool
 	:return: True is variable(s) are binned variables of the dataset
-	:rtype: boolean
+	:rtype: bool
 	"""
 	#- Want warning?
 	try:
@@ -78,18 +76,20 @@ def isbinnedVar( dataset, var, effName='efficiency', **keywords ):
 		return True
 
 def getVarNames( dataset, effName='efficiency' ):
-	"""
-	getVarNames( RooDataSet, effName='efficiency' ) -> [ 'binnedvar1',...], 'effName' 
+	""".. function:: getVarNames( dataset, effName='efficiency' ) -> [ binnedvar1,...], effName
 
 	From a dataset extract which binned variables have and returns
 	the list of the variable's names and the efficiency name 
 	
 	:param dataset: dataset
 	:type dataset: ROOT.RooDataSet
-	:param effName: efficiency name
+	:param effName: efficiency name. Default value: 'efficiency'
 	:type effName: string
-	:return: True is variable(s) are binned variables of the dataset
-	:rtype: boolean
+	:return: 2-tuple composed by a list with the names of the binned variables and a string with the 
+	         name of the efficiency
+	:rtype: list of strings, string
+
+	:raise AttributeError: not found the efficiency name introduced 
 	"""
 	#---- Checking the variables in dataset
 	_swapDict = getVarDict( dataset )
@@ -102,15 +102,14 @@ def getVarNames( dataset, effName='efficiency' ):
 		message ="""There is no efficiency variable called '%s'in the RooDataSet '%s'""" % (effName, dataset.GetName())
 		printError( isbinnedVar.__module__+'.'+isbinnedVar.__name__, message, AttributeError )
 	elif len(effList) > 1:
-		message ="""It cannot be possible to parse the efficiency name, found '%s'in the RooDataSet '%s'\n""" % (str(effList), dataset.GetName())
+		message ="""It cannot be possible to parse the efficiency name, found '%s' in the RooDataSet '%s'\n""" % (str(effList), dataset.GetName())
 		message +="""Check your root file and let only one variable to contain the name '%s'""" % effName
 		printError( isbinnedVar.__module__+'.'+isbinnedVar.__name__, message, AttributeError )
 
 	return datasetVarList, effList[0] 
 
 def isEffNoNull( dataset, effName='efficiency' ):
-	"""
-	isEffNoNull( RooDataSet, 'effName' ) --> bool
+	""".. function:: isEffNoNull( dataset, effName='efficiency' ) -> bool
 
 	Given a dataset, the function evaluates if the variable
 	effName has any value different from zero returning True,
@@ -120,8 +119,10 @@ def isEffNoNull( dataset, effName='efficiency' ):
 	:type dataset: ROOT.RooDataSet
 	:param effName: efficiency name
 	:type effName: string
-	:return: True if the dataset contains at least a efficiency value not zero
-	:rtype: boolean
+	:return: True if the dataset contains at least one efficiency value different zero
+	:rtype: bool
+
+	:raise AttributeError: not found the effiency name introduced 
 	"""
 	#-- Checking efficiency is there
 	isEff = isVar( dataset, effName )
@@ -149,8 +150,7 @@ def isEffNoNull( dataset, effName='efficiency' ):
 
 
 def getVarDict( dataset, __effName='efficiency' ):
-	"""
-	getVarDict( RooDataSet, __effName='efficiency' ) -> dict
+	""".. function:: getVarDict( dataset, effName='efficiency' ) -> dict
 
 	Given a RooDataSet, the function returns a dictionary whose keys are
 	the binned variables and efficiency names and the values are a 
@@ -164,10 +164,13 @@ def getVarDict( dataset, __effName='efficiency' ):
 	
 	:param dataset: dataset
 	:type dataset: ROOT.RooDataSet
-	:param __effName: efficiency name
+	:param effName: efficiency name
 	:type effName: string
 	:return: see above
 	:rtype: dict
+
+	:raise TypeError: if the dataset is not a ROOT.RooDataSet
+	:raise AttributeError: not found the effiency name introduced 
 	"""
 	import ROOT 
 
@@ -176,7 +179,7 @@ def getVarDict( dataset, __effName='efficiency' ):
 		arg = dataset.get()
 	except AttributeError:
 		message = 'The object \'%s\' is not a RooDataSet' % str(dataset)
-		printError( getVarDict.__module__+'.'+getVarDict.__name__, message, AttributeError )
+		printError( getVarDict.__module__+'.'+getVarDict.__name__, message, TypeError )
 	#-- Get the list with the name of the variables
 	varList = arg.contentsString().split(',')
 	for name in varList:
@@ -192,7 +195,7 @@ def getVarDict( dataset, __effName='efficiency' ):
 		effName = filter( lambda x: x.lower().find(__effName) != -1, [i for i in varinfo.iterkeys()] )[0]
 	except IndexError:
 		message = 'The RooDataSet \'%s\' does not have the \'%s\' variable as efficiency' % (dataset.GetName(), __effName)
-		printError( getVarDict.__module__+'.'+getVarDict.__name__, message, IndexError )
+		printError( getVarDict.__module__+'.'+getVarDict.__name__, message, AttributeError )
 
 	varinfo[effName]['latexName'] = '#varepsilon'
 
@@ -200,8 +203,7 @@ def getVarDict( dataset, __effName='efficiency' ):
 
 
 def getEffFromDict( dataset, input_effName='efficiency', **keywords):
-	"""
-	getEffFromDict(RooDataSet, 'effName', var1=value, ...) --> eff, effErrorLow, effErrorHigh, dict
+	""".. function:: getEffFromDict(RooDataSet, effName, var1=value[,var2=value2, ...]) -> eff, effErrorLow, effErrorHigh, dict
 
 	Giving a binned variables returns the efficiency which 
 	corresponds to those values. If the introduced variables 
@@ -215,12 +217,15 @@ def getEffFromDict( dataset, input_effName='efficiency', **keywords):
 	
 	:param dataset: dataset
 	:type dataset: ROOT.RooDataSet
-	:param input_effName: efficiency name
-	:type input_effName: string
-	:keyword var: var=value
-	:rtype var: object
+	:param effName: efficiency name. Default value 'efficiency'
+	:type effName: string
+	:keyword var1: name of the value with its value
+	:rtype var1: float
 	:return: tuple with efficiency values and a dictionary (None)
 	:rtype: float,float,float,dict
+
+	:raise AttributeError: if the dataset do not contain ``var``
+	:raise UserWarning: if do not introduce at least one variable as keyword
 	"""
 	#---  All the binned variables in the dataset
 	datasetVarList, effName = getVarNames( dataset, input_effName )
@@ -230,13 +235,13 @@ def getEffFromDict( dataset, input_effName='efficiency', **keywords):
 	for var,value in keywords.iteritems():
 		if not isbinnedVar( dataset, var, effName ):
 			message ="""The RooDataSet '%s' does not contain '%s' as binned variable""" % (dataset.GetName(), var)
-			printError( getEff.__module__+'.'+getEff.__name__, message, KeyError )
+			printError( getEff.__module__+'.'+getEff.__name__, message, AttributeError )
 		nameVarValueList.append( (var,value) )
 		nameVarList.append( var )
 	#---- Sanity check
 	if len(nameVarList) < 1:
 		message ="""You must introduce at least one variable"""
-		printError( getEffFromDict.__module__+'.'+getEffFromDict.__name__, message, ValueError )
+		printError( getEffFromDict.__module__+'.'+getEffFromDict.__name__, message, UserWarning )
 	
 	#--- Binned variables which are not entered as arguments of this function
 	noAskVar = filter( lambda x: x not in nameVarList, datasetVarList )
@@ -299,8 +304,7 @@ def getEffFromDict( dataset, input_effName='efficiency', **keywords):
 		
 
 def getEff( dataSet, input_effName='efficiency', **keywords):
-	"""
-	getEff(RooDataSet, 'effName', var1=value, ...) --> eff, effErrorLow, effErrorHigh (,dict)
+	""".. function:: getEff(dataset, effName='efficiency', var1=value[,var2=value2, ...]) -> eff, effErrorLow, effErrorHigh (,dict)
 
 	Giving a binned variables returns the efficiency which 
 	corresponds to those values. There is 2 output signatures 
@@ -320,6 +324,8 @@ def getEff( dataSet, input_effName='efficiency', **keywords):
 	:rtype var: object
 	:return: tuple with efficiency values (and a dictionary)
 	:rtype: float,float,float(,dict)
+	
+	:raise UserWarning: if do not introduce at least one variable as keyword
 	"""
 	#---- Checking the variables in dataset
 	_swapDict = getVarDict( dataSet )
@@ -336,7 +342,7 @@ def getEff( dataSet, input_effName='efficiency', **keywords):
 	#---- Sanity check
 	if len(nameVarList) < 1:
 		message ="""You must introduce at least one variable"""
-		printError( getEff.__module__+'.'+getEff.__name__, message, ValueError )
+		printError( getEff.__module__+'.'+getEff.__name__, message, UserWarning )
 	#--- Variables the user don't ask. This is the case when the user
 	#--- wants a list of efficiency given a fixed value of one variable
 	noAskVar = filter( lambda x: x not in nameVarList, datasetVarList )
@@ -385,17 +391,16 @@ def getEff( dataSet, input_effName='efficiency', **keywords):
 
 
 def getBinning( var ):
-	"""
-	getBinning( var ) -> bins, arrayBins
+	""".. function:: getBinning( var ) -> bins, arrayBins
 
 	Giving a RooArgVar, the function returns 
 	how many bins the variable has and an array (of doubles)
 	with with his values.
 	
 	:param var: variable object
-	:type dataset: ROOT.RooArgVar
+	:type var: ROOT.RooArgVar
 	:return: number of bins and array with bin edges
-	:rtype: int,double*
+	:rtype: int, double*
 
 	.. warning::
 	   Use with caution. The double arrays are potentially dangerous.
@@ -412,22 +417,21 @@ def getBinning( var ):
 	return binsN, arrayBins
 
 def graphclassname( tnp, dataname ):
-	"""
-	graphclassname( tnp, dataname ) -> 'name1'
+	""".. function:: graphclassname( tnp, dataname ) -> name
 
-	Giving a instance of tnp and a RooDataSet name contained in it, the
+	Giving a pytnp instance and a RooDataSet name contained in it, the
 	function returns a string which defines the graph class that RooDataSet
 	belongs. A graph class is defined by the keys ``effType``, ``objectType``
 	and ``methodUsed``
 	
 	:param tnp: object instance of pytnp class
-	:type dataset: pytnp
+	:type tnp: pytnp
 	:param dataname: name of the RooDataSet
 	:type str: string
 	:return name: name of the graph class
 	:rtype: string
 
-	:raise: UserWarning: ``The RooDataSet '%s' do not belong to the pyntp instance introduced``
+	:raise UserWarning: when the RooDataSet do not belong to the pyntp instance introduced
 	"""
 	#-- Check dataset
 	try:
@@ -438,8 +442,7 @@ def graphclassname( tnp, dataname ):
 
 
 def newtableLatex( dataset, effName, varX, varY, **keyword ):
-	"""
-	tableLatex( dataset, effName, 'var_column', 'var_row', [outfile='name.tex', varXname='latex name', varYname='latex name'] ) -> dict
+	""".. function tableLatex( dataset, effName, 'var_column', 'var_row', [outfile='name.tex', varXname='latex name', varYname='latex name'] ) -> dict
 
 	Giving a RooDataSet and two variables, the function returns a table in latex
 	format. If enters the keyword 'outfile' also the table will put

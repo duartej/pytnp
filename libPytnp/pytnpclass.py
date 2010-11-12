@@ -10,7 +10,7 @@ from management import printError, printWarning
 
 class pytnp(dict):
 	"""
-	Class to retrieve and encapsulate the 'tag and probe' 
+	Class to retrieve and encapsulate the *tag and probe*
 	root file generated with the fit step of the TagAndProbe
 	package from CMSSW.
 	"""
@@ -32,27 +32,28 @@ class pytnp(dict):
 	# CONSTRUCTOR ------------------------------------------------------------------------------------------------------
 	def __init__(self, filerootName, **keywords):
 		"""
-                pytnp(filerootName [, resonance=('name','nameLatex'), dataset='type', mcTrue=true, effName='efficiency_name', variables=['varname1','varname2',..] ] )
-
-		Create a dictionary which are going to be populate
-		with the plots and datasets already contained in the
-		file::
+                **pytnp**\(filerootName [, resonance=('name','nameLatex'), dataset='type', mcTrue=true, effName='efficiency_name', variables=['varname1','varname2',..] ] )
 		
-		  KEYWORDS:
-		   If 'dataset' is included, it will only  map
-		   the object matching with 'dataset'.
-		   
-		   If 'resonance'=(name,latexName) is included the filename is not necessary
-		   to be an standard tag and probe NAME (i.e. Resonance_blabla.root).
-		   
-		   If 'mcTrue' is set to True it will store the mcTrue info
-		   and will associate each dataset with their mcTrue dataset.
+		Dictionary which keys are the complet name of the RooDataSets and its values are dictionaries populated with several stuff.
 
-		   If effName is set, the user are providing the efficiency name which it will
-		   find inside the RooDataSets. Otherwise, we assume the name 'eff'.
-		   
-		   If 'variables' is included, only it will be considered the binned variables
-		   within the list
+		TO BE COMPLETED
+
+		:param filerootName: name of the root file
+		:type filerootName: string
+		
+		:keyword dataset: Store only dataset matching this effType (TO BE DEPRECATED)
+		:type dataset: string
+		:keyword resonance: assigns a (pytnpname,latexName) 
+		:type resonance: tuple of strings
+		:keyword mcTrue: Setting True, it stores the mcTrue info and will associate each
+		                 dataset with their mcTrue dataset.
+		:type mcTrue: bool
+		:keyword effName: Providing the efficiency name finded inside the RooDataSets. 
+		                  Otherwise, we assume the name ``efficiency``.
+				  CAVEAT: all the RooDataSet MUST have the same efficiency name.
+		:type effName: string
+		:keyword variables: Binned variables considered
+		:type variables: list of string
 
 		The instance will contain the follow datamembers::
 		    
@@ -62,15 +63,6 @@ class pytnp(dict):
 		instance itself and can be extracted as datamembers.
 
 		:raise: IOError
-
-		CAVEAT: All the RooDataSets in he file must have the same efficiency name
-
-		TODO: Put dictionary output
-
-		.. warning::
-
-		   Generating documentation, could be some errors..
-
 		"""
 		import ROOT
 		from getresname import getResName
@@ -297,6 +289,7 @@ class pytnp(dict):
 	def __getType__(self, name, structure):
 		"""
 		__getType__( 'RooDataSet name', dictionary ) --> dictionary
+
 		Build a dictionary where the key is the pathname (in standard T&P format)
 		and the values are also dictionaries storing relevant info of the dataset.
 		"""
@@ -417,8 +410,7 @@ class pytnp(dict):
 	## Getters for attributes ######################################################################
 	# --- FIXME: To delete?
 	def getCategory( self, name ):
-		"""
-		getCategory( name ) -> 'category'
+		""".. method: getCategory( name ) -> 'category'
 
 		Getting the name of the object, return the category belongs to 
 		"""
@@ -430,8 +422,7 @@ class pytnp(dict):
 			return None
 	
 	def getFitEffList( self ):
-		"""
-		getFitEffList() -> [ 'name1', ... ]
+		""".. method: getFitEffList() -> [ 'name1', ... ]
 
 		Returns a string's list of the names of RooDataSet which are fit_eff
 		"""
@@ -447,8 +438,7 @@ class pytnp(dict):
 		return fitEffList
 	
 	def getCountMCName( self, name ):
-		"""
-		getCountMCName( name ) -> 'nameMCcountig'
+		""".. method: getCountMCName( name ) -> 'nameMCcountig'
 
 		Gived the RooDataSet name (fit_eff like), returns the name of its MC True counting equivalent.
 		"""
@@ -460,8 +450,7 @@ class pytnp(dict):
 	## Getters for attributes ######################################################################
 
 	def write(self, fileOut):
-		"""
-		write( fileOut ) 
+		""".. method: write( fileOut ) 
 
 		Create a root file with all the RooDataSets and TH2F maps of 
 		the instance.
@@ -499,8 +488,7 @@ class pytnp(dict):
 
 
 	def ls(self, className):
-		"""
-		ls( className ) 
+		""".. method: ls( className ) 
 
 		Print the identification of all the objects of type 'className'		
 		"""
@@ -515,8 +503,7 @@ class pytnp(dict):
 
 
 	def plotEff1D( self, name, inputVarName, Lumi ):
-		"""
-		plotEff1D( RooDataSet, 'variable_name', 'latex string Luminosity' ) 
+		""".. method: plotEff1D( RooDataSet, 'variable_name', 'latex string Luminosity' ) 
 	
 		Given a name directory-like for a ROOT.RooDataSet object,
 	 	the function creates a 1-dim plot of 'variable_name' extracted from the
@@ -651,8 +638,7 @@ class pytnp(dict):
 
 	
 	def plotEffMap( self, name, x, y, Lumi, **keywords ):
-		"""
-		plotEff2D( name, x='var1', y='var1' ) 
+		""".. method: plotEff2D( name, x='var1', y='var1' ) 
 
 		Giving a RooDataSet name in directory-like format,
 		the function will do a bi-dimensional plot of 
