@@ -25,7 +25,7 @@ class pytnp(dict):
 	#-- Attribute dictionary
 	__attrDict__ = {}
 	#-- Binned variables introduced by user
-	userVariables = None
+	userVariables = []
 	effName = 'efficiency'
 	# Classes to store them
 	classNames = ['RooDataSet']#,'RooFitResult','TCanvas']
@@ -153,7 +153,7 @@ class pytnp(dict):
 		
 		#----- Variables, binned, efficiency, user introduced, ...
 		#--- The list will contain those dataset which don't have anyone of the variables entered  
-		#--- by the user (in case the user enter someone)
+		#--- by the user (in case the user enter someone) and the datasets will be removed
 		deleteDataset = set([])
 		#--- Getting the variables names of the RooDataSet 
 		for name, dataset in self.RooDataSet.iteritems(): 
@@ -178,37 +178,34 @@ class pytnp(dict):
 			#--- Check the variables introduced by user are there and
 			#------ Setting the binned Variables: extract efficiencies from last list
 			message = ''
-			_errorPrint = False
 			_warningPrint = False
+			_havetodelete = False
 			lostVar = ''
 			self[name]['binnedVar'] = {}
-			try:
+			if len(self.userVariables) != 0 :
 				for var in self.userVariables:
-					# FIXME:::: Falla en el caso de una variable compruebalo
 					if not var in self[name]['variables']:
 						lostVar += var+', '
 						_warningPrint = True
-						deleteDataset.add( name ) 
+						_havetodelete = True
 					else:
-						print var
-						print self[name]['binnedVar']
-						print self[name]['variables']
 						self[name]['binnedVar'][var] = self[name]['variables'][var] 
+				if _havetodelete:
+					deleteDataset.add( name ) 
 				if _warningPrint:
 					lostVar = lostVar[:-2]
 					message += """Variable '%s' is not in the '%s' RooDataSet. Skipping it... """ % ( lostVar,name)
 					printWarning( self.__module__+'.pytnp', message )
-			except AttributeError:
+			else:
 				#The user didn't introduce binned variables, I take everyone
 				self[name]['binnedVar'] = dict([ (var, self[name]['variables'][var]) \
 						for var in filter( lambda x: x.lower().find(self.effName) == -1, self[name]['variables'] ) ])
-				# FIXME: I don't see the logic of this print... Check it out
-				if _errorPrint:
-					message += """  ----> I found: """
-					for var in self[name]['variables']:
-						message += var+', '
-						message = message[:-2]
-						printError( self.__module__, message, UserWarning )
+				#if _errorPrint:
+				#	message += """  ----> I found: """
+				#	for var in self[name]['variables']:
+				#		message += var+', '
+				#		message = message[:-2]
+				#		printError( self.__module__, message, UserWarning )
 			self[name]['eff'] = filter( lambda x: x.lower().find(self.effName) != -1, self[name]['variables'] )[0]
 
 		for _dataout in deleteDataset:
@@ -557,7 +554,7 @@ class pytnp(dict):
 		# Special case: we have only one variable
 		if len(self[name]['binnedVar']) == 1:
 			graphName = self.resonance+'_'+self[name]['effType']+'_'+self[name]['objectType']+'_'+\
-					self[name]['methodUsed']+'__'+varName
+					self[name]['methodUsed']+'__'+inputVarName
                         if self[name]['isMC'] == 1:
 				graphName += '__mcTrue'
 			#--- Extracting the efficiency values per bin

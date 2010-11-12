@@ -205,7 +205,7 @@ if __name__ == '__main__':
 				message += """Impose the resonance name usign the '--resName' option (see --help for usage)""" 
 				printErrorAndExit( message, -1 )
 
-			tnpDict[resNameTuple[0]] = pytnp( aFile, resonance = resNameTuple ) #dataset=whatPlots )
+			tnpDict[resNameTuple[0]] = pytnp( aFile, resonance=resNameTuple, variables=onlythesevars ) #dataset=whatPlots )
 
 		_title =' CMS Preliminary,'+Lumi+' #sqrt{s}=7 TeV '
 
@@ -286,7 +286,7 @@ if __name__ == '__main__':
 			#--- Extract from the standard name file the resonance ---
 			# resonance name and latex format name
 			resNameTuple = getResName( aFile, config=config_file )
-			tnpDict[resNameTuple[0]] = pytnp( aFile,  effName=opt.effName, resonance=resNameTuple ) #,dataset=whatPlots )
+			tnpDict[resNameTuple[0]] = pytnp( aFile,  effName=opt.effName, resonance=resNameTuple, variables=onlythesevars ) #,dataset=whatPlots )
 			resonanceList.append( resNameTuple[0] )
 		#--- Check we have 2 pytnp (no keys overwritten)
 		if len(tnpDict) != 2:
@@ -358,7 +358,7 @@ if __name__ == '__main__':
 		Message = """I need only one root file. I parsed '%s'""" % opt.fileName
 		_file = parseOption( opt.fileName, '>', 1, Message )
 
-		tnp = pytnp(_file[0] )#, dataset=whatPlots)
+		tnp = pytnp(_file[0], effName=opt.effName, variables=onlythesevars )#, dataset=whatPlots)
 		#-- Select the datasets we want to use
 		if category:
 			isfulfillCat = lambda dataname : tnp[dataname]['objectType'] == category
@@ -393,7 +393,7 @@ if __name__ == '__main__':
 		# Ploting mc true-counting vs. fit_eff
 		allFiles = opt.fileName.split(',')
 		# The mc true can be in other file, then we need
-		tnp = pytnp( opt.fileName, effName = opt.effName )
+		tnp = pytnp( opt.fileName, effName = opt.effName, variables=onlythesevars )
 
 		sysMCFIT( tnp, Lumi )
 	#____________________________________________________________________________________________________
