@@ -126,20 +126,20 @@ class pytnp(dict):
 			#except KeyError:
 			#	self[name] = self.__getType__(name,{})[name]
 				#--- Skipping sbs, cnt no MC
-			if self.__attrDict__[name]['methodUsed'] == 'sbs_eff': #or \
+			#**if self.__attrDict__[name]['methodUsed'] == 'sbs_eff': #or \
 					#	( self.__attrDict__[name]['methodUsed'] == 'cnt_eff' and self.__attrDict__[name]['isMC'] == 0):
-				self.pop(name)
-				todelete.append( name )
-				continue
+			#**	self.pop(name)
+			#**	todelete.append( name )
+			#**	continue
 
 			self[name]['dataset'] = dataSet
 			#--To store the categories we have
 			_prov.add( self[name]['objectType'] )
 		#--- We are not interested about the MC, only in cnt and fit_eff
-		map( lambda (Name,Dumm): self.__attrDict__.pop(Name), mcTrueData )
+		#**map( lambda (Name,Dumm): self.__attrDict__.pop(Name), mcTrueData )
 		#--- We are not interested about the sbs and cnt not MC
-		map( lambda y: self.__attrDict__.pop( y[0] ), filter( lambda x: x[1]['isMC'] == 0 and x[1]['methodUsed'] != 'fit_eff',\
-				self.__attrDict__.iteritems() ) ) 
+		#**map( lambda y: self.__attrDict__.pop( y[0] ), filter( lambda x: x[1]['isMC'] == 0 and x[1]['methodUsed'] != 'fit_eff',\
+		#		self.__attrDict__.iteritems() ) ) 
 		#-- Storing the categories we have 
 		self.categories = list(_prov)
 		#--- Don-'t forget delete also in RooDataSet attribute
