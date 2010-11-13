@@ -327,13 +327,14 @@ class pytnp(dict):
 		#-- Mapping
 		#--- Check and put values provided by the user
 		try:
-			#--- If not enter config, self.configfile is None
+			#--- If not enter config, self.configfile is None and 
+			#--- parserConfig raise a TypeError exception
 			tupleAttr = parserConfig( self.configfile, self.resonance+'::'+name )
 			#--- If nothing the tupleAttr is None so NameError exception too
 			structure[name]['effType'] = tupleAttr[0]
 			structure[name]['objectType'] = tupleAttr[1]
 			structure[name]['isMC'] = tupleAttr[2]
-		except NameError:
+		except (NameError,TypeError):
 			#---- Type of efficiency
 			if effType == 'histoTrigger':
 				structure[name]['effType'] = 'trigger'
@@ -669,6 +670,7 @@ class pytnp(dict):
 		will stores in the object instance
 		"""
 		import ROOT
+		ROOT.gROOT.SetBatch(1)
 		import pytnp.steerplots.rootlogon
 		from tnputils import getBinning,listTableEff,getEff
 

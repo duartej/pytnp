@@ -350,10 +350,13 @@ if __name__ == '__main__':
 		try:
 			varList = parseOption( opt.dim2Plots, '!=', 2, Message )
 		except AttributeError:
-			#-- the user  do not use -2d flag, so we need the two variables from the
+			#-- the user  do not use --2d flag, so we need the two variables from the
 			#-- maps option
 			if opt.maps:
-				category = opt.maps[0]
+				Message = "I need one category to do the maps. I parsed '%s'" % opt.maps[0]
+				categoryList = parseOption( opt.maps[0], '!=', 1, Message )
+				category = categoryList[0]
+				Message = """I need two binned variables root file. I parsed '%s'""" % opt.maps[1]
 				varList = parseOption( opt.maps[1], '!=', 2, Message )
 		#--- Only one file
 		Message = """I need only one root file. I parsed '%s'""" % opt.fileName
@@ -372,11 +375,11 @@ if __name__ == '__main__':
 		if len(toUseList) == 0:
 			Message = """No RooDataSet in the root file '%s' has the category name '%s'\n""" % (tnp.__fileroot__.GetName(), category )
 			Message += """Check the root file to see what categories are available.\n"""
-			Message += """You can use: 'effPlots -i rootfile.root --printContent' and see the 'objectType' key"""
+			Message += """You can use: 'effPlots -i %s -p' and see the 'objectType' key""" % tnp.__fileroot__.GetName()
 			printErrorAndExit( Message, -1 )
 		#--- Plots 2-dim maps
 		for name in toUseList:
-			#-- Only category, if any
+			#-- Only one category, if any
 			tnp.plotEffMap(name, varList[0], varList[1], Lumi )
 
 		if opt.maps:
