@@ -170,7 +170,7 @@ class pytnp(dict):
 				message += '\n\033[1;33m  CAVEAT: The efficiency name \033[1;m\033[1;39mMUST\033[1;m\033[1;33m'\
 						'have the same name for all the RooDataSets in the rootfile\033[1;m'	
 				printError( self.__module__, message, KeyError )
-			#--- Check the variables introduced by user are there and
+			#--- Check the variables introduced by the user are there and
 			#------ Setting the binned Variables: extract efficiencies from last list
 			message = ''
 			_warningPrint = False
@@ -242,7 +242,7 @@ class pytnp(dict):
 		for i in keywords.keys():
 			if not i in valid_keys:
 				message = 'Invalid instance of pytnp: you can not use %s as key argument, ' % i
-				message += 'key arguments valids are \'resonance\', \'dataset\', \'mcTrue\', \'variables\', \'effName\'' 
+				message += 'key arguments valids are \'%s\'' % str(valid_keys)
 			#	print help(self.__init__)
 				printError( self.__check_keywords__.__module__+'.'+self.__check_keywords__.__name__, message, KeyError )
 			#---Checking the correct format and storing

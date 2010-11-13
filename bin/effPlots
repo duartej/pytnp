@@ -105,7 +105,7 @@ if __name__ == '__main__':
         #TO BE DEPRECATED
 	#parser.add_option( '--counting', action='store_true', dest='counting', help='If active this flag, do the plots using the MC information (counting events)' )
 	#
-        parser.add_option( '--sysTnP', action='store_true', dest='sysTnP', help='Do the plots (and a root file maps--Not yet) for the differences between counting MC and Tag and Probe fit efficiencies.' )
+        parser.add_option( '--sys', action='store', dest='sys', help='Do the plots (and a root file maps--Not yet) for the differences between counting MC and Tag and Probe fit efficiencies.' )
 	parser.add_option( '-m', '--maps', action='store', dest='maps', metavar='CATEGORY VAR_X,VAR_Y', nargs=2, help='Create root files with TH2F and RooDataSets, give the name of the muon category and the binned variables to use' )
         parser.add_option( '-t', '--tables', action='store_true', dest='tables', help='Create latex tables from an efficiency map root file' )
         parser.add_option( '-L', action='store', dest='Lumi', metavar='LUMI unit', nargs=2, help='Integrated Luminosity and unit' )
@@ -175,7 +175,7 @@ if __name__ == '__main__':
 	#____________________________________________________________________________________________________
 	# Doing 1-dimensional plots, if there are more than one input file, do the plots plotted on the 
 	# same canvas.
-	if opt.dim1Plots:
+	if opt.dim1Plots and not opt.sys:
 		from pytnp.libPytnp.pytnpclass import pytnp
 		from pytnp.steerplots.plotsCreation import superImposed
 
@@ -340,7 +340,7 @@ if __name__ == '__main__':
 	#____________________________________________________________________________________________________
 
 	#____________________________________________________________________________________________________
-	if opt.dim2Plots or opt.maps:
+	if ( opt.dim2Plots or opt.maps ) and not opt.sys:
 		from pytnp.libPytnp.pytnpclass import pytnp
 		donesomething = True
 		
@@ -390,20 +390,64 @@ if __name__ == '__main__':
 			tnp.write('effMaps_'+tnp.resonance+'_'+category+'.root' )
 		del tnp
 	#____________________________________________________________________________________________________
-
+	
 	#____________________________________________________________________________________________________
 	if opt.sysTnP:
-		from pytnp.libPytnp.pytnpclass import pytnp
-		from pytnp.steerplots.plotsCreation import sysMCFIT
-		donesomething = True
-		# Ploting mc true-counting vs. fit_eff
-		allFiles = opt.fileName.split(',')
-		# The mc true can be in other file, then we need
-		resNameTuple = getResName( opt.fileName, config=config_file )
-		tnp = pytnp( opt.fileName, effName = opt.effName, variables=onlythesevars, configfile=opt.config_file, resonance=resNameTuple )
+		if not opt.dim1Plot and not opt.dim2Plot:
+			Message = """The --sys option also needs the --1d or --2d option"""
+			#-- Raise an error
+			parseOption( [0], '>', 1, Message )
 
-		sysMCFIT( tnp, Lumi )
+		from pytnp.libPytnp.pytnpclass import pytnp
+		from pytnp.steerplots.plotsCreation import superImposed
+
+		donesomething = True
+		
+		#-- Only I want one variable
+		Message = """I need only one variable. I parsed '%s'""" % opt.dim1Plots
+		variableList = parseOption( opt.dim1Plots, '>', 1, Message )
+		
+		variable = variableList[0]
+		
+		#-- Cheking how many inputs files have
+		Message = """I need at least 1 input files comma separated without espaces. I parsed '%s'""" % opt.fileName
+		allFiles = parseOption( opt.fileName, '<', 1, Message )
+
+		#-- Dictionary of pytnp instance for every resonance
+		tnpDict = {}
+		#-- Filling the dict, note if we have the same resonance name we're going to
+		#-- lose a file	
+		for aFile in allFiles:
+			#--- Extract from the standard name file the resonance ---
+			resNameTuple = getidtuple( aFile, opt.config_file )
+			#-- Raise an error if the user don't define diferent resonances names
+			if tnpDict.has_key(resNameTuple[0]):
+				message = """There are root input files names which have the same resonance names:\n"""
+				message += """\033[1;39m  '%s': '%s'\n\033[1;m"""  % ( tnpDict[resNameTuple[0]].__fileroot__.GetName(), resNameTuple[0] ) 
+				message += """\033[1;39m  '%s': '%s'\n\033[1;m"""  % ( aFile, resNameTuple[0] ) 
+				message += """Impose the resonance name usign the '--resName' option (see --help for usage)""" 
+				printErrorAndExit( message, -1 )
+
+			tnpDict[resNameTuple[0]] = pytnp( aFile, resonance=resNameTuple, variables=onlythesevars, configfile=opt.config_file ) #dataset=whatPlots )
+
+		_title =' CMS Preliminary,'+Lumi+' #sqrt{s}=7 TeV '
+
+		superImposed( tnpDict, variable, Lumi, title=_title )
 	#____________________________________________________________________________________________________
+
+	#____________________________________________________________________________________________________
+#	if opt.sysTnP:
+#		from pytnp.libPytnp.pytnpclass import pytnp
+#		from pytnp.steerplots.plotsCreation import sysMCFIT
+#		donesomething = True
+#		# Ploting mc true-counting vs. fit_eff
+#		allFiles = opt.fileName.split(',')
+#		# The mc true can be in other file, then we need
+#		resNameTuple = getResName( opt.fileName, config=config_file )
+#		tnp = pytnp( opt.fileName, effName = opt.effName, variables=onlythesevars, configfile=opt.config_file, resonance=resNameTuple )
+#
+#		sysMCFIT( tnp, Lumi )
+#	#____________________________________________________________________________________________________
 
 	#____________________________________________________________________________________________________
 	if opt.tables:
@@ -414,7 +458,7 @@ if __name__ == '__main__':
 		Message = """I need only 1 input files. I parsed '%s'""" % opt.fileName
 		allFiles = parseOption( opt.fileName, '>', 1, Message )
 		
-		f = TFile( opt.fileName )
+		f = TFile( allFiles[0] )
 		dataList = [ f.Get(i.GetName()) for i in f.GetListOfKeys() if i.GetClassName() == 'RooDataSet' ]
 		if len(dataList) == 0:
 			print """\033[1;33mWarning: the file %s does not contain a efficiency map\033[1;m""" % opt.fileName 
