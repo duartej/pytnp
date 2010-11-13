@@ -107,7 +107,6 @@ def parserAttributes(dictObject, dataname):
 
 	"""
 	#-- Is there any key for this dataset?
-	print dictObject, dataname
 	try:
 		tupleAtt = dictObject[dataname]
 	except KeyError:

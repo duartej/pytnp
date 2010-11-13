@@ -59,6 +59,24 @@ def LumiUnit( unit ):
 	
 	return unit+'^{-1}'
 
+def getidtuple( _f, config_file ):
+	"""..function getidtuple( filename ) ->  id, latexname 
+	"""
+	from pytnp.libPytnp.getresname import getResName
+
+	# resonance name and latex format name
+	try:
+		resNameTuple = getResName( _f, config=config_file )
+	except TypeError:
+		#-- The file name must be standard (if there aren't config file)
+		message = """The file name '%s' introduced is not in a standard format:"""\
+				""" Resonance_histo[MuFromTrk|Trigger]_....root\n"""\
+				""" You can use the -c option to include your own resonance name"""\
+				""" in order to avoid the above file name notation""" % _f
+		printErrorAndExit( message, -1 )
+
+	return resNameTuple
+
 
 #-----------------------------------------------------------------------------------------
 
@@ -122,22 +140,11 @@ if __name__ == '__main__':
 	#Print printContent and exit
 	if opt.printContent:
 		from pytnp.libPytnp.pytnpclass import pytnp
-		from pytnp.libPytnp.getresname import getResName
 		
 		Message = """I need at least 1 input files comma separated without espaces. I parsed '%s'""" % opt.fileName
 		allFiles = parseOption( opt.fileName, '<',1, Message )
                 for _f in allFiles:
-			# resonance name and latex format name
-			try:
-				resNameTuple = getResName( _f, config=config_file )
-			except TypeError:
-				#-- The file name must be standard (if there aren't config file)
-				message = """The file name '%s' introduced is not in a standard format:"""\
-						""" Resonance_histo[MuFromTrk|Trigger]_....root\n"""\
-						""" You can use the -c option to include your own resonance name"""\
-						""" in order to avoid the above file name notation""" % aFile
-				printErrorAndExit( message, -1 )
-
+			resNameTuple = getidtuple( _f, opt.config_file )
                         tnp = pytnp( _f, effName = opt.effName, variables=onlythesevars, resonance=resNameTuple, configfile=opt.config_file )
                         print tnp
 		exit(0)
@@ -170,7 +177,6 @@ if __name__ == '__main__':
 	# same canvas.
 	if opt.dim1Plots:
 		from pytnp.libPytnp.pytnpclass import pytnp
-		from pytnp.libPytnp.getresname import getResName
 		from pytnp.steerplots.plotsCreation import superImposed
 
 		donesomething = True
@@ -185,29 +191,13 @@ if __name__ == '__main__':
 		Message = """I need at least 1 input files comma separated without espaces. I parsed '%s'""" % opt.fileName
 		allFiles = parseOption( opt.fileName, '<', 1, Message )
 
-		try:
-			resNameList = opt.resName.replace(' ','_').split(',')
-		except AttributeError:
-			resNameList = []
 		#-- Dictionary of pytnp instance for every resonance
 		tnpDict = {}
-		#-- Filling the dict, note if we have the same resonance name we're going tp
-		#-- lose a file
-		for aFile, resname in map( lambda _file,_resName: (_file,_resName), allFiles,resNameList ):
+		#-- Filling the dict, note if we have the same resonance name we're going to
+		#-- lose a file	
+		for aFile in allFiles:
 			#--- Extract from the standard name file the resonance ---
-			if not resname:
-				# resonance name and latex format name
-				try:
-					resNameTuple = getResName( aFile, config=config_file )
-				except TypeError:
-					#-- The file name must be standard (if there aren't config file)
-					message = """The file name '%s' introduced is not in a standard format:"""\
-							""" Resonance_histo[MuFromTrk|Trigger]_....root\n"""\
-							""" You can use the -c option to include your own resonance name"""\
-							""" in order to avoid the above file name notation""" % aFile
-					printErrorAndExit( message, -1 )
-			else:
-				resNameTuple = ( resname, resname)
+			resNameTuple = getidtuple( aFile, opt.config_file )
 			#-- Raise an error if the user don't define diferent resonances names
 			if tnpDict.has_key(resNameTuple[0]):
 				message = """There are root input files names which have the same resonance names:\n"""
@@ -281,7 +271,7 @@ if __name__ == '__main__':
 	if opt.resToComp:
 		from pytnp.libPytnp.pytnpclass import pytnp
 		from pytnp.steerplots.plotsCreation import diffEffMaps
-		from pytnp.libPytnp.getresname import getResName
+		
 		donesomething = True
 		#--- 
 		Message = """I need at least 2 input files comma separated without espaces. I parsed '%s'""" % opt.fileName
@@ -296,7 +286,7 @@ if __name__ == '__main__':
 		for aFile in allFiles:
 			#--- Extract from the standard name file the resonance ---
 			# resonance name and latex format name
-			resNameTuple = getResName( aFile, config=config_file )
+			resNameTuple = getidtuple( aFile, opt.config_file )
 			tnpDict[resNameTuple[0]] = pytnp( aFile,  effName=opt.effName, resonance=resNameTuple, variables=onlythesevars, configfile=opt.config_file ) #,dataset=whatPlots )
 			resonanceList.append( resNameTuple[0] )
 		#--- Check we have 2 pytnp (no keys overwritten)
@@ -368,8 +358,10 @@ if __name__ == '__main__':
 		#--- Only one file
 		Message = """I need only one root file. I parsed '%s'""" % opt.fileName
 		_file = parseOption( opt.fileName, '>', 1, Message )
+		
+		resNameTuple = getidtuple( _file[0], config_file )
 
-		tnp = pytnp(_file[0], effName=opt.effName, variables=onlythesevars, configfile=config_file )#, dataset=whatPlots)
+		tnp = pytnp(_file[0], effName=opt.effName, variables=onlythesevars, configfile=config_file, resonance=resNameTuple )#, dataset=whatPlots)
 		#-- Select the datasets we want to use
 		if category:
 			isfulfillCat = lambda dataname : tnp[dataname]['objectType'] == category
@@ -404,7 +396,8 @@ if __name__ == '__main__':
 		# Ploting mc true-counting vs. fit_eff
 		allFiles = opt.fileName.split(',')
 		# The mc true can be in other file, then we need
-		tnp = pytnp( opt.fileName, effName = opt.effName, variables=onlythesevars, configfile=opt.config_file )
+		resNameTuple = getResName( opt.fileName, config=config_file )
+		tnp = pytnp( opt.fileName, effName = opt.effName, variables=onlythesevars, configfile=opt.config_file, resonance=resNameTuple )
 
 		sysMCFIT( tnp, Lumi )
 	#____________________________________________________________________________________________________

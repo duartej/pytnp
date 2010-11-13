@@ -42,6 +42,7 @@ def getResName( aFile, **keywords ):
 			'_Spring10_' : (' MC', ''),
 			}
 	#-- Add and/or updating the keys, entered by the user
+	isDone = False
 	for key, _file in keywords.iteritems():
 		if key != 'config':
 			message = "Invalid argument key '%s', only accepted 'config" % key
@@ -50,6 +51,7 @@ def getResName( aFile, **keywords ):
 		if _file:
 			for name, value in parserConfig( keywords['config'], 'DataNames' ).iteritems():
 				nameDict[name] = value
+				isDone = True
 
 	try:
 		num = regexp.search( aFile ).group( 'NUMBER' )
@@ -73,6 +75,10 @@ def getResName( aFile, **keywords ):
 		message ="""UNEXPECTED ERROR!! Send a e-mail to the developer(s) with all information\n"""\
 				"""needed to reproduce this error"""
 		printError( getresname.__module__+'.'+getresname.__name__, message, RuntimeError )
+	
+	#All work is done
+	if isDone:
+		return resonance, resonanceLatex
 	
 	#Including others..
 	# FIXME: To be DEPRECATED
