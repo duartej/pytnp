@@ -52,7 +52,6 @@ def superImposed( tnpDict, variable, Lumi, **keywords ):
 	#-- RooDataSet which have the same effType, objectUse, methodUsed keys
 	#-- plus variable and bin range information. This define a class
 	#-- and each class it will be plotted at the same canvas
-	# FIXME: QUE PASA CON MONTECARLO???!!!!! Ahora esta metido por defecto
 	classesDict = {}
 	for resName, tnp in tnpDict.iteritems():
 		for dataname, keys in tnp.RooDataSet.iteritems():
@@ -261,76 +260,88 @@ def mcimposed( tnp, variable, Lumi, sys='cnt', **keywords ):
 				c.Close()
 
 
-def diff2DMaps( tnpRef, tnp2, varX, varY, Lumi, *nameOfdataSet ):
-	"""
-	diff2DMaps( pytnpRef, pytnpOther, nameOfdataSet, nameOfdataSet2 ) 
+def diff2DMaps( refT, otherT, varX, varY, Lumi, **keywords ):
+	""".. function diff2DMaps( tnpRef, tnpOther, varX, varY, Lumi ) 
 
 	Given 2 pytnp instances, it will do 2-dimensional maps::
 	
 	  |eff_ref-eff_other|sqrt(sigma_ref^2+sigma_other^2      Comparing_ResNameRef_ResNameOther_nameOfdataSet.eps     
           |eff_ref-eff_other|eff_ref                             ComparingRelative_ResNameRef_ResNameOther_nameOfdataSet.eps
 
-	The two files must be have the same binning but one of them can have more bins. 
-	The comparation will be done until the minimum of both
+	The two files must be have the same binning. 
+
+	:param RefT: tuple of pytnp instance for the efficiency of reference and the data name
+	:type RefT: (pytnp,string)
+	:param otherT: tuple pytnp instance for the second efficiency to compare and the data name
+	:type otherT: (pytnp,string)
+	:param varX: name of the binned variable for the x-axis
+	:type varX: string
+	:param varY: name of the binned variable for the y-axis
+	:type varY: string
+	:param Lumi: luminosity
+	:param Lumi: string
+
+	:raise RuntimeError: the first two arguments introduced are not tuples (pytnp object, dataname string)
+	:raise UserWarning: some of the variables introduced are not binned variables
+	:raise AttributeError: dataname not found in the root file
+	:raise NameError: the object introduced as pyntp is not a pytnp instance
+
 	"""
 	from math import sqrt
 	from plotfunctions import plotMapTH2F
 	import rootlogon 
-	#from pytnp.libPytnp.tnputils import isbinnedVar
-	#from pytnp.libPytnp.tnputils import getBinning
 	#---- Initialiting -------------------------------
-	nameOfdataSet2 = None
-	#-- Comparation between different resonances
-	if len(nameOfdataSet) == 1:
-		nameOfdataSet  = nameOfdataSet[0]
-		nameOfdataSet2 = nameOfdataSet
-		tnpRef_resLatex = tnpRef.resLatex
-		tnp2_resLatex =  tnp2.resLatex
-	#--- MC comparation
-	elif len(nameOfdataSet) == 2: 
-		nameOfdataSet2 = nameOfdataSet[1]
-		nameOfdataSet  = nameOfdataSet[0] 
-		tnpRef_resLatex = tnpRef.resLatex+'^{MC}'
-		tnp2_resLatex = tnpRef.resLatex+'^{TnP}'
-	else:
-		message = """\033[1;31mUnexpected Error!!\033[1;m"""
-		print message
-		exit(-1)
-        try:
-		dataSet = tnpRef.RooDataSet[nameOfdataSet]
-		for i in [varX, varY]:
-			if not isbinnedVar( dataSet, i ):
-				message = "Variable '%s' is not a binned variable in the '%s' RooDataSet" % (i, nameOfdataSet)
-				printError( diff2DMaps.__module__+'.'+diff2DMaps.__name__, message, UserWarning )
-	except KeyError:
-		print """\033[1;31mError: you must introduce a valid name\033[1;m"""
-		raise KeyError
-        try:
-		dataSet2 = tnp2.RooDataSet[nameOfdataSet2]
-		for i in [varX, varY]:
-			if not isbinnedVar( dataSet2, i ):
-				message = "Variable '%s' is not a binned variable in the '%s' RooDataSet" % (i, nameOfdataSet2)
-				printError( diff2DMaps.__module__+'.'+diff2DMaps.__name__, message, UserWarning )
-	except KeyError:
-		print """\033[1;31mError: you must introduce a valid name\033[1;m"""
-		raise KeyError
+	# Input keywords and defaults
+	KEYWORDS = { 'title': None, 'outputformat': 'eps' }
+	
+	for key,value in keywords.iteritems():
+		try:
+			KEYWORDS[key] = value
+		except KeyError:
+			pass
+
+	if not isinstance(refT,tuple) or not isinstance(otherT,tuple):
+		Message = "The two firts arguments must be a tuples '(pytnp object, 'dataname')'"
+		printError( diff2DMaps.__module__+'.'+diff2DMaps.__name__, Message, RuntimeError )
+
+	tnpRef = refT[0]
+	tnp2 = otherT[0] 
+	datanameRef = refT[1]
+	dataname2 = otherT[1]
+	
+	datasets = {}
+	_index = 0
+	for tnp, name in [(tnpRef,datanameRef), (tnp2,dataname2)]:
+		try:
+			datasets[_index] = tnp.RooDataSet[name]
+			for i in [varX, varY]:	
+				if not isbinnedVar( datasets[_index], i ):
+					message = "Variable '%s' is not a binned variable in the '%s' RooDataSet" % (i, dataname)
+					printError( diff2DMaps.__module__+'.'+diff2DMaps.__name__, message, UserWarning )
+		except KeyError:
+			message = """Invalid dataname '%s', is not in the pytnp instance '%s'""" % (name, tnp)
+			printError( diff2DMaps.__module__+'.'+diff2DMaps.__name__, message, AttributeError )
+		except AttributeError:
+			message = """The object '%s' is not a pytnp instance""" % str(tnp)
+			printError( diff2DMaps.__module__+'.'+diff2DMaps.__name__, message, NameError )
+		_index += 1
 	#---------------------------------------------------
 	#--- Name for the histo and for the plot file to be saved
-	plotName = 'Comparing_'+tnpRef.resonance+'_'+tnp2.resonance+'_'+nameOfdataSet.replace('/','_')
+	plotname = tnpRef.resonance+'_'+tnp2.resonance+'_'+tnpRef[datanameRef]['effType']+'_'+tnpRef[datanameRef]['objectType']+'_'+\
+			tnpRef[datanameRef]['methodUsed']
+	plotName = 'Comparing_'+plotname
+	plotName2 = 'ComparingRelative_'+plotname
 	#--- Title for the plot file
-	title = '|#varepsilon_{'+tnpRef_resLatex+'}'+'-#varepsilon_{'+tnp2_resLatex+'}| '+tnpRef[nameOfdataSet]['objectType']+' '+dataSet.GetTitle()
-	plotName2 = 'ComparingRelative_'+tnpRef.resonance+'_'+tnp2.resonance+'_'+nameOfdataSet.replace('/','_')
-	#--- Title for the plot file
-	title2 = '|#varepsilon_{'+tnpRef_resLatex+'}'+'-#varepsilon_{'+tnp2_resLatex+'}|/#varepsilon_{'+tnpRef_resLatex+'}'+\
-                          ' '+tnpRef[nameOfdataSet]['objectType']+' '+dataSet.GetTitle()
+	#title2 = '|#varepsilon_{'+tnpRef_resLatex+'}'+'-#varepsilon_{'+tnp2_resLatex+'}|/#varepsilon_{'+tnpRef_resLatex+'}'+\
+        #                  ' '+tnpRef[datanameRef]['objectType']+' '+dataSet.GetTitle()
 	# Dictionary of objects
-	histoList = [ { 'histo': None, 'plotName': plotName, 'title': title},
-			{ 'histo': None,  'plotName': plotName2, 'title': title2 } 
+	histoList = [ { 'histo': None, 'plotName': plotName }, #'title': title},
+			{ 'histo': None,  'plotName': plotName2 },# 'title': title2 } 
 			]
 	#--- Checking binned variables  ##################################a
-	datasetVarList, effName = getVarNames( dataSet )
+	datasetVarList, effName = getVarNames( datasets[0] )
 	
-	listTableEff1 = listTableEff( dataSet )
+	listTableEff1 = listTableEff( datasets[0] )
 
 	xList = []
 	yList = []
@@ -340,7 +351,7 @@ def diff2DMaps( tnpRef, tnp2, varX, varY, Lumi, *nameOfdataSet ):
 		x,xlo,xhi = teff1[varX]
 		y,ylo,yhi = teff1[varY]
 		try:		
-			e2,e2lo,e2hi = eval('getEff( dataSet2,'+varX+'='+str(x)+','+varY+'='+str(y)+')')
+			e2,e2lo,e2hi = eval('getEff( datasets[1],'+varX+'='+str(x)+','+varY+'='+str(y)+')')
 		except TypeError:
 			#Not found efficiency in ptName-etaName  bin. Ignore that bin
 			continue
@@ -353,13 +364,13 @@ def diff2DMaps( tnpRef, tnp2, varX, varY, Lumi, *nameOfdataSet ):
 		yList.append( y )
 	titles = {}
 	for i in [varX,varY]:
-		titles[i] = tnpRef[nameOfdataSet]['binnedVar'][i]['latexName']
-		unit = tnpRef[nameOfdataSet]['binnedVar'][i]['unit'] 
+		titles[i] = tnpRef[datanameRef]['binnedVar'][i]['latexName']
+		unit = tnpRef[datanameRef]['binnedVar'][i]['unit'] 
 		if unit != '':
 			titles[i] += ' ('+unit+') '
 	#k = 0
-	XbinsN, arrayX = getBinning( dataSet.get()[varX] )
-	YbinsN, arrayY = getBinning( dataSet.get()[varY] )
+	XbinsN, arrayX = getBinning( datasets[0].get()[varX] )
+	YbinsN, arrayY = getBinning( datasets[0].get()[varY] )
 	for hist in histoList:
 		ztitle = 'eff'
 		title =' CMS Preliminary,'+Lumi+' #sqrt{s}=7 TeV ' 
@@ -394,13 +405,13 @@ def diffEffMaps( tnpDict, refRes, varX, varY, Lumi, **keywords ):
 	for resName,resLatex in sorted(resonance):
 		for name in tnpDict[resName].RooDataSet.iterkeys():
 			#FIXME ---_> No funcionara, signatura cambiado (necsita variables de entrada
-			diff2DMaps( tnpResRef, tnpDict[resName], varX, varY, Lumi, name )
+			diff2DMaps( (tnpResRef,name), (tnpDict[resName],name), varX, varY, Lumi )
 
 
 
-def sysMCFIT(tnp, Lumi, **keywords):
+def mcdiffmaps(tnp, Lumi, **keywords):
         """
-	sysMCFIT( 'namerootfile' ) 
+	mcdiffmaps( 'namerootfile' ) 
 
 	Compute the differences between MC True counting efficiency
 	and Tag and Probe fitted efficiency. Return plots (and 

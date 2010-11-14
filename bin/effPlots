@@ -214,61 +214,9 @@ if __name__ == '__main__':
 		superImposed( tnpDict, variable, Lumi, title=_title )
 	#____________________________________________________________________________________________________
 
-	#____________________________________________________________________________________________________
-	# TO BE REMOVE: DEPRECATED
-	# Doing 1-dimensional plots of several datasets (with the same effType efficiency) drawn on the
-	# same canvas.
-	#if opt.comparationPlots:
-	#	from pytnp.libPytnp.pytnpclass import pytnp
-	#	from pytnp.libPytnp.getresname import getResName
-	#	from pytnp.steerplots.plotsCreation import superImposed
-	#	donesomething = True
-	#	
-	#	#-- Only I want one variable
-	#	Message = """I need only one variable. I parsed '%s'""" % opt.comparationPlots
-	#	variableList = parseOption( opt.comparationPlots, '>', 1, Message )
-	#	
-	#	variable = variableList[0]
-
-	#	Message = """I need at least 2 input files comma separated without espaces. I parsed '%s'""" % opt.fileName
-	#	allFiles = parseOption( opt.fileName, '<', 2, Message )
-
-	#	try:
-	#		resNameList = opt.resName.replace(' ','_').split(',')
-	#	except AttributeError:
-	#		resNameList = []
-	#	#-- Dictionary of pytnp instance for every resonance
-	#	tnpDict = {}
-	#	#-- Filling the dict, note if we have the same resonance name we're gone
-	#	#-- loose a file
-	#	for aFile, resname in map( lambda _file,_resName: (_file,_resName), allFiles,resNameList ):
-	#		#--- Extract from the standard name file the resonance ---
-	#		if not resname:
-	#			# resonance name and latex format name
-	#			try:
-	#				resNameTuple = getResName( aFile, config=config_file )
-	#			except TypeError:
-	#				#-- The file name must be standard
-	#				message = """The file name '%s' introduced is not in a standard format:"""\
-	#						""" Resonance_histo[MuFromTrk|Trigger]_....root""" % aFile
-	#				printErrorAndExit( message, -1 )
-	#		else:
-	#			resNameTuple = ( resname, resname)
-	#		#-- Raise an error if the user don't define diferent resonances names
-	#		if tnpDict.has_key(resNameTuple[0]):
-	#			message = """There are root input files names which have the same resonance names:\n"""
-	#			message += """\033[1;39m  '%s': '%s'\n\033[1;m"""  % ( tnpDict[resNameTuple[0]].__fileroot__.GetName(), resNameTuple[0] ) 
-	#			message += """\033[1;39m  '%s': '%s'\n\033[1;m"""  % ( aFile, resNameTuple[0] ) 
-	#			message += """Impose the resonance name usign the '--resName' option (see --help for usage)""" 
-	#			printErrorAndExit( message, -1 )
-
-	#		tnpDict[resNameTuple[0]] = pytnp( aFile, resonance = resNameTuple ) #dataset=whatPlots )
-
-	#	superImposed( tnpDict, variable, Lumi )
-	#____________________________________________________________________________________________________
 
 	#____________________________________________________________________________________________________
-	# 1-dimensional plot 
+	# 2-dimensional differences plots
 	if opt.resToComp:
 		from pytnp.libPytnp.pytnpclass import pytnp
 		from pytnp.steerplots.plotsCreation import diffEffMaps
@@ -302,43 +250,6 @@ if __name__ == '__main__':
 		diffEffMaps( tnpDict, refRes, binnedVar[0], binnedVar[1] , Lumi )
 	#____________________________________________________________________________________________________
 	
-	#____________________________________________________________________________________________________
-	# TO BE REMOVE: DEPRECATED
-	#if opt.dim1Plots and not opt.comparationPlots:
-	#	from pytnp.libPytnp.pytnpclass import pytnp
-	#	donesomething = True
-	#	#--- Only one file
-	#	Message = """I need only one root file. I parsed '%s'""" % opt.fileName
-	#	allFiles = parseOption( opt.fileName, '>', 1, Message )
-	#	#--- Controling variables
-	#	Message = """I need only one variable, I parsed '%s'""" % opt.dim1Plots
-	#	variables = parseOption( opt.dim1Plots, '!=', 1, Message )
-	#	#Aceptar palabra clave all => Todas las variables binned
-	#	tnp = pytnp(opt.fileName, effName=opt.effName )#dataset=whatPlots, effName = opt.effName )
-	#	resonance = tnp.resLatex
-	#	isNoVar = True
-	#	try:
-	#		# Ploting all variables in dataset
-	#		for var in variables:
-	#			for name,dataset in tnp.RooDataSet.iteritems():
-	#				#Counting case:
-	#				#if name.find('mcTrue') == -1:
-	#				if var in tnp[name]['binnedVar'].keys():
-	#					tnp.plotEff1D(name,var, Lumi)
-	#					isNoVar = False
-	#	except AttributeError:
-	#		pass
-	#		#FIXME: PORQUE ESTA ESTO?
-	#		#for name, tcanvas in tnp.TCanvas.iteritems():
-	#		##	if name.find('_PLOT_') != -1 and (name.find('pt_eta_') == -1 or name.find('eta_pt') == -1):
-	#		#		tnp.plotEff1D(name,inputVarName, Lumi )
-	#	if isNoVar:
-	#		Message = """The variable '%s' does not exist in any RooDataSet from the rootfile '%s'"""\
-	#				% ( var, tnp.__fileroot__.GetName() )  			
-	#		printErrorAndExit( Message, -1 )
-	#	del tnp
-
-	#____________________________________________________________________________________________________
 
 	#____________________________________________________________________________________________________
 	if ( opt.dim2Plots or opt.maps ) and not opt.sys:
@@ -421,6 +332,26 @@ if __name__ == '__main__':
 			_title =' CMS Preliminary,'+Lumi+' #sqrt{s}=7 TeV '
 			
 			mcimposed( tnp, variable, Lumi, title=_title )
+
+		if opt.dim2Plots:
+			#-- Two variables
+			Message = """I need two binned variables root file. I parsed '%s'""" % opt.dim2Plots
+			try:
+				varList = parseOption( opt.dim2Plots, '!=', 2, Message )
+			except AttributeError:
+				#-- the user  do not use --2d flag, so we need the two variables from the
+				#-- maps option
+				if opt.maps:
+					Message = "I need one category to do the maps. I parsed '%s'" % opt.maps[0]
+					categoryList = parseOption( opt.maps[0], '!=', 1, Message )
+					category = categoryList[0]
+					Message = """I need two binned variables root file. I parsed '%s'""" % opt.maps[1]
+					varList = parseOption( opt.maps[1], '!=', 2, Message )
+			#--- Only one file
+			Message = """I need only one root file. I parsed '%s'""" % opt.fileName
+			_file = parseOption( opt.fileName, '>', 1, Message )
+			
+			resNameTuple = getidtuple( _file[0], config_file )
 	#____________________________________________________________________________________________________
 
 	#____________________________________________________________________________________________________
