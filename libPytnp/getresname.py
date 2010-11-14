@@ -6,7 +6,7 @@ from management import printError, printWarning, parserConfig
 
 
 def getResName( aFile, **keywords ):
-	""".. function:: getResName( fileName[, 'config=config_file.py'] ) -> str,str (latex)
+	""".. function:: getResName( fileName[, config=configfile] ) -> pytnpname,latexstring
 
 	Extract from file name, T&P-like, the resonance
 	and returns it plain and in Latex format.
@@ -23,6 +23,13 @@ def getResName( aFile, **keywords ):
 	.. warning::
 	   This function is highly dependent of the name of the file (if you don't use a config file).
 	   Standard Format:  NameOFResonance_X_blabla.root
+	
+	:raise KeyError: keyword erroneous
+	:raise TypeError: no config file provided and no root file name in standard format
+	:raise RuntimeError: somethin wrong happens. Warn to developers
+
+	.. note::
+	   Probably will change to ``tnputils`` module
 	"""
 	import re
 

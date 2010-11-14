@@ -30,36 +30,36 @@ class pytnp(dict):
 	classNames = ['RooDataSet']#,'RooFitResult','TCanvas']
 	# CONSTRUCTOR ------------------------------------------------------------------------------------------------------
 	def __init__(self, filerootName, **keywords):
-		""".. class:: pytnp(filerootName [, resonance=(id,nameLatex), effName='efficiency_name', variables=['varname1','varname2',..], configfile=file,  dataset=type, mcTrue=true ] )
+		""".. class:: pytnp(filerootName [, resonance=(id,nameLatex), effName='efficiency_name', variables=[varname1,varname2,..], configfile=file,  dataset=type, mcTrue=true ] )
 		
 		Class encapsulating the contents of a Tag and Probe root file (generated from CMSSW T&P package).
 		The root file must have a two-level directory hierarchy, where the RooDataSet 
 		(whose actually contains the information) is in the bottom. The pytnp class is based
 		in the RooDataSet, a instance of this class returns a dictionary (self) whose keys are
 		the names (absolute path) of the RooDataSet, the values are dictionaries themselves with 
-		keys storing useful information of the RooDataSet. A example is shown::
+		keys storing useful information of the RooDataSet. A generic example is shown::
 
 		  { 
-		    'muonId/Glb_pt_eta/fit_eff': { 
-						   'effType': efficiency_type
-						   'binnedVar': binnedvardict
-						   'methodUsed': method_used
-						   'variables': vardict
-						   'dataset': roodataset
-						   'isMC': 0|1
-						   'eff': efficiencyname
-						   'objectType': object_type
-						 },
+		    'firstlevel/secondlevel/dataset_eff': { 
+						           'effType': efficiency_type
+						           'binnedVar': binnedvardict
+						           'methodUsed': method_used
+						           'variables': vardict
+						           'dataset': roodataset
+						           'isMC': 0|1
+						           'eff': efficiencyname
+						           'objectType': object_type
+						          },
 		     ....,
                   }
 
-		where ``efficiency_type``, ``method_used`` and ``object_type`` are strings which
-		they going to be extracted from the root file or from the configuration
-		file provided by the user. The keys ``binnedVar`` and
-		``variables`` are dictionaries which contains useful information for the binned
-		variables and all the variables (respectively) in the RooDataSet (see 
-		:function:`libpytnp.tnputils.getVarDict`). The ``dataset`` key contains the RooDataSet
-		object itself.
+		where ``firstlevel/secondlevel/dataset_eff`` is the name of the dataset, the
+		dictionary values have a ``efficiency_type``, ``method_used`` and ``object_type``
+		strings which they going to be extracted from the root file or from the configuration
+		file provided by the user. The keys ``binnedVar`` and ``variables`` are 
+		dictionaries which contains useful information for the binned variables and all 
+		the variables (respectively) in the RooDataSet (see :mod:`pytnp.libpytnp.tnputils.getVarDict`).
+		The ``dataset`` key contains the RooDataSet object itself.
 
 		The ``configfile`` keyword can be used to change the values found by the constructor
 		when parsing the root file. An example of configuration file::
@@ -82,7 +82,7 @@ class pytnp(dict):
 			   }
 
 		The ``DataNames`` is a mandatory dictionary. It is used to identify a root file with 
-		a ``pytnpname``, the keys are expressions which can be described the name of the 
+		a ``pytnpname``, the keys are expressions which can describe the name of the 
 		root file (using the ``find`` method of a string) and the values are tuples of strings
 		with the latex name (to be put in the legends) and the ``pytnpname``. Using this
 		identifier it possible to construct another dictionaries with the informationn of
@@ -93,8 +93,7 @@ class pytnp(dict):
 
 
 		:param filerootName: name of the root file
-		:type filerootName: string
-		
+		:type filerootName: string		
 		:keyword resonance: assigns a (pytnpname,latexName) 
 		:type resonance: (strings,string)
 		:keyword effName: Providing the efficiency name finded inside the RooDataSets. 
@@ -111,11 +110,12 @@ class pytnp(dict):
 		                 dataset with their mcTrue dataset. (TO BE DEPRECATED)
 		:type mcTrue: bool
 
-
+		
 		:raise IOError: Invalid root file name
 		:raise TypeError: Invalid format of the root file (do not have the proper directory structure)
 		:raise KeyError: Invalid name of efficiency, not found in the dataset
 		:raise ValueError: Not found the binned variables introduced
+
 		"""
 		import ROOT
 		from getresname import getResName
@@ -280,11 +280,12 @@ class pytnp(dict):
 
 
 	def __check_keywords__(self, keywords ):
-		""".. function:: __check_keywords__( keywords ) 
+		""".. method:: __check_keywords__( keywords ) 
 
 		Checks the keywords passed to the constructor
 
-		:raise KeyError: 
+		:raise KeyError: invalid keyword
+		:raise TypeError: invalid format of ``variables``
 		"""
 		#FIXME : ojo, dataset ha quedado huerfana...
 		#--- Keys valid
@@ -296,7 +297,7 @@ class pytnp(dict):
 				message = 'Invalid instance of pytnp: you can not use %s as key argument, ' % i
 				message += 'key arguments valids are \'%s\'' % str(valid_keys)
 			#	print help(self.__init__)
-				printError( self.__check_keywords__.__module__+'.'+self.__check_keywords__.__name__, message, KeyError )
+				printError( self.__check_keywords__.__module__+'.___check_keywords__', message, KeyError )
 			#---Checking the correct format and storing
 			#---the names provided by the user
 			elif i == 'resonance':
@@ -321,7 +322,7 @@ class pytnp(dict):
 				#-- Sanity checks
 				if not isinstance(keywords[i], list):
                                         message ='Not valid \'variables=%s\' key; must be a list containing n variables names' % str(keywords[i])
-					printError( self.__module__, message, KeyError )
+					printError( self.__module__, message, TypeError )
 				else:
 					self.userVariables = [ var for var in keywords[i] ]
 			elif i == 'configfile':
@@ -355,11 +356,13 @@ class pytnp(dict):
 		return "<pytnp class instance>"
 
 	def __getType__(self, name, structure):
-		"""
-		__getType__( 'RooDataSet name', dictionary ) --> dictionary
+		""".. method:: __getType__( 'RooDataSet name', dictionary ) -> dictionary
 
 		Build a dictionary where the key is the pathname (in standard T&P format)
 		and the values are also dictionaries storing relevant info of the dataset.
+
+		:raise ValueError: file root format incorrect
+		:raise AttributeError: Misuse of configuration file
 		"""
 		import re
 		from management import parserConfig
@@ -417,26 +420,41 @@ class pytnp(dict):
 
 
 	def __extract__(self, Dir, dictObjects, regexp):
-	 	"""
-	 	__extract__(ROOT.TDirectory Dir, python dict, regexp) -> dict
+		""".. method:: 	__extract__(dir, dictT, regexp) -> dict
 	 	
 		Recursive function to extract from a 'tag and probe' ROOT file all
-		the relevant information. Returning a dictionary which stores all TCanvas,
-		RooFitResult, RooDataSet and RooPlot with matches with regexp::
+		the relevant information. Returning a dictionary which stores all (TCanvas,
+		RooFitResult,) RooDataSet (and RooPlot) with matches with regexp::
 
-		{# 'TCanvas': 
-		 #           {'directory/subdirectory/.../nameOfTCanvas' : <ROOT.TCanvas object>,
-		 #	     ...
-		 #	     },
-		 # 'RooFitResult' : 
-		 #           { 'directory/subdirectory/.../nameOfRooFitResult': <ROOT.RooFitResult object>,
-		 #	     ...
-		 #           },
-	 	  'RooDataSet':
-		            { 'directory/subdirectory/.../nameOfRooDataSet': <ROOT.RooDataSet object>,
-		            ...
-		            },
-		}
+		  {# 'TCanvas': 
+		   #           {'directory/subdirectory/.../nameOfTCanvas' : <ROOT.TCanvas object>,
+		   #	     ...
+		   #	     },
+		   # 'RooFitResult' : 
+		   #           { 'directory/subdirectory/.../nameOfRooFitResult': <ROOT.RooFitResult object>,
+		   #	     ...
+		   #           },
+	 	    'RooDataSet':
+		              { 'directory/subdirectory/.../nameOfRooDataSet': <ROOT.RooDataSet object>,
+		              ...
+		              },
+		  }
+
+		:param dir: root TDirectory (note TFile inherit from TDirectory) where to extract
+		:type dir: ROOT.TDirectory
+		:param dictT: directory where to store the information extracted 
+		:type dictT: dict
+		:param regexp: ?? (TO BE CHECKED)
+		:type regexp: string
+
+		:return: dictionary (see above)
+		:rtype: dict
+
+		:raise AttributeError: the root file is not an standard T&P
+
+		.. warning:: 
+		     
+		   DEPRECATED TCanvas, RooFitResult and RooPlot storage
 		            
 	 	"""
 		if pytnp.counter%100 == 0:
@@ -472,8 +490,6 @@ class pytnp(dict):
 	 			_dirSave.cd()
 	 		##-- Storing in the dictionary the interesting objects
 		        elif className in self.classNames:
-	 		#elif className == 'TCanvas' or className == 'RooFitResult' or className == 'RooDataSet' or \
-	 		#		className == 'RooPlot':
 				pytnp.counter += 1
 				#--Skipping if not match (Note that anything.find('') gives 0
 				if (Dir.GetPath()+key.GetName()).find(regexp) == -1:
@@ -489,50 +505,75 @@ class pytnp(dict):
 	## Getters for attributes ######################################################################
 	# --- FIXME: To delete?
 	def getCategory( self, name ):
-		""".. method: getCategory( name ) -> 'category'
+		""".. method:: getCategory( name ) -> category
 
-		Getting the name of the object, return the category belongs to 
+		Getter to extract the category belongs to some dataset
+
+		:param name: the name of the dataset
+		:type name: string
+
+		:return: the category of the dataset
+		:rtype: string
 		"""
 		try:
 			return self.__attrDict__[name]['objectType']
 		except KeyError:
 			message = """The '%s' is not a fit_eff RooDataSet""" % name
-			printWarning( self.__module__, message )
+			printWarning( self.__module__+'.getCategory', message )
 			return None
 	
 	def getFitEffList( self ):
-		""".. method: getFitEffList() -> [ 'name1', ... ]
+		""".. method:: getFitEffList() -> [ name1, ... ]
 
-		Returns a string's list of the names of RooDataSet which are fit_eff
+		Returns a strings list of the names of RooDataSet which are ``fit_eff``
+
+		:return: list of dataset which ``methodUsed`` is ``fit_eff``
+		:rtype: list of string
 		"""
 		fitEffList = []
-		for name,Dict in filter( lambda (name,Dict): Dict['methodUsed'] == 'fit_eff' ,self.__attrDict__.iteritems() ):
+		for name,Dict in filter( lambda (name,Dict): Dict['methodUsed'] == 'fit_eff' ,self.iteritems() ):
 			fitEffList.append( name )
 		
 		if len(fitEffList) == 0:
 			message = """There is no fit_eff RooDataSet in this file"""
-			printWarning( self.__module, message )
+			printWarning( self.__module+'.getFitEffList', message )
 			return None
 
 		return fitEffList
 	
 	def getCountMCName( self, name ):
-		""".. method: getCountMCName( name ) -> 'nameMCcountig'
+		""".. method:: getCountMCName( name ) -> nameMCcountig
 
-		Gived the RooDataSet name (fit_eff like), returns the name of its MC True counting equivalent.
+		Given the dataset name (fit_eff like), returns the name of its MC True counting equivalent.
+
+		:param name: the dataname
+		:type name: string
+
+		:return: the name of its MC counting
+		:rtype: string
+
+		.. warning:: 
+		   
+		   To be revisited.. 
+
 		"""
 		try:
-			return self.__attrDict__[name]['refMC']['cnt_eff']
+			return self[name]['refMC']['cnt_eff']
 		except KeyError:
 			message = """The is no counting MC True information associated with '%s' RooDataSet""" % name
-			printWarning( self.__module__, message )
+			printWarning( self.__module__+'.getCountMCName', message )
 	## Getters for attributes ######################################################################
 
 	def write(self, fileOut):
-		""".. method: write( fileOut ) 
+		""".. method:: write( fileOut ) 
 
 		Create a root file with all the RooDataSets and TH2F maps of 
 		the instance.
+
+		:param fileOut: name of the output root file
+		:type fileOut: string
+
+		:raise IOError: problems opening the file
 		"""
 		import os
 		import ROOT
@@ -540,7 +581,7 @@ class pytnp(dict):
 		f = ROOT.TFile(fileOut,'RECREATE')
 		if f.IsZombie():
 			message = 'Cannot open \'%s\' file. Check your permissions' % fileOut
-			printError( self.__module__+'.'+self.__name__, message, IOError )
+			printError( self.__module__+'.write', message, IOError )
 		
 		howDatasets = 0
 		for name,dataSet in self.RooDataSet.iteritems():
@@ -566,10 +607,19 @@ class pytnp(dict):
 			printWarning( self.__module__, message )
 
 
-	def ls(self, className):
-		""".. method: ls( className ) 
+	def ls(self, className='RooDataSet'):
+		""".. method:: ls( className='RooDataSet' ) 
 
-		Print the identification of all the objects of type 'className'		
+		Print the identification of all the objects of type ``className``
+		
+		.. note:: 
+		   
+		   Probably will not need a argument as the others
+		   attributes (RooPlot, TCanvas,...) are being deprecated.
+
+		:param className: the kind of instance attribute
+		:type className: string
+
 		"""
 		message = '='*20+' '+className+' '+'='*20+'\n'
 		try:
@@ -582,14 +632,25 @@ class pytnp(dict):
 
 
 	def plotEff1D( self, name, inputVarName, Lumi ):
-		""".. method: plotEff1D( RooDataSet, 'variable_name', 'latex string Luminosity' ) 
+		""".. method:: plotEff1D( dataname, variable, Lumi ) 
 	
 		Given a name directory-like for a ROOT.RooDataSet object,
-	 	the function creates a 1-dim plot of 'variable_name' extracted from the
-		object and it will save it in a eps file. Also
-		it will store the graph object::
+	 	the function creates a 1-dim plot of 'variable_name' extracted 
+		from the object and it will save it in a eps file. Also
+		it will store the graph object creating a new key in the
+		dataset dictionary::
 
 		   self[nameRooDataSet]['tgraphs'] = { 'class_graph_name': TGraphAsymmErrors, ... }
+
+		:param name: name of the dataset
+		:type name: string
+		:param variable: binned variable to use
+		:type variable: string
+		:param Lumi: luminosity
+		:type Lumi: string
+
+		:raise KeyError: the dataset is not in the root file (to be changed to NameError)
+		:raise KeyError: the binned variable is not in the dataset
 
 		"""
 		#import rootlogon
@@ -608,7 +669,7 @@ class pytnp(dict):
 		#--- Empty dataset
 		if self.RooDataSet[name].numEntries() == 0:
 			message = """Empty RooDataSet '%s'. Skipping...""" % name
-			printWarning( self.__module__+'.'+self.plotEff1D.__name__,message)
+			printWarning( self.__module__+'.plotEff1D',message)
 			return None
 		#--- Checking variable
 		if not inputVarName in self[name]['binnedVar'].keys():
@@ -717,12 +778,25 @@ class pytnp(dict):
 
 	
 	def plotEffMap( self, name, x, y, Lumi, **keywords ):
-		""".. method: plotEff2D( name, x='var1', y='var1' ) 
+		""".. method:: plotEff2D( name, varX, varY, Lumi ) 
 
 		Giving a RooDataSet name in directory-like format,
 		the function will do a bi-dimensional plot of 
-		efficiency with pt and eta variables. Also, it
-		will stores in the object instance
+		efficiency with ``varX`` and ``varY`` variables. Also, it
+		will stores the graph within the dataset dictionary
+		
+		:param name: name of the dataset
+		:type name: string
+		:param varX: binned variable to be used in the x-axis
+		:type varX: string
+		:param varY:  binned variable to be used in the y-axis
+		:type varY: string
+		:param Lumi: luminosity
+		:type Lumi: string
+
+		:raise KeyError: the dataset is not in the root file (to be changed to NameError)
+		:raise KeyError: some binned variables is not in the dataset
+
 		"""
 		import ROOT
 		ROOT.gROOT.SetBatch(1)
@@ -735,7 +809,7 @@ class pytnp(dict):
 			dataSet = self.RooDataSet[name]
 		except KeyError:
 			message = """There is no RooDataSet with name '%s'""" % name
-			printError( self.__module__, message, AttributeError )
+			printError( self.__module__+'.plotEfMap', message, AttributeError )
 		#-- Are the variables in the RooDataSet?
 		varNotInDatasetList = filter( lambda var:  not var in self[name]['binnedVar'].keys(), [x, y] )
 		if len(varNotInDatasetList) != 0:
@@ -743,7 +817,7 @@ class pytnp(dict):
 			for var in varNotInDatasetList:
 				message += "'%s' " % var
 			message += "in the RooDataSet '%s'. Skipping plot generation..." % name
-			printWarning( self.__module__, message )
+			printWarning( self.__module__+'.plotEffMap', message )
 			# --- Skipping plot generation
 			return 
 		
@@ -809,7 +883,8 @@ class pytnp(dict):
 		c.SaveAs(plotName)
 
 	#	if skipPoints:
-	#		message = '\033[1;33mplotEff2D Warning: Some efficiencies points are failed in the fit, the last plot will skip values with %.4f\033[1;m' % self.badPoint[0]
+	#		message = '\033[1;33mplotEff2D Warning: Some efficiencies points are failed in the fit, the last plot will skip '\
+	#                         'values with %.4f\033[1;m' % self.badPoint[0]
 	#		print message
 
 		#FIXME: attribute o llave del diccionario del rootdataset??

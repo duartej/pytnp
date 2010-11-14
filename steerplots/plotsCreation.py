@@ -28,8 +28,7 @@ def superImposed( tnpDict, variable, Lumi, **keywords ):
 	:keyword outputformat: the output format of the graph (eps, root, png,...)
 	:type outputformat: string
 
-	.. warning::
-	   
+	.. warning::	   
 	   The user is responsable of having the same binning in every dataset.
 
 	"""
@@ -401,32 +400,6 @@ def diff2DMaps( refT, otherT, varX, varY, Lumi, **keywords ):
 	hist.Write('TH2F_'+histoname+'_SYS' )
 
 	f.Close()
-
-
-#def resonancediffmaps( tnpDict, refRes, varX, varY, Lumi, **keywords ):
-#	""".. function resonancediffmaps( pytnp1, pytnp2, refId, 'Luminosity' )
-#
-#	Plot 2-dim maps where each bin is calculated from the substraction
-#	of one efficiency values with respect the other (refRes has the 
-#	rol of first operand in the substraction)
-#	"""
-#	#Extract the reference resonance:
-#	try:
-#		tnpResRef = tnpDict.pop( refRes )
-#		# List of tuples (res,resLatex) from
-#		# the other but the reference
-#		resonance = []
-#		for tnp in tnpDict.itervalues():
-#			resonance.append( (tnp.resonance, tnp.resLatex) )
-#		
-#	except KeyError:
-#		message ="""The resonance name '%s' introduced is wrong, use either of '%s' \033[1;m""" % (refRes, [i for i in tnpDict.iterkeys()]) 
-#		print message
-#		raise KeyError
-#	#resonanceRef = resonance.pop( refRes )
-#	for resName,resLatex in sorted(resonance):
-#		for name in tnpDict[resName].RooDataSet.iterkeys():
-#			diff2DMaps( (tnpResRef,name), (tnpDict[resName],name), varX, varY, Lumi )
 
 
 

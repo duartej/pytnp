@@ -156,11 +156,11 @@ def getVarDict( dataset, __effName='efficiency' ):
 	the binned variables and efficiency names and the values are a 
 	dictionary with some useful info::
 
-		{ 'var1': { 'latexName': 'blaba', 'unit': 'unit',
-		  'binN': NumberBins, 'arrayBins' : (val1,...,valN+1)
-	        },
+	  { 'var1': { 'latexName': 'blaba', 'unit': 'unit',
+	              'binN': NumberBins, 'arrayBins' : (val1,...,valN+1)
+	            },
 		... 
-		}
+          }
 	
 	:param dataset: dataset
 	:type dataset: ROOT.RooDataSet

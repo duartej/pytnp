@@ -1,8 +1,18 @@
 """
+Generic functions for management use
 """
 
 def printError( name, message, _exception ):
-	"""
+	""".. function:: printError(name, message, _exception) 
+
+	Print a error message (in red color) and raise an exception
+
+	:param name: module which call
+	:type name: string
+	:param message: message to print
+	:type message: string
+	:param _exception: exception to raise
+	:type _exception: Exception
 	"""
 	_lines = message.split('\n')
 	mess = ''
@@ -12,7 +22,14 @@ def printError( name, message, _exception ):
 	raise _exception
 
 def printWarning( name, message ):
-	"""
+	""".. function:: printWarning(name, message) 
+
+	Print a warning message (in yellow color) and continue
+
+	:param name: module which call
+	:type name: string
+	:param message: message to print
+	:type message: string
 	"""
 	_lines = message.split('\n')
 	mess = ''
@@ -22,17 +39,23 @@ def printWarning( name, message ):
 	print mess
 	
 def parserConfig( config_file, key ):
-	""".. function:: parserConfig( config_file, key )
+	""".. function:: parserConfig( config_file, key ) -> dataset
+
+	Parse the configuration file, after some checkings delegate
+	to ``parserDataNames`` or ``parserAttributes`` functions
 
 	:param config_file: name and route of the configuration file
 	:type config_file: string
 	:param key: name of the object you want to parse
 	:type key: string
 
-	:raise IOError: if ``config_file`` is not found
+	:raise IOError: ``config_file`` not found
 	:raise AttributeError: the key object has not exist in the configuration file
-	:raise UserWarnign: error parsing DataNames key
+	:raise UserWarning: error parsing DataNames key
 	:raise KeyError: the key object introduced is not implemented in this parser (DEPRECATED)
+
+	.. warning::
+	   To be deprecated the return dataset
 	"""
 	import os.path
 	import sys
@@ -85,6 +108,13 @@ def parserConfig( config_file, key ):
 def parserDataNames(DataName):
 	""".. function:: parserDataNames(DataNames) -> namesDict
 
+	Parse the DataName dictionary of a configuration file
+
+	:param DataName: dictionary 
+	:type dictObject: dict
+
+	:return: dictionary with ``pytnpname`` and latex names for each file
+	:rtype: dict
 	"""
 	#-- Check the right format:
 	isFormatRight = True
@@ -106,6 +136,16 @@ def parserDataNames(DataName):
 def parserAttributes(dictObject, dataname):
 	""".. function:: parserAttributes(attributes) -> attrDict
 
+	Just checking the format attributes of a configuration file
+
+	:param dictObject: pytnp dataset dictionary
+	:type dictObject: dict
+	:param dataname: name of the dataset
+	:type key: string
+
+	:return: tuple of values
+	:rtype: (string,string,int)
+
 	"""
 	#-- Is there any key for this dataset?
 	try:
@@ -117,7 +157,6 @@ def parserAttributes(dictObject, dataname):
 		message = "Erroneous format: "
 		message += "%s: %s" % (dataname, str(tupleAtt))
 		printWarning( parserConfig.__module__+'.'+parserConfig.__name__, message )
-		namesDict[fileName] = (value[0],value[1])
 
 	return tupleAtt
 	
