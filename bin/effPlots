@@ -161,19 +161,6 @@ if __name__ == '__main__':
 	#____________________________________________________________________________________________________
 
 	#____________________________________________________________________________________________________
-	#Using MC info-- counting events instead of fit
-	#TO BE DEPRECATED
-	#whatPlots = 'fit_eff'
-	#if opt.counting:
-	#	whatPlots = 'cnt_eff'
-	#____________________________________________________________________________________________________
-	
-	
-	#Do not display graphics --> FIXME: Posa-ho a un altre lloc!
-	#import ROOT
-	#ROOT.gROOT.SetBatch(1)
-
-	#____________________________________________________________________________________________________
 	# Doing 1-dimensional plots, if there are more than one input file, do the plots plotted on the 
 	# same canvas.
 	if opt.dim1Plots and not opt.sys:
@@ -197,7 +184,7 @@ if __name__ == '__main__':
 		#-- Filling the dict, note if we have the same resonance name we're going to
 		#-- lose a file	
 		for aFile in allFiles:
-			#--- Extract from the standard name file the resonance ---
+			#--- Extract from the standard name file the resonance
 			resNameTuple = getidtuple( aFile, opt.config_file )
 			#-- Raise an error if the user don't define diferent resonances names
 			if tnpDict.has_key(resNameTuple[0]):
@@ -210,16 +197,16 @@ if __name__ == '__main__':
 			tnpDict[resNameTuple[0]] = pytnp( aFile, resonance=resNameTuple, variables=onlythesevars, configfile=opt.config_file ) #dataset=whatPlots )
 
 		_title =' CMS Preliminary,'+Lumi+' #sqrt{s}=7 TeV '
-
+		
+		#-- Plotting
 		superImposed( tnpDict, variable, Lumi, title=_title )
 	#____________________________________________________________________________________________________
 
-
 	#____________________________________________________________________________________________________
 	# 2-dimensional differences plots
-	if opt.resToComp:
+	if opt.resToComp and not opt.sys:
 		from pytnp.libPytnp.pytnpclass import pytnp
-		from pytnp.steerplots.plotsCreation import diffEffMaps
+		from pytnp.steerplots.plotsCreation import diff2DMaps
 		
 		donesomething = True
 		#--- 
@@ -228,7 +215,7 @@ if __name__ == '__main__':
 		#--- Only two variables
 		Message = """I need 2 binned variables. I parsed '%s'""" % opt.resToComp
 		binnedVar = parseOption( opt.resToComp, '!=', 2, Message )
-		#-- Dictionar of pytnp instance for every resonance
+		#-- Dictionary of pytnp instance for every resonance
 		tnpDict = {} 
 	
 		resonanceList = []
@@ -246,13 +233,16 @@ if __name__ == '__main__':
 
 		#-- Taking the first input file as reference resonance 
 		refRes = resonanceList[0]
-		#--- Ready to run the plots
-		diffEffMaps( tnpDict, refRes, binnedVar[0], binnedVar[1] , Lumi )
+		otherRes = resonanceList[1]
+		#--- Ready to run the plots assuming the same datanames in the files
+		for dataname in tnpDict[refRes].iterkeys():
+			diff2DMaps( (tnpDict[refRes], dataname), (tnpDict[otherRes], dataname), binnedVar[0], binnedVar[1], Lumi )
+			#resonancediffmaps( tnpDict, refRes, binnedVar[0], binnedVar[1] , Lumi )
 	#____________________________________________________________________________________________________
 	
-
 	#____________________________________________________________________________________________________
-	if ( opt.dim2Plots or opt.maps ) and not opt.sys:
+	# 2-dimensional maps
+	if opt.dim2Plots or opt.maps:
 		from pytnp.libPytnp.pytnpclass import pytnp
 		donesomething = True
 		
@@ -304,14 +294,14 @@ if __name__ == '__main__':
 	#____________________________________________________________________________________________________
 	
 	#____________________________________________________________________________________________________
+	# Monte Carlo comparations
 	if opt.sys:
-		if not opt.dim1Plots and not opt.dim2Plots:
-			Message = """The --sys option also needs the --1d or --2d option"""
-			#-- Raise an error
-			parseOption( '0', '==', 1, Message )
-
 		from pytnp.libPytnp.pytnpclass import pytnp
 		from pytnp.steerplots.plotsCreation import mcimposed
+
+		Message = "I need 'cnt' (counting) or 'fit' (fitted) as argument of '--sys'. I parsed: '%s'" % opt.sys
+		_s = parseOption( opt.sys, '!=', 1, Message )
+		systematic = _s[0]
 
 		donesomething = True
 		
@@ -327,31 +317,52 @@ if __name__ == '__main__':
 			
 			#--- Extract from the standard name file the resonance --- FIXME: Maybe the pytnp directly??
 			resNameTuple = getidtuple( allFiles[0], opt.config_file )
-			tnp = pytnp( allFiles[0], resonance=resNameTuple, variables=onlythesevars, configfile=opt.config_file ) #dataset=whatPlots )
+			tnp = pytnp( allFiles[0], resonance=resNameTuple, variables=onlythesevars, configfile=opt.config_file, effName=opt.effName ) #dataset=whatPlots )
 			
 			_title =' CMS Preliminary,'+Lumi+' #sqrt{s}=7 TeV '
 			
-			mcimposed( tnp, variable, Lumi, title=_title )
+			mcimposed( tnp, variable, Lumi, systematic,title=_title )
 
-		if opt.dim2Plots:
+		elif opt.resToComp:
+			from pytnp.steerplots.plotsCreation import diff2DMaps
 			#-- Two variables
 			Message = """I need two binned variables root file. I parsed '%s'""" % opt.dim2Plots
-			try:
-				varList = parseOption( opt.dim2Plots, '!=', 2, Message )
-			except AttributeError:
-				#-- the user  do not use --2d flag, so we need the two variables from the
-				#-- maps option
-				if opt.maps:
-					Message = "I need one category to do the maps. I parsed '%s'" % opt.maps[0]
-					categoryList = parseOption( opt.maps[0], '!=', 1, Message )
-					category = categoryList[0]
-					Message = """I need two binned variables root file. I parsed '%s'""" % opt.maps[1]
-					varList = parseOption( opt.maps[1], '!=', 2, Message )
+			varList = parseOption( opt.resToComp, '!=', 2, Message )
 			#--- Only one file
 			Message = """I need only one root file. I parsed '%s'""" % opt.fileName
-			_file = parseOption( opt.fileName, '>', 1, Message )
+			_fileList = parseOption( opt.fileName, '>', 1, Message )
+			_file = _fileList[0]
 			
-			resNameTuple = getidtuple( _file[0], config_file )
+			resNameTuple = getidtuple( _file, config_file )
+			tnp = pytnp( _file, resonance=resNameTuple, variables=onlythesevars, configfile=opt.config_file, effName=opt.effName ) #dataset=whatPlots )
+			
+			#-- Asociating each data with its mc
+			mcpartner = {}
+			for dataname, tnpdict in tnp.iteritems():
+				isnotMC = False
+				mcpartner[dataname] = []
+				#-- Find the names for mc partners
+				try:
+					dummy = tnpdict['refMC']
+					isnotMC = True
+				except KeyError:
+					pass
+				
+				if isnotMC:
+					try:
+						mcpartner[dataname].append( tnpdict['refMC'][systematic+'_eff'] )
+					except KeyError:
+						Message = "No '%s' Monte Carlo dataset for '%s'. Skipping the plot..." % ( sys+'_eff', dataname )
+						printWarning( mcimposed.__module__+'.'+mcimposed.__name__, Message )
+			#-- Doing the plots
+			for dataname, mcnameList in mcpartner.iteritems():
+				for mcname in mcnameList:
+					diff2DMaps( (tnp,dataname), (tnp,mcname), varList[0], varList[1], Lumi )
+
+		else:
+			Message = """The --sys option also needs the --1d or --diff option"""
+			#-- Raise an error
+			parseOption( '0', '==', 1, Message )
 	#____________________________________________________________________________________________________
 
 	#____________________________________________________________________________________________________

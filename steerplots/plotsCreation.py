@@ -1,6 +1,8 @@
 """
 Function utilities which uses the pytnp class to do several plots
 """
+#TODO: join superImposed and mcimposed in the same function
+#      (similar way as it's done with diff2DMaps)
 
 from pytnp.libPytnp.tnputils import  *
 from pytnp.libPytnp.management import printError,printWarning
@@ -261,12 +263,12 @@ def mcimposed( tnp, variable, Lumi, sys='cnt', **keywords ):
 
 
 def diff2DMaps( refT, otherT, varX, varY, Lumi, **keywords ):
-	""".. function diff2DMaps( tnpRef, tnpOther, varX, varY, Lumi ) 
+	""".. function diff2DMaps( tnpRef, tnpOther, varX, varY, Lumi\[,title=thetitle, outputformat=format] ) 
 
-	Given 2 pytnp instances, it will do 2-dimensional maps::
+	Differences maps from 2 datasets::
 	
-	  |eff_ref-eff_other|sqrt(sigma_ref^2+sigma_other^2      Comparing_ResNameRef_ResNameOther_nameOfdataSet.eps     
-          |eff_ref-eff_other|eff_ref                             ComparingRelative_ResNameRef_ResNameOther_nameOfdataSet.eps
+	  |eff_ref-eff_other|sqrt(sigma_ref^2+sigma_other^2      Comparing
+          |eff_ref-eff_other|eff_ref                             ComparingRelative
 
 	The two files must be have the same binning. 
 
@@ -280,6 +282,10 @@ def diff2DMaps( refT, otherT, varX, varY, Lumi, **keywords ):
 	:type varY: string
 	:param Lumi: luminosity
 	:param Lumi: string
+	:keyword thetitle: title to appear in the canvas
+	:type thetitle: string
+	:keyword format: ouput format (eps, root, png, ...)
+	:type format: string
 
 	:raise RuntimeError: the first two arguments introduced are not tuples (pytnp object, dataname string)
 	:raise UserWarning: some of the variables introduced are not binned variables
@@ -287,6 +293,7 @@ def diff2DMaps( refT, otherT, varX, varY, Lumi, **keywords ):
 	:raise NameError: the object introduced as pyntp is not a pytnp instance
 
 	"""
+	import ROOT
 	from math import sqrt
 	from plotfunctions import plotMapTH2F
 	import rootlogon 
@@ -378,61 +385,43 @@ def diff2DMaps( refT, otherT, varX, varY, Lumi, **keywords ):
 		hist['histo'] = plotMapTH2F( xList, yList, effList, titles[varX], titles[varY], ztitle, XbinsN, arrayX, YbinsN, arrayY, \
 				title=title, graphname=histoname, rangeFrame = (0.0, 1.0) )
 
+	#-- TH2F and RooDataSet creation
+	mapname = tnpRef.resonance+'_'+tnp2.resonance+'_'+tnpRef[datanameRef]['effType']+'_'+tnpRef[datanameRef]['objectType']+'_'+\
+			tnpRef[datanameRef]['methodUsed']
+	f = ROOT.TFile( 'effMaps_'+mapname+'_SYS.root' ,'RECREATE')
+	if f.IsZombie():
+		message = 'Cannot open \'%s\' file. Check your permissions' % fileOut
+		printError( diff2DMaps.__module__+'.'+diff2DMaps.__name__, message, IOError )
+	for hist in histoList:
+		hist['histo'].Write('TH2F_'+hist['plotName']+'_SYS' )
 
-def diffEffMaps( tnpDict, refRes, varX, varY, Lumi, **keywords ):
-	"""
-	diffEffMaps( pytnp1, pytnp2, 'reference_resonance', 'Luminosity' )
-
-	Plot 2-dim maps where each bin is calculated from the substraction
-	of one efficiency values with respect the other (refRes has the 
-	rol of first operand in the substraction)
-	"""
-	#Extract the reference resonance:
-	try:
-		tnpResRef = tnpDict.pop( refRes )
-		# List of tuples (res,resLatex) from
-		# the other but the reference
-		resonance = []
-		for tnp in tnpDict.itervalues():
-			resonance.append( (tnp.resonance, tnp.resLatex) )
-		
-	except KeyError:
-		message ="""
-\033[1;31mError: the resonance name '%s' introduced is wrong, use either of '%s' \033[1;m""" % (refRes, [i for i in tnpDict.iterkeys()]) 
-		print message
-		raise KeyError
-	#resonanceRef = resonance.pop( refRes )
-	for resName,resLatex in sorted(resonance):
-		for name in tnpDict[resName].RooDataSet.iterkeys():
-			#FIXME ---_> No funcionara, signatura cambiado (necsita variables de entrada
-			diff2DMaps( (tnpResRef,name), (tnpDict[resName],name), varX, varY, Lumi )
+	f.Close()
 
 
+#def resonancediffmaps( tnpDict, refRes, varX, varY, Lumi, **keywords ):
+#	""".. function resonancediffmaps( pytnp1, pytnp2, refId, 'Luminosity' )
+#
+#	Plot 2-dim maps where each bin is calculated from the substraction
+#	of one efficiency values with respect the other (refRes has the 
+#	rol of first operand in the substraction)
+#	"""
+#	#Extract the reference resonance:
+#	try:
+#		tnpResRef = tnpDict.pop( refRes )
+#		# List of tuples (res,resLatex) from
+#		# the other but the reference
+#		resonance = []
+#		for tnp in tnpDict.itervalues():
+#			resonance.append( (tnp.resonance, tnp.resLatex) )
+#		
+#	except KeyError:
+#		message ="""The resonance name '%s' introduced is wrong, use either of '%s' \033[1;m""" % (refRes, [i for i in tnpDict.iterkeys()]) 
+#		print message
+#		raise KeyError
+#	#resonanceRef = resonance.pop( refRes )
+#	for resName,resLatex in sorted(resonance):
+#		for name in tnpDict[resName].RooDataSet.iterkeys():
+#			diff2DMaps( (tnpResRef,name), (tnpDict[resName],name), varX, varY, Lumi )
 
-def mcdiffmaps(tnp, Lumi, **keywords):
-        """
-	mcdiffmaps( 'namerootfile' ) 
 
-	Compute the differences between MC True counting efficiency
-	and Tag and Probe fitted efficiency. Return plots (and 
-	(TODO) root file) containing maps of the absolute differencies
-        """
-	import ROOT
-	import rootlogon
-	ROOT.gROOT.SetBatch(1)
-
-	#TODO: Permitir que se puedan entrar dos ficheros
-	#      Ahora mc debe estar en el mismo fichero
-	#tnp = pytnp.pytnp(_file)
-
-	effList = tnp.getFitEffList()
-	
-	pairFitMC = [ (tnp.getCountMCName(i),i) for i in effList ]
-	##- Checking if there are MC true info
-	for i in filter( lambda (mc,fitEff): not mc, pairFitMC ):
-		message = """The '%s' does not contains MC True information""" % tnp.__fileroot__.GetName()
-		printError( sysMCFIT.__module__+'.'+sysMCFIT.__name__, message, AttributeError )
-
-	for tMC, tFit in pairFitMC:
-		diff2DMaps( tnp, tnp, Lumi, tMC, tFit )
 
