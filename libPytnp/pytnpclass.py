@@ -5,9 +5,6 @@ import sys
 
 from management import printError, printWarning
 
-
-# TODO: clean function to drop those RooDataSet which don't have efficiency values (or all zero)
-
 class pytnp(dict):
 	"""
 	Class to retrieve and encapsulate the *tag and probe*
@@ -33,39 +30,92 @@ class pytnp(dict):
 	classNames = ['RooDataSet']#,'RooFitResult','TCanvas']
 	# CONSTRUCTOR ------------------------------------------------------------------------------------------------------
 	def __init__(self, filerootName, **keywords):
-		"""
-                **pytnp**\(filerootName [, resonance=('name','nameLatex'), dataset='type', mcTrue=true, effName='efficiency_name', variables=['varname1','varname2',..] ] )
+		""".. class:: pytnp(filerootName [, resonance=(id,nameLatex), effName='efficiency_name', variables=['varname1','varname2',..], configfile=file,  dataset=type, mcTrue=true ] )
 		
-		Dictionary which keys are the complet name of the RooDataSets and its values are dictionaries populated with several stuff.
+		Class encapsulating the contents of a Tag and Probe root file (generated from CMSSW T&P package).
+		The root file must have a two-level directory hierarchy, where the RooDataSet 
+		(whose actually contains the information) is in the bottom. The pytnp class is based
+		in the RooDataSet, a instance of this class returns a dictionary (self) whose keys are
+		the names (absolute path) of the RooDataSet, the values are dictionaries themselves with 
+		keys storing useful information of the RooDataSet. A example is shown::
 
-		TO BE COMPLETED
+		  { 
+		    'muonId/Glb_pt_eta/fit_eff': { 
+						   'effType': efficiency_type
+						   'binnedVar': binnedvardict
+						   'methodUsed': method_used
+						   'variables': vardict
+						   'dataset': roodataset
+						   'isMC': 0|1
+						   'eff': efficiencyname
+						   'objectType': object_type
+						 },
+		     ....,
+                  }
+
+		where ``efficiency_type``, ``method_used`` and ``object_type`` are strings which
+		they going to be extracted from the root file or from the configuration
+		file provided by the user. The keys ``binnedVar`` and
+		``variables`` are dictionaries which contains useful information for the binned
+		variables and all the variables (respectively) in the RooDataSet (see 
+		:function:`libpytnp.tnputils.getVarDict`). The ``dataset`` key contains the RooDataSet
+		object itself.
+
+		The ``configfile`` keyword can be used to change the values found by the constructor
+		when parsing the root file. An example of configuration file::
+
+		    DataNames = { 
+		                   # root file name: TnP_Z_DATA_TriggerFromMu_Trigger_ProbeMu11_Eta_Fit.root
+				   'ProbeMu11_Eta_Fit': ( "Z#rightarrow#mu#mu, HLTMu11 trigger",'Z_11' ),
+				   # root file is: TnP_Z_DATA_TriggerFromMu_Trigger_ProbeMu9_Eta_Fit.root
+				   'ProbeMu9_Eta_Fit' : ("Z#rightarrow#mu#mu, HLTMu9 trigger", 'Z_9' ),
+				}
+		    #Attributes
+		    Z_11 = {
+		            'tpTree/PASSING_all/fit_eff': ( 'HLT_trigger' , 'Glb_muons' , 0 ),
+			    'tpTree/PASSING_all/cnt_eff': ( 'HLT_trigger' , 'Glb_muons' , 1 ),
+                           }
+	            
+		    Z_9  = {
+		            'tpTree/PASSING_all/fit_eff': ( 'HLT_trigger' , 'Glb_muons' , 0 ),
+			    'tpTree/PASSING_all/cnt_eff': ( 'HLT_trigger' , 'Glb_muons' , 1 ),
+			   }
+
+		The ``DataNames`` is a mandatory dictionary. It is used to identify a root file with 
+		a ``pytnpname``, the keys are expressions which can be described the name of the 
+		root file (using the ``find`` method of a string) and the values are tuples of strings
+		with the latex name (to be put in the legends) and the ``pytnpname``. Using this
+		identifier it possible to construct another dictionaries with the informationn of
+		each dataset (or some dataset) in the root file. The names of the dictionary objects
+		must be the same as the ``pytnpname`` defined before; this dictionaries have as keys
+		the name of the datasets to be modified and the values are tuples with the 
+		``effType``, ``objectType`` and ``isMC`` attributes.
+
 
 		:param filerootName: name of the root file
 		:type filerootName: string
 		
-		:keyword dataset: Store only dataset matching this effType (TO BE DEPRECATED)
-		:type dataset: string
 		:keyword resonance: assigns a (pytnpname,latexName) 
-		:type resonance: tuple of strings
-		:keyword mcTrue: Setting True, it stores the mcTrue info and will associate each
-		                 dataset with their mcTrue dataset.
-		:type mcTrue: bool
+		:type resonance: (strings,string)
 		:keyword effName: Providing the efficiency name finded inside the RooDataSets. 
 		                  Otherwise, we assume the name ``efficiency``.
 				  CAVEAT: all the RooDataSet MUST have the same efficiency name.
 		:type effName: string
 		:keyword variables: Binned variables considered
-		:type variables: list of string
+		:type variables: list of strings
+		:keyword configfile: the configuration file to be used (if any)
+		:type configfile: string
+		:keyword dataset: Store only dataset matching this effType (TO BE DEPRECATED)
+		:type dataset: string
+		:keyword mcTrue: Setting True, it stores the mcTrue info and will associate each
+		                 dataset with their mcTrue dataset. (TO BE DEPRECATED)
+		:type mcTrue: bool
 
-		The instance will contain the follow datamembers::
-		    
-		   RooDataSet
-
-		which again are dictionaries analogous of the 
-		instance itself and can be extracted as datamembers.
 
 		:raise IOError: Invalid root file name
 		:raise TypeError: Invalid format of the root file (do not have the proper directory structure)
+		:raise KeyError: Invalid name of efficiency, not found in the dataset
+		:raise ValueError: Not found the binned variables introduced
 		"""
 		import ROOT
 		from getresname import getResName
@@ -302,8 +352,7 @@ class pytnp(dict):
 		"""
 		representation of the object
 		"""
-		return "WARNING: TO BE IMPLEMENTED"
-
+		return "<pytnp class instance>"
 
 	def __getType__(self, name, structure):
 		"""
