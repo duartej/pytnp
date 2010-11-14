@@ -118,7 +118,7 @@ class pytnp(dict):
 						self.__attrDict__[Name]['refMC'] = { mcDict['methodUsed'] : mcName }
 		_prov = set()
 		#--- The dictionary itself contains only the RooDataSets
-		todelete = []
+		#todelete = []
 		for name, dataSet in self.__dict__['RooDataSet'].iteritems():
 			#try:
 			self[name] = self.__attrDict__[name]
@@ -143,8 +143,8 @@ class pytnp(dict):
 		#-- Storing the categories we have 
 		self.categories = list(_prov)
 		#--- Don-'t forget delete also in RooDataSet attribute
-		for name in todelete:
-			self.RooDataSet.pop( name )
+		#for name in todelete:
+		#	self.RooDataSet.pop( name )
 		
 		#----- Variables, binned, efficiency, user introduced, ...
 		#--- The list will contain those dataset which don't have anyone of the variables entered  
@@ -206,6 +206,7 @@ class pytnp(dict):
 		for _dataout in deleteDataset:
 			self.pop( _dataout )
 			self.RooDataSet.pop( _dataout )
+			self.__attrDict__.pop( _dataout )
 		
 		#-- Something wrong if we pop out all the datasets we had
 		if len(self) == 0:
@@ -222,6 +223,7 @@ class pytnp(dict):
 				message = "The RooDataSet '%s' have all '%s' values null. Skipping the storage..." % (name, self.effName)
 				printWarning( self.__module__+'.pytnp', message )
 		map( lambda name: self.pop( name ), _todelete )
+		map( lambda name: self.__attrDict__.pop( name ), _todelete )
 		for __attr in self.classNames:
 			map( lambda name: self.__getattribute__( __attr ).pop( name ) , _todelete )
 	# END CONSTRUCTOR ---------------------------------------------------------------------------------------------------
