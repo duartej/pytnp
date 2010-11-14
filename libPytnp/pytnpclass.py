@@ -631,7 +631,7 @@ class pytnp(dict):
                                 (eff,effErrorLo,effErrorHi),otherVarDict = _plotList[0]
 
                                 if len(filter( lambda (eff,__dic): eff[0] == 0.0, _plotList )) == len(_plotList):
-					printWarning( plotEff1D.__module__+'.'+plotEff1D.__name__,"Skipping... Efficiencies in the dataset not calculated")
+					printWarning( self.__module__+'.plotEff1D',"Skipping... Efficiencies in the dataset not calculated")
                                         continue
                                 _max = {}
                                 _min = {}
