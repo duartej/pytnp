@@ -169,7 +169,7 @@ class pytnp(dict):
 				message = message[:-2]
 				message += '\n\033[1;33m  CAVEAT: The efficiency name \033[1;m\033[1;39mMUST\033[1;m\033[1;33m'\
 						'have the same name for all the RooDataSets in the rootfile\033[1;m'	
-				printError( self.__module__, message, KeyError )
+				printError( self.__module__+'.pytnp', message, KeyError )
 			#--- Check the variables introduced by the user are there and
 			#------ Setting the binned Variables: extract efficiencies from last list
 			message = ''
@@ -220,8 +220,9 @@ class pytnp(dict):
 				_todelete.append( name )
 				del _datasetObject
 				message = "The RooDataSet '%s' have all '%s' values null. Skipping the storage..." % (name, self.effName)
-				printWarning( self.__module__, message )
+				printWarning( self.__module__+'.pytnp', message )
 		map( lambda name: self.pop( name ), _todelete )
+		map( lambda name: self.RooDataSet.pop( name ), _todelete )
 		for __attr in self.classNames:
 			map( lambda name: self.__getattribute__( __attr ).pop( name ) , _todelete )
 	# END CONSTRUCTOR ---------------------------------------------------------------------------------------------------
