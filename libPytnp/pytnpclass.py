@@ -222,7 +222,6 @@ class pytnp(dict):
 				message = "The RooDataSet '%s' have all '%s' values null. Skipping the storage..." % (name, self.effName)
 				printWarning( self.__module__+'.pytnp', message )
 		map( lambda name: self.pop( name ), _todelete )
-		map( lambda name: self.RooDataSet.pop( name ), _todelete )
 		for __attr in self.classNames:
 			map( lambda name: self.__getattribute__( __attr ).pop( name ) , _todelete )
 	# END CONSTRUCTOR ---------------------------------------------------------------------------------------------------
