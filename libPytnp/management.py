@@ -31,7 +31,8 @@ def parserConfig( config_file, key ):
 
 	:raise IOError: if ``config_file`` is not found
 	:raise AttributeError: the key object has not exist in the configuration file
-	:raise KeyError: the key object introduced is not implemented in this parser
+	:raise UserWarnign: error parsing DataNames key
+	:raise KeyError: the key object introduced is not implemented in this parser (DEPRECATED)
 	"""
 	import os.path
 	import sys
@@ -113,7 +114,7 @@ def parserAttributes(dictObject, dataname):
 		return None        
 	#-- Check the right format:
 	if not isinstance(tupleAtt, tuple) or len(tupleAtt) != 3:
-		message = "Erroneous format:\t"
+		message = "Erroneous format: "
 		message += "%s: %s" % (dataname, str(tupleAtt))
 		printWarning( parserConfig.__module__+'.'+parserConfig.__name__, message )
 		namesDict[fileName] = (value[0],value[1])

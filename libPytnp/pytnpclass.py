@@ -328,8 +328,15 @@ class pytnp(dict):
 		#--- Check and put values provided by the user
 		try:
 			#--- If not enter config, self.configfile is None and 
-			#--- parserConfig raise a TypeError exception
-			tupleAttr = parserConfig( self.configfile, self.resonance+'::'+name )
+			#--- parserConfig raise a TypeError exception.
+			#--- If is not there some key, the AttributeError is raised
+			try:
+				tupleAttr = parserConfig( self.configfile, self.resonance+'::'+name )
+			except AttributeError:
+				Message = "If the error above is related with the identifier:\n"
+				Message += "Coherence broken between configuration file and 'pytnp' instanciation\n"
+				Message += "Check you have a object called '%s' in your configuration file" % self.resonance
+				printError( self.__module__+'.pytnp', Message, AttributeError )
 			#--- If nothing the tupleAttr is None so NameError exception too
 			structure[name]['effType'] = tupleAttr[0]
 			structure[name]['objectType'] = tupleAttr[1]
@@ -416,9 +423,6 @@ class pytnp(dict):
 		        elif className in self.classNames:
 	 		#elif className == 'TCanvas' or className == 'RooFitResult' or className == 'RooDataSet' or \
 	 		#		className == 'RooPlot':
-				# DEBUG ---------------------------
-			        #print Dir.GetPath().split(':/')[1] #--- TO BE SKIPPED
-				#----------------------------------
 				pytnp.counter += 1
 				#--Skipping if not match (Note that anything.find('') gives 0
 				if (Dir.GetPath()+key.GetName()).find(regexp) == -1:
