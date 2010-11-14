@@ -267,8 +267,8 @@ def diff2DMaps( refT, otherT, varX, varY, Lumi, **keywords ):
 
 	Differences maps from 2 datasets::
 	
-	  |eff_ref-eff_other|sqrt(sigma_ref^2+sigma_other^2      Comparing
-          |eff_ref-eff_other|eff_ref                             ComparingRelative
+	  eff_ref-eff_other                   Comparing
+          |eff_ref-eff_other|/eff_ref         ComparingRelative --> DEPRECATED
 
 	The two files must be have the same binning. 
 
@@ -337,14 +337,14 @@ def diff2DMaps( refT, otherT, varX, varY, Lumi, **keywords ):
 	plotname = tnpRef.resonance+'_'+tnp2.resonance+'_'+tnpRef[datanameRef]['effType']+'_'+tnpRef[datanameRef]['objectType']+'_'+\
 			tnpRef[datanameRef]['methodUsed']
 	plotName = 'Comparing_'+plotname
-	plotName2 = 'ComparingRelative_'+plotname
+	#plotName2 = 'ComparingRelative_'+plotname
 	#--- Title for the plot file
 	#title2 = '|#varepsilon_{'+tnpRef_resLatex+'}'+'-#varepsilon_{'+tnp2_resLatex+'}|/#varepsilon_{'+tnpRef_resLatex+'}'+\
         #                  ' '+tnpRef[datanameRef]['objectType']+' '+dataSet.GetTitle()
 	# Dictionary of objects
-	histoList = [ { 'histo': None, 'plotName': plotName }, #'title': title},
-			{ 'histo': None,  'plotName': plotName2 },# 'title': title2 } 
-			]
+	#histoList = [ { 'histo': None, 'plotName': plotName, 'effList': [] }, #'title': title},
+	#		{ 'histo': None,  'plotName': plotName2, 'effList': [] },# 'title': title2 } 
+	#		]
 	#--- Checking binned variables  ##################################a
 	datasetVarList, effName = getVarNames( datasets[0] )
 	
@@ -378,22 +378,27 @@ def diff2DMaps( refT, otherT, varX, varY, Lumi, **keywords ):
 	#k = 0
 	XbinsN, arrayX = getBinning( datasets[0].get()[varX] )
 	YbinsN, arrayY = getBinning( datasets[0].get()[varY] )
-	for hist in histoList:
-		ztitle = 'eff'
-		title =' CMS Preliminary,'+Lumi+' #sqrt{s}=7 TeV ' 
-		histoname = hist['plotName']
-		hist['histo'] = plotMapTH2F( xList, yList, effList, titles[varX], titles[varY], ztitle, XbinsN, arrayX, YbinsN, arrayY, \
+	#histoList[0]['effList'] = effList
+	#histoList[|]['effList'] = [ 
+	#for hist in histoList:
+	ztitle = 'eff'
+	title =' CMS Preliminary,'+Lumi+' #sqrt{s}=7 TeV ' 
+	histoname = plotName#hist['plotName']
+	hist = plotMapTH2F( xList, yList, effList, titles[varX], titles[varY], ztitle, XbinsN, arrayX, YbinsN, arrayY, \
 				title=title, graphname=histoname, rangeFrame = (0.0, 1.0) )
+	#	hist['histo'] = plotMapTH2F( xList, yList, effList, titles[varX], titles[varY], ztitle, XbinsN, arrayX, YbinsN, arrayY, \
+	#			title=title, graphname=histoname, rangeFrame = (0.0, 1.0) )
 
-	#-- TH2F and RooDataSet creation
+	#-- TH2F ( and TODO: RooDataSet creation)
 	mapname = tnpRef.resonance+'_'+tnp2.resonance+'_'+tnpRef[datanameRef]['effType']+'_'+tnpRef[datanameRef]['objectType']+'_'+\
 			tnpRef[datanameRef]['methodUsed']
 	f = ROOT.TFile( 'effMaps_'+mapname+'_SYS.root' ,'RECREATE')
 	if f.IsZombie():
 		message = 'Cannot open \'%s\' file. Check your permissions' % fileOut
 		printError( diff2DMaps.__module__+'.'+diff2DMaps.__name__, message, IOError )
-	for hist in histoList:
-		hist['histo'].Write('TH2F_'+hist['plotName']+'_SYS' )
+	#for hist in histoList:
+	#	hist['histo'].Write('TH2F_'+hist['plotName']+'_SYS' )
+	hist.Write('TH2F_'+histoname+'_SYS' )
 
 	f.Close()
 

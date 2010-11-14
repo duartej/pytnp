@@ -391,7 +391,7 @@ if __name__ == '__main__':
 		f = TFile( allFiles[0] )
 		dataList = [ f.Get(i.GetName()) for i in f.GetListOfKeys() if i.GetClassName() == 'RooDataSet' ]
 		if len(dataList) == 0:
-			print """\033[1;33mWarning: the file %s does not contain a efficiency map\033[1;m""" % opt.fileName 
+			print """\033[1;33mWarning: the file '%s' does not contain a efficiency map\033[1;m""" % allFiles[0] 
 		for d in dataList:
 			tableLatex(d, opt.effName)
 	#____________________________________________________________________________________________________
