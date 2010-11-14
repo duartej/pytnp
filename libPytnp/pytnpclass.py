@@ -590,8 +590,8 @@ class pytnp(dict):
 			ytitle = 'efficiency'
 			title = '  CMS Preliminary,'+Lumi+' #sqrt{s}=7 TeV  '
 
-			self[name]['tgraphs'][_graphclassname][graphName] = [ plotAsymGraphXY( XPoints, YPoints, xtitle, ytitle,\
-						returnGraph=True, rangeFrame = (_min,0,_max,1.05), title=title, graphname=graphName ) ]
+			self[name]['tgraphs'][_graphclassname][graphName] =  plotAsymGraphXY( XPoints, YPoints, xtitle, ytitle,\
+						returnGraph=True, rangeFrame = (_min,0,_max,1.05), title=title, graphname=graphName ) 
 
 			return 
 

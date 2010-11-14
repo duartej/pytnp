@@ -105,7 +105,8 @@ if __name__ == '__main__':
         #TO BE DEPRECATED
 	#parser.add_option( '--counting', action='store_true', dest='counting', help='If active this flag, do the plots using the MC information (counting events)' )
 	#
-        parser.add_option( '--sys', action='store', dest='sys', help='Do the plots (and a root file maps--Not yet) for the differences between counting MC and Tag and Probe fit efficiencies.' )
+        parser.add_option( '--sys', action='store', dest='sys', metavar='TYPE', help='Do 1-dim or 2-dim (needs the --1d or --2d options) with data and'\
+			'MC information in the same canvas. \'TYPE\' is method used you want to compare, \'cnt\' if counting or \'fit\' if fitted.')
 	parser.add_option( '-m', '--maps', action='store', dest='maps', metavar='CATEGORY VAR_X,VAR_Y', nargs=2, help='Create root files with TH2F and RooDataSets, give the name of the muon category and the binned variables to use' )
         parser.add_option( '-t', '--tables', action='store_true', dest='tables', help='Create latex tables from an efficiency map root file' )
         parser.add_option( '-L', action='store', dest='Lumi', metavar='LUMI unit', nargs=2, help='Integrated Luminosity and unit' )
@@ -203,7 +204,7 @@ if __name__ == '__main__':
 				message = """There are root input files names which have the same resonance names:\n"""
 				message += """\033[1;39m  '%s': '%s'\n\033[1;m"""  % ( tnpDict[resNameTuple[0]].__fileroot__.GetName(), resNameTuple[0] ) 
 				message += """\033[1;39m  '%s': '%s'\n\033[1;m"""  % ( aFile, resNameTuple[0] ) 
-				message += """Impose the resonance name usign the '--resName' option (see --help for usage)""" 
+				message += """Impose the resonance name using a configuration file, ( '-c' option, see --help for usage)""" 
 				printErrorAndExit( message, -1 )
 
 			tnpDict[resNameTuple[0]] = pytnp( aFile, resonance=resNameTuple, variables=onlythesevars, configfile=opt.config_file ) #dataset=whatPlots )
@@ -392,47 +393,34 @@ if __name__ == '__main__':
 	#____________________________________________________________________________________________________
 	
 	#____________________________________________________________________________________________________
-	if opt.sysTnP:
-		if not opt.dim1Plot and not opt.dim2Plot:
+	if opt.sys:
+		if not opt.dim1Plots and not opt.dim2Plots:
 			Message = """The --sys option also needs the --1d or --2d option"""
 			#-- Raise an error
-			parseOption( [0], '>', 1, Message )
+			parseOption( '0', '==', 1, Message )
 
 		from pytnp.libPytnp.pytnpclass import pytnp
-		from pytnp.steerplots.plotsCreation import superImposed
+		from pytnp.steerplots.plotsCreation import mcimposed
 
 		donesomething = True
 		
-		#-- Only I want one variable
-		Message = """I need only one variable. I parsed '%s'""" % opt.dim1Plots
-		variableList = parseOption( opt.dim1Plots, '>', 1, Message )
-		
-		variable = variableList[0]
-		
-		#-- Cheking how many inputs files have
-		Message = """I need at least 1 input files comma separated without espaces. I parsed '%s'""" % opt.fileName
-		allFiles = parseOption( opt.fileName, '<', 1, Message )
-
-		#-- Dictionary of pytnp instance for every resonance
-		tnpDict = {}
-		#-- Filling the dict, note if we have the same resonance name we're going to
-		#-- lose a file	
-		for aFile in allFiles:
-			#--- Extract from the standard name file the resonance ---
-			resNameTuple = getidtuple( aFile, opt.config_file )
-			#-- Raise an error if the user don't define diferent resonances names
-			if tnpDict.has_key(resNameTuple[0]):
-				message = """There are root input files names which have the same resonance names:\n"""
-				message += """\033[1;39m  '%s': '%s'\n\033[1;m"""  % ( tnpDict[resNameTuple[0]].__fileroot__.GetName(), resNameTuple[0] ) 
-				message += """\033[1;39m  '%s': '%s'\n\033[1;m"""  % ( aFile, resNameTuple[0] ) 
-				message += """Impose the resonance name usign the '--resName' option (see --help for usage)""" 
-				printErrorAndExit( message, -1 )
-
-			tnpDict[resNameTuple[0]] = pytnp( aFile, resonance=resNameTuple, variables=onlythesevars, configfile=opt.config_file ) #dataset=whatPlots )
-
-		_title =' CMS Preliminary,'+Lumi+' #sqrt{s}=7 TeV '
-
-		superImposed( tnpDict, variable, Lumi, title=_title )
+		if opt.dim1Plots:
+			#-- Only I want one variable
+			Message = """I need only one variable. I parsed '%s'""" % opt.dim1Plots
+			variableList = parseOption( opt.dim1Plots, '>', 1, Message )
+			
+			variable = variableList[0]
+			#-- Cheking 1 input files have
+			Message = """I need only 1 input file. I parsed '%s'""" % opt.fileName
+			allFiles = parseOption( opt.fileName, '!=', 1, Message )
+			
+			#--- Extract from the standard name file the resonance --- FIXME: Maybe the pytnp directly??
+			resNameTuple = getidtuple( allFiles[0], opt.config_file )
+			tnp = pytnp( allFiles[0], resonance=resNameTuple, variables=onlythesevars, configfile=opt.config_file ) #dataset=whatPlots )
+			
+			_title =' CMS Preliminary,'+Lumi+' #sqrt{s}=7 TeV '
+			
+			mcimposed( tnp, variable, Lumi, title=_title )
 	#____________________________________________________________________________________________________
 
 	#____________________________________________________________________________________________________

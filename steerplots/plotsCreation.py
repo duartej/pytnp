@@ -71,8 +71,7 @@ def superImposed( tnpDict, variable, Lumi, **keywords ):
 						classesDict[className].add( pseudoname )
 					except KeyError:
 						classesDict[className] = set([ pseudoname ])
-	#--- All it's done if we have only a file. FIXME: Quizas no, si nos interesa trabajar
-	#---                                              con datasets del mismo fichero
+	#--- All it's done if we have only a file.
 	if len(tnpDict) == 1:
 		return
 	#--- Each key of the classes dict defines a canvas. 
@@ -144,14 +143,10 @@ def superImposed( tnpDict, variable, Lumi, **keywords ):
 		# Raise a exception ??
 
 def mcimposed( tnp, variable, Lumi, sys='cnt', **keywords ):
-	"""
-	mcimposed( tnp, variable, sys[, title=thetitle, outputformat=format )
+	""".. function mcimposed( tnp, variable, sys[, title=thetitle, outputformat=format )
 	
-	Giving different pytnp instances, the function do the 1-dim plots of the 'variable'
-	in the same canvas. The pytnp instances must have the same object types (objectType)
-	(ex: Global muon identification efficiency, ...) with the SAME name.
-	See the objectType content of a pytnp instance usign the print function for a
-	pytnp instance. 
+	Function to do the 1-dim plots of the ``variable`` for all datasets which 
+	attribute ``isMC=0`` with its correspondent Monte Carlo partner ``isMC=1``
 	
 	:param tnp: the pytnp instance
 	:type tnpdict: pytnp
@@ -159,13 +154,12 @@ def mcimposed( tnp, variable, Lumi, sys='cnt', **keywords ):
 	:type variable: string
 	:param Lumi: the luminosity to be put in the title (TO BE DEPRECATED)
 	:type Lumi: string
-	:param sys: the efficiency type to be compared, fit or cnt
+	:param sys: the efficiency type to be compared, ``fit`` or ``cnt``
 	:type sys: string
 	:keyword title: the title of the graph
 	:type title: string
 	:keyword outputformat: the output format of the graph (eps, root, png,...)
 	:type outputformat: string
-
 	"""
 	import ROOT
 	import rootlogon
@@ -186,76 +180,85 @@ def mcimposed( tnp, variable, Lumi, sys='cnt', **keywords ):
 	classesDict = {}
 	mcpartner = {}
 	for dataname, tnpdict in tnp.iteritems():
+		isnotMC = False
 		mcpartner[dataname] = []
+		#-- Find the names for mc partners
 		try:
-			mcpartner[dataname].append( tnpdict['refMC'][sys+'_eff'] )
+			dummy = tnpdict['refMC']
+			isnotMC = True
 		except KeyError:
 			pass
+		#-- Do the plot if it still is not done
 		try:
 			dummy = tnp[dataname]['tgraphs']
 		except KeyError:
 			#-- Plotting and storing
 			tnp.plotEff1D( dataname, variable, Lumi )
+		
+		if isnotMC:
+			try:
+				mcpartner[dataname].append( tnpdict['refMC'][sys+'_eff'] )
+			except KeyError:
+				Message = "No '%s' Monte Carlo dataset for '%s'. Skipping the plot..." % ( sys+'_eff', dataname )
+				printWarning( mcimposed.__module__+'.'+mcimposed.__name__, Message )
 
 	#-- Print in the same canvas every mc and data
 	for dataname, tnpdict in filter( lambda (name, _dict): _dict['isMC'] == 0, tnp.iteritems() ):
 		for className, graphDict in tnpdict['tgraphs'].iteritems():
-			for _graphname in graphDict.iterkeys():
-				#-- Normalizing the graph names
-				pseudoname = _graphname.replace( className, '' )
-
-
-			i = 0
-			frame = None
-			involvedRes = ''
-			c = ROOT.TCanvas()
-			leg = legend()
+			#-- Name of the class for the mc 
+			mcclassName = className.replace( tnp[dataname]['methodUsed'], sys+'_eff' )
 			if KEYWORDS['title']:
 				text = paveText( KEYWORDS['title'] )
-			for resName, tnp in tnpDict.iteritems():
-				involvedRes += resName+'_'
-				for dataname, dataDict in tnp.iteritems():
+			for _graphname, graph in graphDict.iteritems():
+				i = 0
+				c = ROOT.TCanvas()
+				#-- Initializing the frame, cosmethics, ...
+				#--- FIXME: ONLY TAKE THE FIRST GRAPH AXIS!! Ok if every graph
+				#----       have the same ranges but no in other case
+				refFrame = graph.GetHistogram()
+				_ranges = { 'X' : None, 'Y': None }
+				for axisName in _ranges.iterkeys():
+					axis = eval( 'refFrame.Get'+axisName+'axis()' )
+					Nbins = axis.GetNbins()
+					_min = axis.GetBinLowEdge( 1 )
+					_max = axis.GetBinUpEdge( Nbins )
+					_ranges[axisName] = (_min,_max)
+				frame = c.DrawFrame( _ranges['X'][0], _ranges['Y'][0], _ranges['X'][1], _ranges['Y'][1] )
+				xtitle = tnpdict['binnedVar'][variable]['latexName'] 
+				unit = tnpdict['binnedVar'][variable]['unit']
+				if unit != '':
+					xtitle += ' ('+unit+') '
+				frame.GetXaxis().SetTitle( xtitle )
+				frame.GetYaxis().SetTitle( tnp.effName )
+				frame.Draw()
+				
+				leg = legend()
+
+				graph.SetLineColor( COLOR[i] )
+				graph.SetMarkerColor( COLOR[i] )
+				graph.SetMarkerStyle( MARKERTYPE[i] )
+				graph.Draw('PSAME')
+				leg.AddEntry( graph, tnp.resLatex, 'P' )
+				i += 1
+				#-- Name of the graph for the mc
+				_graphmcname =  _graphname.replace( tnp[dataname]['methodUsed'], sys+'_eff' )+'__mcTrue'
+				#-- Finding all the mc graphs in the list of partners
+				for mcdataname in mcpartner[dataname]:
 					try:
-						#-- FIXME: Necesito algo para evitar que RooDataSets con el mismo patron
-						#---       y en el mismo fichero se solapen. O quizas marcarlo
-						#---       como construccion erronea de la instancia (effType, object...)
-						#---       Seguro ??
-						graph = dataDict['tgraphs'][className][resName+'_'+className+pseudoname]
+						graphmc = tnp[mcdataname]['tgraphs'][mcclassName][_graphmcname]
+						graphmc.SetLineColor( COLOR[i] )
+						graphmc.SetMarkerColor( COLOR[i] )
+						graphmc.SetMarkerStyle( MARKERTYPE[i] )
+						graphmc.Draw('PSAME')
+						leg.AddEntry( graphmc, tnp.resLatex+' MC '+sys, 'P' )
+						i += 1
 					except KeyError:
 						continue
-					#-- Initializing the frame, cosmethics, ... once
-					#--- FIXME: ONLY TAKE THE FIRST GRAPH AXIS!! Ok if every graph
-					#----       have the same ranges but no in other case
-					if not frame:
-						refFrame = graph.GetHistogram()
-						_ranges = { 'X' : None, 'Y': None }
-						for axisName in _ranges.iterkeys():
-							axis = eval( 'refFrame.Get'+axisName+'axis()' )
-							Nbins = axis.GetNbins()
-							_min = axis.GetBinLowEdge( 1 )
-							_max = axis.GetBinUpEdge( Nbins )
-							_ranges[axisName] = (_min,_max)
-						frame = c.DrawFrame( _ranges['X'][0], _ranges['Y'][0], _ranges['X'][1], _ranges['Y'][1] )
-						xtitle = dataDict['binnedVar'][variable]['latexName'] 
-						unit = dataDict['binnedVar'][variable]['unit']
-						if unit != '':
-							xtitle += ' ('+unit+') '
-						frame.GetXaxis().SetTitle( xtitle )
-						frame.GetYaxis().SetTitle( tnp.effName )
-						frame.Draw()
-
-					graph.SetLineColor( COLOR[i] )
-					graph.SetMarkerColor( COLOR[i] )
-					graph.SetMarkerStyle( MARKERTYPE[i] )
-					graph.Draw('PSAME')
-					leg.AddEntry( graph, tnp.resLatex, 'P' )
-					i += 1
-					#	print resName+'_'+className+pseudoname
-			leg.Draw()
-			if KEYWORDS['title']:
-				text.Draw()
-			c.SaveAs(involvedRes+className+pseudoname+'.'+KEYWORDS['outputformat'])
-			c.Close()
+				leg.Draw()
+				if KEYWORDS['title']:
+					text.Draw()
+				c.SaveAs(_graphname+'_SYSMC''.'+KEYWORDS['outputformat'])	
+				c.Close()
 
 
 def diff2DMaps( tnpRef, tnp2, varX, varY, Lumi, *nameOfdataSet ):
