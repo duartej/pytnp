@@ -177,8 +177,8 @@ def mcimposed( tnp, variable, Lumi, sys='cnt', **keywords ):
 	COLOR = [ 1, 38, 46 ] 
 	MARKERTYPE = [ 20, 21, 22 ]
 	
-	classesDict = {}
 	mcpartner = {}
+	todelete = []
 	for dataname, tnpdict in tnp.iteritems():
 		isnotMC = False
 		mcpartner[dataname] = []
@@ -204,6 +204,9 @@ def mcimposed( tnp, variable, Lumi, sys='cnt', **keywords ):
 
 	#-- Print in the same canvas every mc and data
 	for dataname, tnpdict in filter( lambda (name, _dict): _dict['isMC'] == 0, tnp.iteritems() ):
+		#-- Only plot those who find MC partner
+		if len(mcpartner[dataname]) == 0:
+			continue
 		for className, graphDict in tnpdict['tgraphs'].iteritems():
 			#-- Name of the class for the mc 
 			mcclassName = className.replace( tnp[dataname]['methodUsed'], sys+'_eff' )
