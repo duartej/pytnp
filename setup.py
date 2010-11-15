@@ -3,7 +3,7 @@ from subprocess import Popen, PIPE
 
 
 # Generating the c++ executables  ---------------------
-# FIXME: Provisional code--> missing checks, error
+# FIXME: Provisional code--> missing checks, errors,
 #        control, ...
 import os
 import shutil
