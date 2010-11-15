@@ -8,7 +8,7 @@ from pytnp.libPytnp.tnputils import  *
 from pytnp.libPytnp.management import printError,printWarning
 
 def superImposed( tnpDict, variable, Lumi, **keywords ):
-	""".. function superImposed( tnpdict, variable, Lumi[, title=thetitle, outputformat=format] )
+	""".. function:: superImposed( tnpdict, variable, Lumi[, title=thetitle, outputformat=format] )
 	
 	Giving different pytnp instances, the function do the 1-dim plots of the 'variable'
 	in the same canvas. The pytnp instances must have the same object types (objectType)
@@ -143,7 +143,7 @@ def superImposed( tnpDict, variable, Lumi, **keywords ):
 		# Raise a exception ??
 
 def mcimposed( tnp, variable, Lumi, sys='cnt', **keywords ):
-	""".. function mcimposed( tnp, variable, sys[, title=thetitle, outputformat=format )
+	""".. function:: mcimposed( tnp, variable, sys[, title=thetitle, outputformat=format] )
 	
 	Function to do the 1-dim plots of the ``variable`` for all datasets which 
 	attribute ``isMC=0`` with its correspondent Monte Carlo partner ``isMC=1``
@@ -262,7 +262,7 @@ def mcimposed( tnp, variable, Lumi, sys='cnt', **keywords ):
 
 
 def diff2DMaps( refT, otherT, varX, varY, Lumi, **keywords ):
-	""".. function diff2DMaps( tnpRef, tnpOther, varX, varY, Lumi\[,title=thetitle, outputformat=format] ) 
+	""".. function:: diff2DMaps( tnpRef, tnpOther, varX, varY, Lumi\[,title=thetitle, outputformat=format] ) 
 
 	Differences maps from 2 datasets::
 	

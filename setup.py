@@ -29,10 +29,10 @@ setup(name='pytnp',
 		description='Python for Tag And Probe utils',
 		author='Jordi Duarte Campderros',
 		author_email='Jordi.Duarte.Campderros@cern.ch',
-		url='http://devel.ifca.es/~duarte/tnp/dist',
+		url='http://devel.ifca.es/~duarte/pytnp/dist',
 		#py_modules=['pytnpclass','__init__'],
 		packages = ['pytnp','pytnp.libPytnp', 'pytnp.steerplots' ],
 		package_dir={'pytnp':''},
-		scripts=['bin/effPlots','bin/prepsubJobs.sh','bin/weightCreator.py'], # 'procsfile/.build/copyFile', 'procsfile/.build/CowboysNTuple'],
+		scripts=['bin/effPlots', 'procsfile/.build/copyFile', 'procsfile/.build/CowboysNTuple']#, 'bin/prepsubJobs.sh','bin/weightCreator.py'],
 		)
 

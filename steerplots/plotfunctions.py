@@ -8,11 +8,11 @@ from pytnp.libPytnp.management import printError,printWarning
 #-- Auxiliary class to store attributes and useful info for the
 #   plots
 class auxK():
-	""".. class:: auxK()
-
-	Used to store useful information for the graphs functions
-	Makes use of the setkeywords function to modify the 
-	its attributes. Per dafault::
+	""".. class:: auxK() 
+	
+	Auxiliary class used to store useful information for 
+	the graphs functions. Makes use of the ``setkeywords``
+	function to modify the 	its attributes. Per default::
 	  
 	  returnGraph = False
 	  graphname = 'graph_'
@@ -35,9 +35,16 @@ class auxK():
 	canvas = None
 
 def setkeywords( keywords, keyw ):
-	""".. function setkeywords( keyword, keyw )
+	""".. function setkeywords( keyword, keyw ) -> keyw
 
-	Internal use (TO BE DOCUMENTED)
+	:param keywords: dictionary containing the attributes and its values
+	:type keywords: dict
+	:param keyw: instance of auxK class
+	:type keyw: auxK
+	:return: an instance of auxK with its attributes modified with the ``keywords`` values
+	:rtype: auxK
+
+	:raise KeyError: If ``keywords`` contains a key which is not defined as attribute of ``auxK``
 	"""
 	#-- Sanity check
 	VALID_KEYWORDS = [ _name for _name in dir( keyw ) if _name.find('__') == -1 ]
@@ -51,8 +58,7 @@ def setkeywords( keywords, keyw ):
 
 
 def legend( posLeg ='CR' ):
-	"""
-	legend( 'pos' ) --> TLegend
+	""".. function:: legend( pos='CR' ) -> leg
 
 	Return a TLegend object positioned at 'pos'. The values
 	admitted for 'pos' are::
@@ -62,6 +68,11 @@ def legend( posLeg ='CR' ):
 	  DL: Down-Left corner
 	  DR: Down-Right corner
 	  CR: Center-Right 
+
+	:param pos: where positioning the legend (default: ``CR``)
+	:type pos: string 
+	:return: the object legend
+	:rtype: ROOT.TLegend
 
 	"""
 	import ROOT
@@ -83,8 +94,7 @@ def legend( posLeg ='CR' ):
 	return leg
 
 def paveText( title, posText='CR' ):
-	"""
-	paveText( 'pos' ) --> TPaveText
+	""".. function:: paveText( pos='CR' ) -> pave
 
 	Return a TLegend object positioned at 'pos'. The values
 	admitted for 'pos' are::
@@ -96,6 +106,11 @@ def paveText( title, posText='CR' ):
 	  CL: Center-Left
 	  CR: Center-Right 
 	  OG: Over the graphic
+	
+	:param pos: where positioning the legend (default: ``CR``)
+	:type pos: string 
+	:return: the object pave text
+	:rtype: ROOT.TPaveText
 	"""
 	import ROOT
 
@@ -126,9 +141,9 @@ def paveText( title, posText='CR' ):
 	return text
 
 def plotAsymGraphXY( X, Y, tx, ty, outputformat='eps', **keywords ):
-	""".. function gef plotAsymGraphXY( X, Y, tx, ty, outputformat='eps', **keywords )
+	""".. function:: plotAsymGraphXY( X, Y, tx, ty, outputformat='eps'[, ...] )
 
-	Creates a TGraphAsymmErrors plot
+	Creates a TGraphAsymmErrors plot and store
 
 	:param X: x variable
 	:type X: list of floats
@@ -140,7 +155,8 @@ def plotAsymGraphXY( X, Y, tx, ty, outputformat='eps', **keywords ):
 	:type ty: string
 	:param outputformat: format to store the plot (default eps)
 	:type outputformat: string
-
+	:keyword keywords: anything contained in the auxK class
+	:type keyword: dict
 	"""
 	import ROOT
 	import rootlogon
@@ -211,7 +227,8 @@ def plotAsymGraphXY( X, Y, tx, ty, outputformat='eps', **keywords ):
 	#return None, None
 
 def plotMapTH2F( X,Y,Z, tx, ty, tz,  NbinsX, arrayX, NbinsY, arrayY, outputformat='eps', **keywords ):
-	"""
+	""".. function:: plotMapTH2F( X, Y, Z, tx, ty, tz, NbinsX, arrayX, NbinsY, arrayY, outputformat='eps'[, ...])
+
 	Creates a TH2F plot using Z as values of the bins X,Y
 
 	:param X: x variable
@@ -236,6 +253,9 @@ def plotMapTH2F( X,Y,Z, tx, ty, tz,  NbinsX, arrayX, NbinsY, arrayY, outputforma
 	:type arrayY: array
 	:param outputformat: format to store the plot (default eps)
 	:type outputformat: string
+	
+	:keyword keywords: anything contained in the auxK class
+	:type keyword: dict
 	"""
 	import ROOT
 	import rootlogon

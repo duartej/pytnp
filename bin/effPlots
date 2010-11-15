@@ -93,8 +93,6 @@ if __name__ == '__main__':
         parser.add_option( '-c', '--config',  action='store', dest='config_file', metavar='FILE', help='Python configuration file' )
 	parser.add_option( '-p', '--printContent', action='store_true', dest='printContent', help='Print the Tag and Probe'\
 			' content of the root file(s) showing their encapsulate structure and then exit ' )
-        #parser.add_option( '-s', '--same', action='store', dest='comparationPlots', metavar='VAR',\
-	#		help='' )
         parser.add_option( '--1d', action='store', dest='dim1Plots', metavar='VAR', help='1-dimensional plots of binned VAR.'\
 			'If enter more than one input file then the 1-dim plots of variable \'VAR\' from different root files will be plotted'\
 			' in the same canvas' )
@@ -364,20 +362,6 @@ if __name__ == '__main__':
 			#-- Raise an error
 			parseOption( '0', '==', 1, Message )
 	#____________________________________________________________________________________________________
-
-	#____________________________________________________________________________________________________
-#	if opt.sysTnP:
-#		from pytnp.libPytnp.pytnpclass import pytnp
-#		from pytnp.steerplots.plotsCreation import sysMCFIT
-#		donesomething = True
-#		# Ploting mc true-counting vs. fit_eff
-#		allFiles = opt.fileName.split(',')
-#		# The mc true can be in other file, then we need
-#		resNameTuple = getResName( opt.fileName, config=config_file )
-#		tnp = pytnp( opt.fileName, effName = opt.effName, variables=onlythesevars, configfile=opt.config_file, resonance=resNameTuple )
-#
-#		sysMCFIT( tnp, Lumi )
-#	#____________________________________________________________________________________________________
 
 	#____________________________________________________________________________________________________
 	if opt.tables:
