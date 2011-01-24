@@ -287,7 +287,10 @@ if __name__ == '__main__':
 			if not category:
 				category = opt.maps[0]
 				varList = parseOption( opt.maps[1], '!=', 2, Message )
-			tnp.write('effMaps_'+tnp.resonance+'_'+category+'.root' )
+			#-- CHANGED: new requirements (Yu and Zhen asked)
+			#tnp.write('effMaps_'+tnp.resonance+'_'+category+'.root' )
+			effType = [ tnp[dataname]['effType'] for dataname in toUseList ][0] # FIXME: this patch
+			tnp.write('effMaps_'+tnp.resonance+'_'+effType+'.root' )
 		del tnp
 	#____________________________________________________________________________________________________
 	

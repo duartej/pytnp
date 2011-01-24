@@ -398,9 +398,9 @@ class pytnp(dict):
 		except (NameError,TypeError):
 			#---- Type of efficiency
 			if effType == 'histoTrigger':
-				structure[name]['effType'] = 'trigger'
+				structure[name]['effType'] = 'Trigger'
 			elif effType == 'histoMuFromTk':
-				structure[name]['effType'] =  'muonId'
+				structure[name]['effType'] =  'MuonID'
 			else:
 				structure[name]['effType'] = 'unknown'
 			#---- Type of efficiency
