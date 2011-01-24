@@ -59,6 +59,10 @@ def getResName( aFile, **keywords ):
 			for name, value in parserConfig( keywords['config'], 'DataNames' ).iteritems():
 				nameDict[name] = value
 				isDone = True
+			# User rules, so...
+			resonanceLatex = value[0]
+			resonance = value[1]
+			return resonance,resonanceLatex
 
 	try:
 		num = regexp.search( aFile ).group( 'NUMBER' )
