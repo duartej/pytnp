@@ -60,8 +60,9 @@ def getResName( aFile, **keywords ):
 				nameDict[name] = value
 				isDone = True
 			# User rules, so...
-			resonanceLatex = value[0]
-			resonance = value[1]
+			# Posible try!! FIXME!!
+			resonanceLatex = nameDict[aFile][0]
+			resonance = nameDict[aFile][1]
 			return resonance,resonanceLatex
 
 	try:

@@ -395,6 +395,11 @@ class pytnp(dict):
 			structure[name]['effType'] = tupleAttr[0]
 			structure[name]['objectType'] = tupleAttr[1]
 			structure[name]['isMC'] = tupleAttr[2]
+			#FIXME: To be implemented
+			#try:
+			#	structure[name]['legend'] = tupleAttr[3]
+			#except IndexError:
+			#	pass
 		except (NameError,TypeError):
 			#---- Type of efficiency
 			if effType == 'histoTrigger':
