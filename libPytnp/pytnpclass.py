@@ -569,7 +569,7 @@ class pytnp(dict):
 			printWarning( self.__module__+'.getCountMCName', message )
 	## Getters for attributes ######################################################################
 
-	def write(self, fileOut):
+	def write(self, fileOut, vartouse):
 		""".. method:: write( fileOut ) 
 
 		Create a root file with all the RooDataSets and TH2F maps of 
@@ -590,7 +590,21 @@ class pytnp(dict):
 		
 		howDatasets = 0
 		for name,dataSet in self.RooDataSet.iteritems():
-			dataSet.Write(name.replace('/','_'))
+			# Use only the variables introduced by the user
+			argset = dataSet.get()
+			allvariables = argset.contentsString().split(',')
+			newvariables = ROOT.RooArgSet()
+			for var in vartouse:
+				#Checking it is in the argset
+				if not var in allvariables:
+					message = "Variable '%s' is not in the RooDataSet '%s'" % ( var, dataSet.GetName())
+					printError( self.__module__+'.write', message, RuntimeError )
+				newvariables.add( argset[var] )	
+			#And the efficiency
+			newvariables.add( argset[self.effName] )
+			# The new RooDataSet	
+			newdataSet = dataSet.reduce( newvariables )	
+			newdataSet.Write(name.replace('/','_'))
 			try:
 				for namehisto,histoTuple in self[name]['TH2F'].iteritems():
 					for histo in histoTuple:

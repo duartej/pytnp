@@ -290,7 +290,7 @@ if __name__ == '__main__':
 			#-- CHANGED: new requirements (Yu and Zhen asked)
 			#tnp.write('effMaps_'+tnp.resonance+'_'+category+'.root' )
 			effType = [ tnp[dataname]['effType'] for dataname in toUseList ][0] # FIXME: this patch
-			tnp.write('effMaps_'+tnp.resonance+'_'+effType+'.root' )
+			tnp.write('effMaps_'+tnp.resonance+'_'+effType+'.root', varList )
 		del tnp
 	#____________________________________________________________________________________________________
 	
