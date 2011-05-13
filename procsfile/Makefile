@@ -1,4 +1,4 @@
-CC=gcc
+CC=g++
 INCDIR=`root-config --incdir`
 LIBS=`root-config --libs`
 
